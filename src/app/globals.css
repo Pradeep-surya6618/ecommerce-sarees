@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Brand color tokens — exported as Tailwind utilities like bg-ink-900, text-accent-primary */
+  --color-ink-900: #1f1414;
+  --color-ink-700: #3d2929;
+  --color-ink-500: #6b5252;
+  --color-bg-base: #faf7f2;
+  --color-bg-elevated: #ffffff;
+  --color-accent-primary: #8e2a2a;
+  --color-accent-primary-hover: #761f1f;
+  --color-accent-gold: #b8893e;
+  --color-success: #1a7a3a;
+  --color-warning: #b8722c;
+  --color-danger: #b3261e;
+
+  /* Typography */
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-body: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-body);
+
+  /* Type scale */
+  --text-2xs: 0.75rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3rem;
+  --text-4xl: 4rem;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgba(31, 20, 20, 0.04), 0 8px 24px rgba(31, 20, 20, 0.06);
+  --shadow-elev: 0 6px 16px rgba(31, 20, 20, 0.08), 0 24px 48px rgba(31, 20, 20, 0.1);
+
+  /* Motion */
+  --ease-default: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 320ms;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-bg-base);
+  color: var(--color-ink-900);
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "cv11";
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
