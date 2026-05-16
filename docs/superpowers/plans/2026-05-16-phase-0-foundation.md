@@ -66,6 +66,7 @@ Folder placeholders also created to lock structure: `src/components/{ui,storefro
 ## Task 1: Install Dependencies
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: Install runtime dependencies**
@@ -132,6 +133,7 @@ git commit -m "chore: install project dependencies for Phase 0"
 ## Task 2: TypeScript Paths and ESLint/Prettier/Husky
 
 **Files:**
+
 - Modify: `tsconfig.json`
 - Modify: `eslint.config.mjs`
 - Create: `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.husky/pre-commit`
@@ -293,14 +295,15 @@ git commit -m "chore: configure typescript paths, prettier, husky, lint-staged"
 ## Task 3: Vitest and Playwright Setup
 
 **Files:**
+
 - Create: `vitest.config.ts`, `vitest.setup.ts`, `playwright.config.ts`, `tests/e2e/smoke.spec.ts`
 
 - [ ] **Step 1: Create vitest.config.ts**
 
 ```ts
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
@@ -328,8 +331,8 @@ export default defineConfig({
 
 ```ts
 import "@testing-library/jest-dom/vitest";
-import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
 
 afterEach(() => {
   cleanup();
@@ -380,9 +383,7 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
-  projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-  ],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000",
@@ -420,6 +421,7 @@ git commit -m "test: configure vitest and playwright"
 ## Task 4: Folder Structure Scaffolding
 
 **Files:**
+
 - Create: `.gitkeep` placeholders for every directory the spec requires.
 
 - [ ] **Step 1: Create folders with placeholder files**
@@ -483,6 +485,7 @@ git commit -m "chore: scaffold folder structure with route groups"
 ## Task 5: Environment Validation (.env.example + lib/env.ts)
 
 **Files:**
+
 - Create: `.env.example`, `src/lib/env.ts`, `src/lib/env.test.ts`, `src/types/env.d.ts`
 
 - [ ] **Step 1: Create .env.example**
@@ -659,9 +662,7 @@ export type Env = z.infer<typeof schema>;
 function loadEnv(): Env {
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((i) => `${i.path.join(".")}: ${i.message}`)
-      .join("\n  ");
+    const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n  ");
     throw new Error(`Invalid environment configuration:\n  ${issues}`);
   }
   return parsed.data;
@@ -712,6 +713,7 @@ git commit -m "feat(env): add Zod-validated environment config"
 ## Task 6: Structured Logger (pino)
 
 **Files:**
+
 - Create: `src/lib/logger.ts`, `src/lib/logger.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -808,6 +810,7 @@ git commit -m "feat(logger): add pino logger with PII redaction"
 ## Task 7: Tailwind v4 Tokens, Fonts, and globals.css
 
 **Files:**
+
 - Modify: `src/app/globals.css`
 - Create: `src/lib/theme/tokens.ts`
 - Modify: `src/app/layout.tsx` (fonts)
@@ -993,6 +996,7 @@ git commit -m "feat(theme): add Tailwind v4 tokens and Cormorant + Inter fonts"
 ## Task 8: MUI Theme Bridge and Providers
 
 **Files:**
+
 - Create: `src/lib/theme/mui.ts`, `src/lib/theme/mui.test.ts`, `src/app/providers.tsx`
 - Modify: `src/app/layout.tsx` (wrap children in providers)
 
@@ -1080,8 +1084,8 @@ Expected: 2 passed.
 
 import { useState } from "react";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
-import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { muiTheme } from "@/lib/theme/mui";
 
@@ -1144,6 +1148,7 @@ git commit -m "feat(theme): bridge Tailwind tokens into MUI theme + providers"
 ## Task 9: DynamoDB Client + Tables Helper
 
 **Files:**
+
 - Create: `src/lib/db/client.ts`, `src/lib/db/client.test.ts`, `src/lib/db/tables.ts`, `src/lib/db/tables.test.ts`
 
 - [ ] **Step 1: Write the failing test for the tables helper**
@@ -1332,6 +1337,7 @@ git commit -m "feat(db): add DynamoDB DocumentClient singleton and table-name he
 ## Task 10: S3 Client Wrapper
 
 **Files:**
+
 - Create: `src/lib/storage/s3.ts`, `src/lib/storage/s3.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -1426,6 +1432,7 @@ git commit -m "feat(storage): add S3 client singleton and CDN URL helper"
 ## Task 11: Nodemailer SES SMTP Transport
 
 **Files:**
+
 - Create: `src/lib/mail/transport.ts`, `src/lib/mail/transport.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -1512,6 +1519,7 @@ git commit -m "feat(mail): add Nodemailer SES SMTP transport singleton"
 ## Task 12: Health Check Route Handler
 
 **Files:**
+
 - Create: `src/app/api/health/route.ts`, `src/app/api/health/route.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -1575,9 +1583,11 @@ npm run dev
 ```
 
 Open http://localhost:3000/api/health in a browser. Expected response body:
+
 ```json
 { "status": "ok", "timestamp": "<ISO>", "env": "development" }
 ```
+
 Stop the dev server.
 
 - [ ] **Step 6: Commit**
@@ -1592,6 +1602,7 @@ git commit -m "feat(api): add health check route"
 ## Task 13: DynamoDB Setup Script (Idempotent Table Creator)
 
 **Files:**
+
 - Create: `scripts/dynamo-setup.ts`, `scripts/dynamo-setup.test.ts`
 
 This script creates every table the spec defines, with the correct keys, GSIs, billing mode, TTL, and PITR. It is idempotent: running twice is safe.
@@ -1763,7 +1774,9 @@ export const TABLE_SPECS: TableSpec[] = [
   {
     name: TABLES.Banners,
     hashKey: "bannerId",
-    gsis: [{ name: "PlacementIndex", hashKey: "placement", rangeKey: "sortOrder", rangeKeyType: "N" }],
+    gsis: [
+      { name: "PlacementIndex", hashKey: "placement", rangeKey: "sortOrder", rangeKeyType: "N" },
+    ],
   },
   {
     name: TABLES.Reviews,
@@ -1942,6 +1955,7 @@ git commit -m "feat(scripts): add idempotent DynamoDB table-setup script"
 ## Task 14: Admin Bootstrap Script (Skeleton)
 
 **Files:**
+
 - Create: `scripts/bootstrap-admin.ts`
 
 This script is a stub for now; Task 14 of Phase 3 (Auth) will fill in the actual user-creation logic. We create the skeleton so the env vars and CLI entry point are wired up early.
@@ -1997,6 +2011,7 @@ git commit -m "feat(scripts): add admin bootstrap skeleton"
 ## Task 15: Replace Default Home with Token-Driven Placeholder
 
 **Files:**
+
 - Modify: `src/app/(storefront)/page.tsx`
 
 - [ ] **Step 1: Replace src/app/(storefront)/page.tsx**
@@ -2013,8 +2028,8 @@ export default function HomePage() {
           Handpicked sarees, woven with care.
         </h1>
         <p className="max-w-prose text-ink-700">
-          Phase 0 foundation is live. Tokens, theme, AWS clients, health check, and DynamoDB
-          setup script are in place. The storefront is the next phase.
+          Phase 0 foundation is live. Tokens, theme, AWS clients, health check, and DynamoDB setup
+          script are in place. The storefront is the next phase.
         </p>
         <Button variant="contained" color="primary" size="large">
           Explore the collection
@@ -2032,6 +2047,7 @@ npm run dev
 ```
 
 Open http://localhost:3000. Expect:
+
 - Warm ivory background (`#FAF7F2`).
 - Headline in Cormorant Garamond serif.
 - Body text in Inter.
@@ -2060,11 +2076,12 @@ git commit -m "feat(home): replace scaffold page with token-driven placeholder"
 ## Task 16: README Runbook
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Replace README.md**
 
-```markdown
+````markdown
 # Saree E-Commerce App
 
 Next.js 16 + React 19 + Tailwind v4 + MUI + AWS (DynamoDB / S3 / SES) + Razorpay + Shiprocket.
@@ -2084,6 +2101,8 @@ See the design spec at [`docs/superpowers/specs/2026-05-16-saree-ecom-design.md`
    ```powershell
    npm install
    ```
+````
+
 2. Copy the env template and fill in real values:
    ```powershell
    Copy-Item .env.example .env.local
@@ -2112,21 +2131,21 @@ These steps are performed once per environment. Phase 0 only provides the table-
 
 ## Scripts
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Start the Next.js dev server |
-| `npm run build` | Production build |
-| `npm run start` | Run the production build |
-| `npm run typecheck` | TypeScript check (no emit) |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier write |
-| `npm run format:check` | Prettier check |
-| `npm run test` | Unit tests (Vitest) |
-| `npm run test:watch` | Vitest in watch mode |
-| `npm run test:ui` | Vitest UI |
-| `npm run e2e` | Playwright E2E |
-| `npm run e2e:install` | Install Playwright browsers |
-| `npm run dynamo:setup` | Provision DynamoDB tables |
+| Command                   | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| `npm run dev`             | Start the Next.js dev server                   |
+| `npm run build`           | Production build                               |
+| `npm run start`           | Run the production build                       |
+| `npm run typecheck`       | TypeScript check (no emit)                     |
+| `npm run lint`            | ESLint                                         |
+| `npm run format`          | Prettier write                                 |
+| `npm run format:check`    | Prettier check                                 |
+| `npm run test`            | Unit tests (Vitest)                            |
+| `npm run test:watch`      | Vitest in watch mode                           |
+| `npm run test:ui`         | Vitest UI                                      |
+| `npm run e2e`             | Playwright E2E                                 |
+| `npm run e2e:install`     | Install Playwright browsers                    |
+| `npm run dynamo:setup`    | Provision DynamoDB tables                      |
 | `npm run admin:bootstrap` | Seed the first admin user (stub until Phase 3) |
 
 ## Project structure
@@ -2136,14 +2155,15 @@ See [docs/superpowers/specs/2026-05-16-saree-ecom-design.md](docs/superpowers/sp
 ## Phase plans
 
 Phase implementation plans live in [`docs/superpowers/plans/`](docs/superpowers/plans/). The first plan is `2026-05-16-phase-0-foundation.md` (this phase).
-```
+
+````
 
 - [ ] **Step 2: Commit**
 
 ```powershell
 git add README.md
 git commit -m "docs: add Phase 0 runbook and AWS setup checklist to README"
-```
+````
 
 ---
 
@@ -2166,7 +2186,7 @@ Expected: all four exit 0.
 npm run build
 ```
 
-Expected: build succeeds. (The build does NOT require AWS connectivity — env vars only need to be *present*, not functional, because `lib/env.ts` runs only when modules importing it are executed; the build phase imports `env.ts` indirectly via `app/api/health/route.ts`, but the values in `.env.example` copied to `.env.local` are syntactically valid placeholders.)
+Expected: build succeeds. (The build does NOT require AWS connectivity — env vars only need to be _present_, not functional, because `lib/env.ts` runs only when modules importing it are executed; the build phase imports `env.ts` indirectly via `app/api/health/route.ts`, but the values in `.env.example` copied to `.env.local` are syntactically valid placeholders.)
 
 If the build fails because of missing env vars, ensure `.env.local` exists with every key from `.env.example` populated (placeholder values are fine for typecheck/build).
 
