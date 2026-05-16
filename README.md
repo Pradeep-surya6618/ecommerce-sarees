@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Saree E-Commerce App
 
-## Getting Started
+Next.js 16 + React 19 + Tailwind v4 + MUI + AWS (DynamoDB / S3 / SES) + Razorpay + Shiprocket.
 
-First, run the development server:
+See the design spec at [`docs/superpowers/specs/2026-05-16-saree-ecom-design.md`](docs/superpowers/specs/2026-05-16-saree-ecom-design.md).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Prerequisites
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Node.js 20.x (LTS) or newer
+- An AWS account with permission to create DynamoDB tables, S3 buckets, and verify SES senders
+- A Razorpay test account (live keys later)
+- A Shiprocket account (sandbox + production)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Install dependencies:
+   ```powershell
+   npm install
+   ```
+2. Copy the env template and fill in real values:
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+   At minimum set: `JWT_ACCESS_SECRET` (32+ chars), `AWS_*`, `S3_BUCKET`, `CDN_BASE_URL`, `SES_SMTP_*`, `MAIL_FROM`, Razorpay/Shiprocket creds. Use test credentials.
+3. Provision DynamoDB tables (idempotent):
+   ```powershell
+   npm run dynamo:setup
+   ```
+4. Start the dev server:
+   ```powershell
+   npm run dev
+   ```
+5. Confirm health: open <http://localhost:3000/api/health>.
 
-## Learn More
+## AWS infrastructure checklist
 
-To learn more about Next.js, take a look at the following resources:
+These steps are performed once per environment. Phase 0 only provides the table-creation script; the rest is manual in the AWS console.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [ ] Create an IAM user `saree-ecom-app` with programmatic access; attach a least-privilege policy (DynamoDB CRUD on tables matching `${DDB_TABLE_PREFIX}*`, S3 read/write on the bucket, SES `SendRawEmail` for the verified identity). Store the access keys in `.env.local`.
+- [ ] Create the S3 bucket `${S3_BUCKET}` in `${AWS_REGION}`. Block public access; serve images through CloudFront only.
+- [ ] Create a CloudFront distribution in front of the bucket. Set `CDN_BASE_URL` to the distribution domain.
+- [ ] In SES: verify the sender domain in `${AWS_REGION}`. Configure DKIM. Request production access when ready (sandbox by default).
+- [ ] Create SES SMTP credentials and set `SES_SMTP_USER` / `SES_SMTP_PASSWORD`.
+- [ ] Run `npm run dynamo:setup` to create tables, enable TTL on tables that need it, and enable PITR everywhere.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command                   | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| `npm run dev`             | Start the Next.js dev server                   |
+| `npm run build`           | Production build                               |
+| `npm run start`           | Run the production build                       |
+| `npm run typecheck`       | TypeScript check (no emit)                     |
+| `npm run lint`            | ESLint                                         |
+| `npm run format`          | Prettier write                                 |
+| `npm run format:check`    | Prettier check                                 |
+| `npm run test`            | Unit tests (Vitest)                            |
+| `npm run test:watch`      | Vitest in watch mode                           |
+| `npm run test:ui`         | Vitest UI                                      |
+| `npm run e2e`             | Playwright E2E                                 |
+| `npm run e2e:install`     | Install Playwright browsers                    |
+| `npm run dynamo:setup`    | Provision DynamoDB tables                      |
+| `npm run admin:bootstrap` | Seed the first admin user (stub until Phase 3) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [docs/superpowers/specs/2026-05-16-saree-ecom-design.md](docs/superpowers/specs/2026-05-16-saree-ecom-design.md) §4 for the full layout.
+
+## Phase plans
+
+Phase implementation plans live in [`docs/superpowers/plans/`](docs/superpowers/plans/). The first plan is `2026-05-16-phase-0-foundation.md` (this phase).
