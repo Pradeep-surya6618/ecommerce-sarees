@@ -1,8 +1,30 @@
 import { PRODUCTS_FIXTURE } from "@/lib/db/fixtures/products";
+import type { ShopSort } from "@/lib/utils/shop-filters";
 import type { Product } from "@/types/domain";
 
 export interface ListOptions {
   limit?: number;
+}
+
+export interface SearchOptions {
+  categorySlugs?: string[];
+  fabrics?: string[];
+  colors?: string[];
+  occasions?: string[];
+  priceMinPaise?: number;
+  priceMaxPaise?: number;
+  inStockOnly?: boolean;
+  sort?: ShopSort;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SearchResult {
+  items: Product[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 }
 
 export interface ProductsRepo {
@@ -11,7 +33,10 @@ export interface ProductsRepo {
   listByCategory(categorySlug: string, options?: ListOptions): Promise<Product[]>;
   getBySlug(slug: string): Promise<Product | null>;
   getById(id: string): Promise<Product | null>;
+  search(options: SearchOptions): Promise<SearchResult>;
 }
+
+const DEFAULT_PAGE_SIZE = 12;
 
 function applyLimit<T>(items: T[], options?: ListOptions): T[] {
   return options?.limit ? items.slice(0, options.limit) : items;
@@ -23,6 +48,50 @@ function sortNewestFirst(a: Product, b: Product): number {
 
 function activeOnly(p: Product): boolean {
   return p.status === "active";
+}
+
+function applySort(items: Product[], sort: ShopSort | undefined): Product[] {
+  const arr = items.slice();
+  if (sort === "price-asc") return arr.sort((a, b) => a.priceInPaise - b.priceInPaise);
+  if (sort === "price-desc") return arr.sort((a, b) => b.priceInPaise - a.priceInPaise);
+  if (sort === "featured")
+    return arr.sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return sortNewestFirst(a, b);
+    });
+  return arr.sort(sortNewestFirst);
+}
+
+function lowerSet(values: string[]): Set<string> {
+  return new Set(values.map((v) => v.toLowerCase()));
+}
+
+function matchesFilters(p: Product, o: SearchOptions): boolean {
+  if (o.categorySlugs && o.categorySlugs.length > 0) {
+    if (!o.categorySlugs.includes(p.categorySlug)) return false;
+  }
+  if (o.fabrics && o.fabrics.length > 0) {
+    const wanted = lowerSet(o.fabrics);
+    const fabricLc = p.fabric.toLowerCase();
+    const ok = [...wanted].some((f) => fabricLc.includes(f));
+    if (!ok) return false;
+  }
+  if (o.colors && o.colors.length > 0) {
+    const wanted = lowerSet(o.colors);
+    const ok = p.variants.some((v) => wanted.has(v.colorName.toLowerCase()));
+    if (!ok) return false;
+  }
+  if (o.occasions && o.occasions.length > 0) {
+    const wanted = lowerSet(o.occasions);
+    const ok = p.occasion.some((o2) => wanted.has(o2.toLowerCase()));
+    if (!ok) return false;
+  }
+  if (typeof o.priceMinPaise === "number" && p.priceInPaise < o.priceMinPaise) return false;
+  if (typeof o.priceMaxPaise === "number" && p.priceInPaise > o.priceMaxPaise) return false;
+  if (o.inStockOnly) {
+    if (!p.variants.some((v) => v.stock > 0)) return false;
+  }
+  return true;
 }
 
 export const productsRepo: ProductsRepo = {
@@ -51,5 +120,22 @@ export const productsRepo: ProductsRepo = {
 
   async getById(id) {
     return PRODUCTS_FIXTURE.find((p) => p.id === id && activeOnly(p)) ?? null;
+  },
+
+  async search(options) {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize =
+      options.pageSize && options.pageSize > 0 ? options.pageSize : DEFAULT_PAGE_SIZE;
+    const all = PRODUCTS_FIXTURE.filter(activeOnly).filter((p) => matchesFilters(p, options));
+    const sorted = applySort(all, options.sort);
+    const start = (page - 1) * pageSize;
+    const items = sorted.slice(start, start + pageSize);
+    return {
+      items,
+      totalCount: sorted.length,
+      page,
+      pageSize,
+      hasMore: start + items.length < sorted.length,
+    };
   },
 };
