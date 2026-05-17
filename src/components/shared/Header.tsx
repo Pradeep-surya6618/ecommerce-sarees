@@ -1,11 +1,31 @@
 import Link from "next/link";
-import { Heart, Menu, Search, ShoppingBag, User } from "lucide-react";
+import { Heart, Menu, Search, User } from "lucide-react";
+import { getGuestSessionId } from "@/lib/cart/guest-session";
+import { computeSubtotalPaise } from "@/lib/cart/totals";
+import { cartRepo } from "@/lib/db/repos/cart";
 import { categoriesRepo } from "@/lib/db/repos/categories";
+import { CartTrigger } from "@/components/storefront/CartTrigger";
 import { Container } from "@/components/ui/Container";
 import { IconButton } from "@/components/ui/IconButton";
+import type { Cart } from "@/types/domain";
+
+async function readCart(): Promise<Cart> {
+  const guestSessionId = await getGuestSessionId();
+  if (!guestSessionId) {
+    return {
+      id: "cart_empty",
+      userId: null,
+      guestSessionId: null,
+      items: [],
+      updatedAt: new Date().toISOString(),
+    };
+  }
+  return cartRepo.getOrCreateForGuestSession(guestSessionId);
+}
 
 export async function Header() {
-  const categories = await categoriesRepo.listTopLevel();
+  const [categories, cart] = await Promise.all([categoriesRepo.listTopLevel(), readCart()]);
+  const subtotalPaise = computeSubtotalPaise(cart.items);
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-500/10 bg-bg-base/90 backdrop-blur">
@@ -49,9 +69,7 @@ export async function Header() {
             <IconButton aria-label="Account" size="sm">
               <User className="h-5 w-5" />
             </IconButton>
-            <IconButton aria-label="Cart" size="sm">
-              <ShoppingBag className="h-5 w-5" />
-            </IconButton>
+            <CartTrigger cart={cart} subtotalPaise={subtotalPaise} />
           </div>
         </div>
       </Container>
