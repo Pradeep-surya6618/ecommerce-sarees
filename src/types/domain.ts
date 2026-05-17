@@ -66,3 +66,86 @@ export interface Review {
   createdAt: string;
   verifiedPurchase: boolean;
 }
+
+export interface Address {
+  fullName: string;
+  phone: string;
+  email: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: "IN";
+}
+
+export interface CartItem {
+  id: string;
+  productId: string;
+  productSlug: string;
+  productName: string;
+  variantSku: string;
+  variantLabel: string;
+  imageUrl: string;
+  unitPricePaise: number;
+  unitMrpPaise: number;
+  quantity: number;
+  addedAt: string;
+}
+
+export interface Cart {
+  id: string;
+  userId: string | null;
+  guestSessionId: string | null;
+  items: CartItem[];
+  updatedAt: string;
+}
+
+export interface ShippingOption {
+  id: string;
+  name: string;
+  etaDays: number;
+  pricePaise: number;
+}
+
+export type PaymentMethod = "razorpay" | "cod";
+
+export type OrderStatus =
+  | "pending_payment"
+  | "confirmed"
+  | "paid"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "payment_failed";
+
+export interface OrderItem {
+  productId: string;
+  productSlug: string;
+  productName: string;
+  variantSku: string;
+  variantLabel: string;
+  imageUrl: string;
+  unitPricePaise: number;
+  quantity: number;
+  lineTotalPaise: number;
+}
+
+export interface Order {
+  id: string;
+  userId: string | null;
+  guestSessionId: string | null;
+  items: OrderItem[];
+  subtotalPaise: number;
+  shippingPaise: number;
+  taxPaise: number;
+  totalPaise: number;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: "pending" | "paid" | "failed";
+  shippingAddress: Address;
+  shippingOption: ShippingOption;
+  customerNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
