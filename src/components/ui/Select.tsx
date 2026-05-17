@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   label?: string;
   size?: "sm" | "md";
 }
