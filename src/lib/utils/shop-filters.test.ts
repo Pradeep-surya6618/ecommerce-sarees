@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseShopFilters, serializeShopFilters, type ShopFilters } from "./shop-filters";
+import { parseShopFilters, serializeShopFilters } from "./shop-filters";
 
 describe("parseShopFilters", () => {
   it("returns empty filters from empty params", () => {
