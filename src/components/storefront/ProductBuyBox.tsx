@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { addToCartAction } from "@/server/actions/cart";
 import { AddToCartButton } from "@/components/ui/AddToCartButton";
 import { PriceTag } from "@/components/ui/PriceTag";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
@@ -15,6 +16,24 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const selectedVariant = product.variants.find((v) => v.sku === selectedSku) ?? null;
   const inStock = (selectedVariant?.stock ?? 0) > 0;
   const maxQty = Math.max(1, Math.min(10, selectedVariant?.stock ?? 0));
+  const primaryImage = product.images[0]?.url ?? "";
+
+  async function handleAdd({ variantSku, quantity }: { variantSku: string; quantity: number }) {
+    if (!selectedVariant) return;
+    await addToCartAction({
+      productId: product.id,
+      productSlug: product.slug,
+      productName: product.name,
+      variantSku,
+      variantLabel: selectedVariant.size
+        ? `${selectedVariant.colorName} · ${selectedVariant.size}`
+        : selectedVariant.colorName,
+      imageUrl: primaryImage,
+      unitPricePaise: product.priceInPaise,
+      unitMrpPaise: product.mrpInPaise,
+      quantity,
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,6 +60,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
           productName={product.name}
           variantSku={selectedSku}
           quantity={quantity}
+          onAdd={handleAdd}
           disabled={!inStock}
           fullWidth
         />
