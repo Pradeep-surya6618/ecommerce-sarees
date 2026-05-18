@@ -146,6 +146,7 @@ export interface Order {
   shippingAddress: Address;
   shippingOption: ShippingOption;
   customerNotes?: string;
+  internalNotes: AdminOrderNote[];
   createdAt: string;
   updatedAt: string;
 }
@@ -162,6 +163,7 @@ export interface User {
   emailVerified: boolean;
   role: UserRole;
   provider: AuthProvider;
+  blocked: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -228,4 +230,43 @@ export interface WishlistItem {
   priceInPaise: number;
   mrpInPaise: number;
   addedAt: string;
+}
+
+export interface AdminOrderNote {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export type CouponType = "percent" | "flat";
+export type CouponStatus = "active" | "paused";
+
+export interface Coupon {
+  code: string;
+  description?: string;
+  type: CouponType;
+  value: number; // percent: 0..100, flat: paise
+  minOrderPaise?: number;
+  maxDiscountPaise?: number; // cap for percent coupons
+  maxUses?: number;
+  usedCount: number;
+  validFrom: string;
+  validTo: string;
+  status: CouponStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BannerInput {
+  placement: BannerPlacement;
+  imageUrl: string;
+  imageAlt: string;
+  title: string;
+  subtitle?: string;
+  ctaLabel: string;
+  ctaHref: string;
+  sortOrder: number;
+  active: boolean;
 }

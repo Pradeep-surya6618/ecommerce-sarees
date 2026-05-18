@@ -51,6 +51,7 @@ export const ordersRepo: OrdersRepo = {
       shippingAddress: input.shippingAddress,
       shippingOption: input.shippingOption,
       customerNotes: input.customerNotes,
+      internalNotes: [],
       createdAt: now,
       updatedAt: now,
     };

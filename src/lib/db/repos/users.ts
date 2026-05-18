@@ -52,6 +52,7 @@ export const usersRepo: UsersRepo = {
       emailVerified: false,
       role: input.role ?? "customer",
       provider: input.provider ?? "email",
+      blocked: false,
       createdAt: now,
       updatedAt: now,
     };
@@ -98,6 +99,7 @@ export const usersRepo: UsersRepo = {
       emailVerified: true,
       role: "customer",
       provider: "google",
+      blocked: false,
       createdAt: now,
       updatedAt: now,
     };
