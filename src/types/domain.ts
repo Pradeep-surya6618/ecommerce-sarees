@@ -152,6 +152,8 @@ export interface Order {
 
 export type UserRole = "customer" | "staff" | "admin";
 
+export type AuthProvider = "email" | "google";
+
 export interface User {
   id: string;
   email: string;
@@ -159,8 +161,25 @@ export interface User {
   passwordHash: string;
   emailVerified: boolean;
   role: UserRole;
+  provider: AuthProvider;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProductDraft {
+  name: string;
+  slug: string;
+  description: string;
+  categorySlug: string;
+  priceInPaise: number;
+  mrpInPaise: number;
+  images: ProductImage[];
+  variants: ProductVariant[];
+  tags: string[];
+  fabric: string;
+  occasion: string[];
+  featured: boolean;
+  status: ProductStatus;
 }
 
 export interface Session {
