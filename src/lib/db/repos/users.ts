@@ -17,6 +17,9 @@ export interface UsersRepo {
   updatePasswordHash(id: string, passwordHash: string): Promise<User | null>;
   findOrCreateGoogle(input: { email: string; fullName: string }): Promise<User>;
   promoteToAdmin(id: string): Promise<User | null>;
+  listCustomers(options?: { search?: string; limit?: number }): Promise<User[]>;
+  blockUser(id: string): Promise<User | null>;
+  unblockUser(id: string): Promise<User | null>;
 }
 
 declare global {
@@ -112,6 +115,37 @@ export const usersRepo: UsersRepo = {
     const user = users.get(id);
     if (!user) return null;
     user.role = "admin";
+    user.updatedAt = nowIso();
+    return user;
+  },
+
+  async listCustomers(options) {
+    let result = [...users.values()].filter((u) => u.role === "customer");
+    if (options?.search) {
+      const needle = options.search.toLowerCase();
+      result = result.filter(
+        (u) => u.email.toLowerCase().includes(needle) || u.fullName.toLowerCase().includes(needle),
+      );
+    }
+    result.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    if (options?.limit !== undefined) {
+      result = result.slice(0, options.limit);
+    }
+    return result;
+  },
+
+  async blockUser(id) {
+    const user = users.get(id);
+    if (!user) return null;
+    user.blocked = true;
+    user.updatedAt = nowIso();
+    return user;
+  },
+
+  async unblockUser(id) {
+    const user = users.get(id);
+    if (!user) return null;
+    user.blocked = false;
     user.updatedAt = nowIso();
     return user;
   },

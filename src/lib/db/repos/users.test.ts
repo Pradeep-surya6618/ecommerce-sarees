@@ -86,4 +86,58 @@ describe("usersRepo (mock)", () => {
     const fetched = await usersRepo.findById(user.id);
     expect(fetched?.role).toBe("admin");
   });
+
+  it("listCustomers returns only customers and excludes admin/staff", async () => {
+    await usersRepo.create({
+      email: "c1@example.com",
+      fullName: "Customer One",
+      passwordHash: "h",
+    });
+    await usersRepo.create({
+      email: "c2@example.com",
+      fullName: "Customer Two",
+      passwordHash: "h",
+    });
+    await usersRepo.create({
+      email: "admin@example.com",
+      fullName: "Admin User",
+      passwordHash: "h",
+      role: "admin",
+    });
+    const customers = await usersRepo.listCustomers();
+    expect(customers).toHaveLength(2);
+    expect(customers.every((u) => u.role === "customer")).toBe(true);
+  });
+
+  it("listCustomers filters by search (email and name, case-insensitive)", async () => {
+    await usersRepo.create({
+      email: "priya@example.com",
+      fullName: "Priya Sharma",
+      passwordHash: "h",
+    });
+    await usersRepo.create({
+      email: "anita@example.com",
+      fullName: "Anita Iyer",
+      passwordHash: "h",
+    });
+    const byEmail = await usersRepo.listCustomers({ search: "PRIYA@" });
+    expect(byEmail).toHaveLength(1);
+    expect(byEmail[0]?.email).toBe("priya@example.com");
+    const byName = await usersRepo.listCustomers({ search: "iyer" });
+    expect(byName).toHaveLength(1);
+    expect(byName[0]?.fullName).toBe("Anita Iyer");
+  });
+
+  it("blockUser and unblockUser flip the blocked flag", async () => {
+    const user = await usersRepo.create({
+      email: "block@example.com",
+      fullName: "Block Test",
+      passwordHash: "h",
+    });
+    expect(user.blocked).toBe(false);
+    const blocked = await usersRepo.blockUser(user.id);
+    expect(blocked?.blocked).toBe(true);
+    const unblocked = await usersRepo.unblockUser(user.id);
+    expect(unblocked?.blocked).toBe(false);
+  });
 });
