@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Heart, Menu, Search, User } from "lucide-react";
+import { Heart, Menu, User } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { cartRepo } from "@/lib/db/repos/cart";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { CartTrigger } from "@/components/storefront/CartTrigger";
+import { SearchPanel } from "@/components/storefront/SearchPanel";
 import { Container } from "@/components/ui/Container";
 import { IconButton } from "@/components/ui/IconButton";
 import type { Cart } from "@/types/domain";
@@ -69,13 +70,7 @@ export async function Header() {
           </nav>
 
           <div className="flex items-center gap-1">
-            <Link
-              href="/search"
-              aria-label="Search"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
-            >
-              <Search className="h-5 w-5" />
-            </Link>
+            <SearchPanel />
             <Link
               href="/account/wishlist"
               aria-label="Wishlist"
