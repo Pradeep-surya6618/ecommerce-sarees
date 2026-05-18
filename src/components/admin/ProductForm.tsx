@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,8 +22,8 @@ const productSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   categorySlug: z.string().min(1, "Select a category"),
-  priceRupees: z.coerce.number().int("Must be a whole number").nonnegative("Must be 0 or more"),
-  mrpRupees: z.coerce.number().int("Must be a whole number").nonnegative("Must be 0 or more"),
+  priceRupees: z.number().int("Must be a whole number").nonnegative("Must be 0 or more"),
+  mrpRupees: z.number().int("Must be a whole number").nonnegative("Must be 0 or more"),
   fabric: z.string().min(2, "Fabric must be at least 2 characters"),
   tagsCsv: z.string().optional(),
   occasionCsv: z.string().optional(),
@@ -30,7 +31,8 @@ const productSchema = z.object({
   status: z.enum(["draft", "active", "archived"]).default("draft"),
 });
 
-type ProductFormValues = z.infer<typeof productSchema>;
+// Output type (after Zod parses — defaults applied, transforms run)
+type ProductFormValues = z.output<typeof productSchema>;
 
 export interface ProductFormProps {
   categories: Category[];
@@ -58,7 +60,8 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
     setValue,
     watch,
     formState: { errors },
-  } = useForm<ProductFormValues>({
+    // Let TypeScript infer form types from the resolver (input = field values, output = validated)
+  } = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: defaultProduct?.name ?? "",
@@ -192,7 +195,7 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
               id="priceRupees"
               type="number"
               min={0}
-              {...register("priceRupees")}
+              {...register("priceRupees", { valueAsNumber: true })}
               invalid={!!errors.priceRupees}
             />
           </FormField>
@@ -202,7 +205,7 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
               id="mrpRupees"
               type="number"
               min={0}
-              {...register("mrpRupees")}
+              {...register("mrpRupees", { valueAsNumber: true })}
               invalid={!!errors.mrpRupees}
             />
           </FormField>
@@ -307,9 +310,12 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
           {isPending ? "Saving…" : editId ? "Save changes" : "Create product"}
         </button>
         {editId && (
-          <a href="/admin/products" className="text-sm text-ink-500 transition hover:text-ink-700">
+          <Link
+            href="/admin/products"
+            className="text-sm text-ink-500 transition hover:text-ink-700"
+          >
             Cancel
-          </a>
+          </Link>
         )}
       </div>
     </form>
