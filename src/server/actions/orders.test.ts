@@ -15,6 +15,11 @@ vi.mock("@/lib/cart/guest-session", () => ({
   getGuestSessionId: vi.fn(async () => "gs_order_test"),
 }));
 
+const getCurrentUserMock = vi.hoisted(() =>
+  vi.fn<() => Promise<{ id: string; emailVerified: boolean } | null>>(async () => null),
+);
+vi.mock("@/lib/auth/current-user", () => ({ getCurrentUser: getCurrentUserMock }));
+
 const address: Address = {
   fullName: "Aishwarya R.",
   phone: "9876543210",
@@ -38,6 +43,8 @@ describe("placeOrderAction", () => {
     __resetCartRepo();
     __resetOrdersRepo();
     redirectMock.mockClear();
+    getCurrentUserMock.mockReset();
+    getCurrentUserMock.mockResolvedValue(null);
   });
 
   it("snapshots the cart into an order and clears the cart", async () => {
@@ -85,5 +92,32 @@ describe("placeOrderAction", () => {
         paymentMethod: "razorpay",
       }),
     ).rejects.toThrow(/empty/i);
+  });
+
+  it("uses the user cart and sets userId on the order when signed in", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "usr_user1", emailVerified: true });
+    await cartRepo.addItemAsUser("usr_user1", {
+      productId: "p",
+      productSlug: "p",
+      productName: "Amrita",
+      variantSku: "sku",
+      variantLabel: "Maroon",
+      imageUrl: "https://x/y.jpg",
+      unitPricePaise: 100000,
+      unitMrpPaise: 120000,
+      quantity: 1,
+    });
+    await expect(
+      placeOrderAction({
+        shippingAddress: address,
+        shippingOption: shipping,
+        paymentMethod: "razorpay",
+      }),
+    ).rejects.toThrow(/NEXT_REDIRECT/);
+    const userOrders = await ordersRepo.listByUser("usr_user1");
+    expect(userOrders).toHaveLength(1);
+    expect(userOrders[0]?.userId).toBe("usr_user1");
+    const cartAfter = await cartRepo.getOrCreateForUser("usr_user1");
+    expect(cartAfter.items).toEqual([]);
   });
 });

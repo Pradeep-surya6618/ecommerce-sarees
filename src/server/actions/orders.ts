@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { ensureGuestSessionId } from "@/lib/cart/guest-session";
 import { computeSubtotalPaise, computeTaxPaise, computeTotalPaise } from "@/lib/cart/totals";
 import { cartRepo } from "@/lib/db/repos/cart";
@@ -16,8 +17,14 @@ export interface PlaceOrderInput {
 }
 
 export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
-  const guestSessionId = await ensureGuestSessionId();
-  const cart = await cartRepo.getOrCreateForGuestSession(guestSessionId);
+  const user = await getCurrentUser();
+  let cart;
+  if (user) {
+    cart = await cartRepo.getOrCreateForUser(user.id);
+  } else {
+    const guestSessionId = await ensureGuestSessionId();
+    cart = await cartRepo.getOrCreateForGuestSession(guestSessionId);
+  }
 
   if (cart.items.length === 0) {
     throw new Error("Cart is empty.");
@@ -41,8 +48,8 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
   const totalPaise = computeTotalPaise({ subtotalPaise, taxPaise, shippingPaise });
 
   const order = await ordersRepo.create({
-    userId: null,
-    guestSessionId,
+    userId: user?.id ?? null,
+    guestSessionId: user ? null : cart.guestSessionId,
     items,
     subtotalPaise,
     shippingPaise,
@@ -54,7 +61,11 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
     customerNotes: input.customerNotes,
   });
 
-  await cartRepo.clear(guestSessionId);
+  if (user) {
+    await cartRepo.clearAsUser(user.id);
+  } else if (cart.guestSessionId) {
+    await cartRepo.clear(cart.guestSessionId);
+  }
   revalidatePath("/", "layout");
   redirect(`/checkout/success/${order.id}`);
 }
