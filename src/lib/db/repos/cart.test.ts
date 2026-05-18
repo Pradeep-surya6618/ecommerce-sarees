@@ -109,4 +109,58 @@ describe("cartRepo (mock)", () => {
     const cart = await cartRepo.clear("gs_test7");
     expect(cart.items).toHaveLength(0);
   });
+
+  it("getOrCreateForUser returns the same cart on repeat access", async () => {
+    const a = await cartRepo.getOrCreateForUser("usr_a");
+    const b = await cartRepo.getOrCreateForUser("usr_a");
+    expect(b.id).toBe(a.id);
+    expect(a.userId).toBe("usr_a");
+  });
+
+  it("mergeGuestIntoUser merges items keyed by variantSku", async () => {
+    await cartRepo.addItem("gs_m1", {
+      productId: "p1",
+      productSlug: "p1",
+      productName: "P1",
+      variantSku: "v-red",
+      variantLabel: "Red",
+      imageUrl: "https://x/y.jpg",
+      unitPricePaise: 100000,
+      unitMrpPaise: 100000,
+      quantity: 2,
+    });
+    await cartRepo.addItem("gs_m1", {
+      productId: "p2",
+      productSlug: "p2",
+      productName: "P2",
+      variantSku: "v-blue",
+      variantLabel: "Blue",
+      imageUrl: "https://x/y.jpg",
+      unitPricePaise: 50000,
+      unitMrpPaise: 50000,
+      quantity: 1,
+    });
+    await cartRepo.addItemAsUser("usr_m1", {
+      productId: "p1",
+      productSlug: "p1",
+      productName: "P1",
+      variantSku: "v-red",
+      variantLabel: "Red",
+      imageUrl: "https://x/y.jpg",
+      unitPricePaise: 100000,
+      unitMrpPaise: 100000,
+      quantity: 1,
+    });
+
+    const merged = await cartRepo.mergeGuestIntoUser("gs_m1", "usr_m1");
+    expect(merged.items).toHaveLength(2);
+    const red = merged.items.find((i) => i.variantSku === "v-red");
+    const blue = merged.items.find((i) => i.variantSku === "v-blue");
+    expect(red?.quantity).toBe(3);
+    expect(blue?.quantity).toBe(1);
+
+    // Guest cart cleared
+    const guest = await cartRepo.getOrCreateForGuestSession("gs_m1");
+    expect(guest.items).toEqual([]);
+  });
 });
