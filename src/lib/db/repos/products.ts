@@ -1,6 +1,23 @@
+import { nanoid } from "nanoid";
 import { PRODUCTS_FIXTURE } from "@/lib/db/fixtures/products";
 import type { ShopSort } from "@/lib/utils/shop-filters";
-import type { Product } from "@/types/domain";
+import type { Product, ProductDraft } from "@/types/domain";
+
+declare global {
+  var __mockProducts: Map<string, Product> | undefined;
+}
+
+function getStore(): Map<string, Product> {
+  if (globalThis.__mockProducts) return globalThis.__mockProducts;
+  const store = new Map<string, Product>();
+  for (const p of PRODUCTS_FIXTURE) store.set(p.id, p);
+  globalThis.__mockProducts = store;
+  return store;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
 
 export interface ListOptions {
   limit?: number;
@@ -34,6 +51,9 @@ export interface ProductsRepo {
   getBySlug(slug: string): Promise<Product | null>;
   getById(id: string): Promise<Product | null>;
   search(options: SearchOptions): Promise<SearchResult>;
+  create(input: ProductDraft): Promise<Product>;
+  update(id: string, input: Partial<ProductDraft>): Promise<Product | null>;
+  archive(id: string): Promise<Product | null>;
 }
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -96,37 +116,41 @@ function matchesFilters(p: Product, o: SearchOptions): boolean {
 
 export const productsRepo: ProductsRepo = {
   async list(options) {
-    const items = PRODUCTS_FIXTURE.filter(activeOnly).slice().sort(sortNewestFirst);
+    const items = [...getStore().values()].filter(activeOnly).slice().sort(sortNewestFirst);
     return applyLimit(items, options);
   },
 
   async listFeatured(options) {
-    const items = PRODUCTS_FIXTURE.filter((p) => activeOnly(p) && p.featured)
+    const items = [...getStore().values()]
+      .filter((p) => activeOnly(p) && p.featured)
       .slice()
       .sort(sortNewestFirst);
     return applyLimit(items, options);
   },
 
   async listByCategory(categorySlug, options) {
-    const items = PRODUCTS_FIXTURE.filter((p) => activeOnly(p) && p.categorySlug === categorySlug)
+    const items = [...getStore().values()]
+      .filter((p) => activeOnly(p) && p.categorySlug === categorySlug)
       .slice()
       .sort(sortNewestFirst);
     return applyLimit(items, options);
   },
 
   async getBySlug(slug) {
-    return PRODUCTS_FIXTURE.find((p) => p.slug === slug && activeOnly(p)) ?? null;
+    return [...getStore().values()].find((p) => p.slug === slug && activeOnly(p)) ?? null;
   },
 
   async getById(id) {
-    return PRODUCTS_FIXTURE.find((p) => p.id === id && activeOnly(p)) ?? null;
+    return [...getStore().values()].find((p) => p.id === id && activeOnly(p)) ?? null;
   },
 
   async search(options) {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize =
       options.pageSize && options.pageSize > 0 ? options.pageSize : DEFAULT_PAGE_SIZE;
-    const all = PRODUCTS_FIXTURE.filter(activeOnly).filter((p) => matchesFilters(p, options));
+    const all = [...getStore().values()]
+      .filter(activeOnly)
+      .filter((p) => matchesFilters(p, options));
     const sorted = applySort(all, options.sort);
     const start = (page - 1) * pageSize;
     const items = sorted.slice(start, start + pageSize);
@@ -138,4 +162,40 @@ export const productsRepo: ProductsRepo = {
       hasMore: start + items.length < sorted.length,
     };
   },
+
+  async create(input) {
+    const store = getStore();
+    const now = nowIso();
+    const product: Product = {
+      ...input,
+      id: `prd_${nanoid(12)}`,
+      createdAt: now,
+    };
+    store.set(product.id, product);
+    return product;
+  },
+
+  async update(id, input) {
+    const store = getStore();
+    const existing = store.get(id);
+    if (!existing) return null;
+    const updated: Product = { ...existing, ...input };
+    store.set(id, updated);
+    return updated;
+  },
+
+  async archive(id) {
+    const store = getStore();
+    const existing = store.get(id);
+    if (!existing) return null;
+    const archived: Product = { ...existing, status: "archived" };
+    store.set(id, archived);
+    return archived;
+  },
 };
+
+export function __resetProductsRepo(): void {
+  const store = getStore();
+  store.clear();
+  for (const p of PRODUCTS_FIXTURE) store.set(p.id, p);
+}

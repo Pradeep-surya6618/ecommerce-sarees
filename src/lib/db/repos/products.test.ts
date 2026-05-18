@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { productsRepo } from "./products";
+import { beforeEach, describe, expect, it } from "vitest";
+import { __resetProductsRepo, productsRepo } from "./products";
 
 describe("productsRepo (mock)", () => {
+  beforeEach(() => __resetProductsRepo());
+
   it("lists active products only, sorted by createdAt desc", async () => {
     const result = await productsRepo.list();
     expect(result.length).toBeGreaterThanOrEqual(10);
@@ -94,6 +96,47 @@ describe("productsRepo (mock)", () => {
     it("filters by inStockOnly (any variant with stock > 0)", async () => {
       const result = await productsRepo.search({ inStockOnly: true });
       expect(result.items.every((p) => p.variants.some((v) => v.stock > 0))).toBe(true);
+    });
+  });
+
+  describe("CRUD", () => {
+    const draftBase = {
+      name: "Test Saree",
+      slug: "test-saree",
+      description: "A beautiful test saree",
+      categorySlug: "kanjivaram",
+      priceInPaise: 500000,
+      mrpInPaise: 600000,
+      images: [{ url: "https://example.com/img.jpg", alt: "Test" }],
+      variants: [{ sku: "TST-001", colorName: "Red", colorHex: "#ff0000", stock: 5 }],
+      tags: ["test"],
+      fabric: "Silk",
+      occasion: ["wedding"],
+      featured: false,
+      status: "active" as const,
+    };
+
+    it("create returns a prd_ id and product appears in list()", async () => {
+      const product = await productsRepo.create(draftBase);
+      expect(product.id).toMatch(/^prd_/);
+      expect(product.name).toBe("Test Saree");
+      const list = await productsRepo.list();
+      expect(list.some((p) => p.id === product.id)).toBe(true);
+    });
+
+    it("update modifies product fields", async () => {
+      const product = await productsRepo.create(draftBase);
+      const updated = await productsRepo.update(product.id, { name: "Updated Saree" });
+      expect(updated?.name).toBe("Updated Saree");
+      expect(updated?.slug).toBe("test-saree");
+    });
+
+    it("archive sets status to archived and product is excluded from list()", async () => {
+      const product = await productsRepo.create(draftBase);
+      const archived = await productsRepo.archive(product.id);
+      expect(archived?.status).toBe("archived");
+      const list = await productsRepo.list();
+      expect(list.some((p) => p.id === product.id)).toBe(false);
     });
   });
 });
