@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   Banknote,
+  FolderTree,
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
@@ -19,6 +20,7 @@ import { logoutAction } from "@/server/actions/auth";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/categories", label: "Categories", icon: FolderTree },
   { href: "/admin/orders", label: "Orders", icon: Banknote },
   { href: "/admin/customers", label: "Customers", icon: UsersRound },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
