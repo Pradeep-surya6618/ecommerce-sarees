@@ -79,4 +79,22 @@ describe("ordersRepo (mock)", () => {
     const list = await ordersRepo.listByGuestSession("gs_alpha");
     expect(list).toHaveLength(1);
   });
+
+  it("lists orders for a userId", async () => {
+    await ordersRepo.create({
+      userId: "usr_o1",
+      guestSessionId: null,
+      items: sampleItems,
+      subtotalPaise: 4250000,
+      shippingPaise: 8000,
+      taxPaise: 212500,
+      totalPaise: 4470500,
+      paymentMethod: "razorpay",
+      shippingAddress: sampleAddress,
+      shippingOption: sampleShipping,
+    });
+    const list = await ordersRepo.listByUser("usr_o1");
+    expect(list).toHaveLength(1);
+    expect(list[0]?.userId).toBe("usr_o1");
+  });
 });

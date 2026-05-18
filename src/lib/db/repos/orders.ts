@@ -19,6 +19,7 @@ export interface OrdersRepo {
   create(input: CreateOrderInput): Promise<Order>;
   getById(id: string): Promise<Order | null>;
   listByGuestSession(guestSessionId: string): Promise<Order[]>;
+  listByUser(userId: string): Promise<Order[]>;
 }
 
 declare global {
@@ -63,6 +64,12 @@ export const ordersRepo: OrdersRepo = {
   async listByGuestSession(guestSessionId) {
     return [...orders.values()]
       .filter((o) => o.guestSessionId === guestSessionId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  },
+
+  async listByUser(userId) {
+    return [...orders.values()]
+      .filter((o) => o.userId === userId)
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   },
 };
