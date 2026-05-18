@@ -21,7 +21,11 @@ export interface OrdersRepo {
   listByGuestSession(guestSessionId: string): Promise<Order[]>;
 }
 
-const orders = new Map<string, Order>();
+declare global {
+  var __mockOrders: Map<string, Order> | undefined;
+}
+
+const orders: Map<string, Order> = globalThis.__mockOrders ?? (globalThis.__mockOrders = new Map());
 
 function nowIso(): string {
   return new Date().toISOString();

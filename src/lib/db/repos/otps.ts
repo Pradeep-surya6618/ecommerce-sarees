@@ -14,7 +14,11 @@ export interface OtpsRepo {
   consume(id: string): Promise<void>;
 }
 
-const otps = new Map<string, OtpRecord>();
+declare global {
+  var __mockOtps: Map<string, OtpRecord> | undefined;
+}
+
+const otps: Map<string, OtpRecord> = globalThis.__mockOtps ?? (globalThis.__mockOtps = new Map());
 
 function nowIso(): string {
   return new Date().toISOString();

@@ -16,8 +16,15 @@ export interface UsersRepo {
   updatePasswordHash(id: string, passwordHash: string): Promise<User | null>;
 }
 
-const users = new Map<string, User>();
-const byEmail = new Map<string, string>();
+declare global {
+  var __mockUsers: Map<string, User> | undefined;
+
+  var __mockUsersByEmail: Map<string, string> | undefined;
+}
+
+const users: Map<string, User> = globalThis.__mockUsers ?? (globalThis.__mockUsers = new Map());
+const byEmail: Map<string, string> =
+  globalThis.__mockUsersByEmail ?? (globalThis.__mockUsersByEmail = new Map());
 
 function nowIso(): string {
   return new Date().toISOString();

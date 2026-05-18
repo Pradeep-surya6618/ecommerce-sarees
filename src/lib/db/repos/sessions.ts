@@ -13,7 +13,12 @@ export interface SessionsRepo {
   deleteById(id: string): Promise<void>;
 }
 
-const sessions = new Map<string, Session>();
+declare global {
+  var __mockSessions: Map<string, Session> | undefined;
+}
+
+const sessions: Map<string, Session> =
+  globalThis.__mockSessions ?? (globalThis.__mockSessions = new Map());
 
 function nowIso(): string {
   return new Date().toISOString();

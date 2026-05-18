@@ -24,8 +24,16 @@ export interface CartRepo {
   mergeGuestIntoUser(guestSessionId: string, userId: string): Promise<Cart>;
 }
 
-const cartsByGuest = new Map<string, Cart>();
-const cartsByUser = new Map<string, Cart>();
+declare global {
+  var __mockCartsByGuest: Map<string, Cart> | undefined;
+
+  var __mockCartsByUser: Map<string, Cart> | undefined;
+}
+
+const cartsByGuest: Map<string, Cart> =
+  globalThis.__mockCartsByGuest ?? (globalThis.__mockCartsByGuest = new Map());
+const cartsByUser: Map<string, Cart> =
+  globalThis.__mockCartsByUser ?? (globalThis.__mockCartsByUser = new Map());
 
 function nowIso(): string {
   return new Date().toISOString();

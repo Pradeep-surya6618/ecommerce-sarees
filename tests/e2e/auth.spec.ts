@@ -19,7 +19,9 @@ test.describe("Auth flow", () => {
     }
 
     await page.getByRole("button", { name: /Verify and continue/i }).click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL(/\/account(\?|$)/);
+    // Sanity: assert we are NOT on the login page
+    await expect(page).not.toHaveURL(/\/auth\/login/);
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { level: 1, name: /Test User/ })).toBeVisible();
   });
