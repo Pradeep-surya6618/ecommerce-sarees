@@ -97,4 +97,48 @@ describe("ordersRepo (mock)", () => {
     expect(list).toHaveLength(1);
     expect(list[0]?.userId).toBe("usr_o1");
   });
+
+  it("updateStatus changes order status", async () => {
+    const order = await ordersRepo.create({
+      userId: null,
+      guestSessionId: "gs_status",
+      items: sampleItems,
+      subtotalPaise: 4250000,
+      shippingPaise: 8000,
+      taxPaise: 212500,
+      totalPaise: 4470500,
+      paymentMethod: "cod",
+      shippingAddress: sampleAddress,
+      shippingOption: sampleShipping,
+    });
+    expect(order.status).toBe("confirmed");
+    const updated = await ordersRepo.updateStatus(order.id, "shipped");
+    expect(updated?.status).toBe("shipped");
+    const fetched = await ordersRepo.getById(order.id);
+    expect(fetched?.status).toBe("shipped");
+  });
+
+  it("addInternalNote appends a note to the order", async () => {
+    const order = await ordersRepo.create({
+      userId: null,
+      guestSessionId: "gs_notes",
+      items: sampleItems,
+      subtotalPaise: 4250000,
+      shippingPaise: 8000,
+      taxPaise: 212500,
+      totalPaise: 4470500,
+      paymentMethod: "cod",
+      shippingAddress: sampleAddress,
+      shippingOption: sampleShipping,
+    });
+    expect(order.internalNotes).toHaveLength(0);
+    const updated = await ordersRepo.addInternalNote(order.id, {
+      authorId: "usr_admin1",
+      authorName: "Admin User",
+      body: "Customer called about delay.",
+    });
+    expect(updated?.internalNotes).toHaveLength(1);
+    expect(updated?.internalNotes[0]?.id).toMatch(/^note_/);
+    expect(updated?.internalNotes[0]?.body).toBe("Customer called about delay.");
+  });
 });

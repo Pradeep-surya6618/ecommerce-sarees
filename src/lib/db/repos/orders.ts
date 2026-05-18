@@ -1,5 +1,13 @@
 import { nanoid } from "nanoid";
-import type { Address, Order, OrderItem, PaymentMethod, ShippingOption } from "@/types/domain";
+import type {
+  Address,
+  AdminOrderNote,
+  Order,
+  OrderItem,
+  OrderStatus,
+  PaymentMethod,
+  ShippingOption,
+} from "@/types/domain";
 
 export interface CreateOrderInput {
   userId: string | null;
@@ -21,6 +29,11 @@ export interface OrdersRepo {
   listByGuestSession(guestSessionId: string): Promise<Order[]>;
   listByUser(userId: string): Promise<Order[]>;
   listAll(): Promise<Order[]>;
+  updateStatus(orderId: string, status: OrderStatus): Promise<Order | null>;
+  addInternalNote(
+    orderId: string,
+    note: { authorId: string; authorName: string; body: string },
+  ): Promise<Order | null>;
 }
 
 declare global {
@@ -77,6 +90,29 @@ export const ordersRepo: OrdersRepo = {
 
   async listAll() {
     return [...orders.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  },
+
+  async updateStatus(orderId, status) {
+    const order = orders.get(orderId);
+    if (!order) return null;
+    order.status = status;
+    order.updatedAt = nowIso();
+    return order;
+  },
+
+  async addInternalNote(orderId, note) {
+    const order = orders.get(orderId);
+    if (!order) return null;
+    const newNote: AdminOrderNote = {
+      id: `note_${nanoid(10)}`,
+      authorId: note.authorId,
+      authorName: note.authorName,
+      body: note.body,
+      createdAt: nowIso(),
+    };
+    order.internalNotes.push(newNote);
+    order.updatedAt = nowIso();
+    return order;
   },
 };
 
