@@ -16,14 +16,25 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import type { Coupon } from "@/types/domain";
 
+// Helper: coerce NaN (from empty number inputs) to undefined so optional() passes
+const optionalNumber = z.preprocess(
+  (v) => (typeof v === "number" && isNaN(v) ? undefined : v),
+  z.number().nonnegative("Must be 0 or more").optional(),
+);
+
+const optionalInt = z.preprocess(
+  (v) => (typeof v === "number" && isNaN(v) ? undefined : v),
+  z.number().int("Must be a whole number").nonnegative("Must be 0 or more").optional(),
+);
+
 const couponSchema = z.object({
   code: z.string().min(1, "Code is required"),
   description: z.string().optional(),
   type: z.enum(["percent", "flat"]),
   value: z.number().nonnegative("Must be 0 or more"),
-  minOrderRupees: z.number().nonnegative("Must be 0 or more").optional(),
-  maxDiscountRupees: z.number().nonnegative("Must be 0 or more").optional(),
-  maxUses: z.number().int("Must be a whole number").nonnegative("Must be 0 or more").optional(),
+  minOrderRupees: optionalNumber,
+  maxDiscountRupees: optionalNumber,
+  maxUses: optionalInt,
   validFrom: z.string().min(1, "Valid from date is required"),
   validTo: z.string().min(1, "Valid to date is required"),
   status: z.enum(["active", "paused"]),

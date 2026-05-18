@@ -34,27 +34,29 @@ test.describe("Admin REST — orders, customers, coupons, banners", () => {
     futureDate.setDate(futureDate.getDate() + 30);
     const futureDateStr = futureDate.toISOString().slice(0, 10);
 
-    // Fill the code field
-    await page.getByLabel(/^Code/i).fill("TEST10");
+    // Use a timestamp-based unique code so parallel reruns don't clash
+    const couponCode = `TEST${Date.now().toString().slice(-6)}`;
 
-    // Select type = percent
-    await page.getByLabel(/^Type/i).selectOption("percent");
+    // Fill the code field (input id="code")
+    await page.locator("#code").fill(couponCode);
 
-    // Fill value
-    await page.getByLabel(/^Value \(%\)/i).fill("10");
+    // Type is already "percent" by default — leave it as-is
 
-    // Fill validFrom date input
-    await page.getByLabel(/^Valid from/i).fill(todayStr);
+    // Fill value (input id="value") — percent type is already selected by default
+    await page.locator("#value").fill("10");
+
+    // Fill validFrom date input using id selector; fill() accepts YYYY-MM-DD for type="date"
+    await page.locator("#validFrom").fill(todayStr);
 
     // Fill validTo date input
-    await page.getByLabel(/^Valid to/i).fill(futureDateStr);
+    await page.locator("#validTo").fill(futureDateStr);
 
     // Submit the form
     await page.getByRole("button", { name: /^Create coupon$/i }).click();
 
-    // Should redirect to /admin/coupons/TEST10
-    await page.waitForURL(/\/admin\/coupons\/TEST10/i);
-    await expect(page).toHaveURL(/\/admin\/coupons\/TEST10/i);
+    // Should redirect to /admin/coupons/<CODE>
+    await page.waitForURL(new RegExp(`/admin/coupons/${couponCode}`, "i"), { timeout: 15000 });
+    await expect(page).toHaveURL(new RegExp(`/admin/coupons/${couponCode}`, "i"));
   });
 
   test("admin can view /admin/banners with heading and banner rows from fixture", async ({

@@ -48,7 +48,7 @@ describe("admin-banners server actions lifecycle", () => {
     await expect(createBannerAction(bannerInput)).rejects.toThrow(/NEXT_REDIRECT/);
     expect(redirectMock).toHaveBeenCalledWith(expect.stringMatching(/^\/admin\/banners\/bnr_/));
 
-    const bannerId = redirectMock.mock.calls[0][0].replace("/admin/banners/", "");
+    const bannerId = (redirectMock.mock.calls[0]?.[0] as string).replace("/admin/banners/", "");
     redirectMock.mockClear();
 
     // Update: should not redirect

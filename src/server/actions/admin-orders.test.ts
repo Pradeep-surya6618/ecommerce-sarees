@@ -65,8 +65,8 @@ describe("admin-orders server actions", () => {
     await addOrderNoteAction(orderId, "Dispatched via Blue Dart");
     const withNote = await ordersRepo.getById(orderId);
     expect(withNote?.internalNotes).toHaveLength(1);
-    expect(withNote?.internalNotes[0].body).toBe("Dispatched via Blue Dart");
-    expect(withNote?.internalNotes[0].authorId).toBe("usr_admin");
+    expect(withNote?.internalNotes[0]?.body).toBe("Dispatched via Blue Dart");
+    expect(withNote?.internalNotes[0]?.authorId).toBe("usr_admin");
   });
 
   it("refundOrderAction sets status to cancelled", async () => {
