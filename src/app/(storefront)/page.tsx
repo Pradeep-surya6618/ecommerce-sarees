@@ -5,8 +5,11 @@ import { reviewsRepo } from "@/lib/db/repos/reviews";
 import { BannerHero } from "@/components/storefront/BannerHero";
 import { CategoryTile } from "@/components/storefront/CategoryTile";
 import { CollectionRail } from "@/components/storefront/CollectionRail";
+import { ExploreAllCTA } from "@/components/storefront/ExploreAllCTA";
 import { InstagramStrip } from "@/components/storefront/InstagramStrip";
+import { PriceTierTiles } from "@/components/storefront/PriceTierTiles";
 import { ProductCard } from "@/components/storefront/ProductCard";
+import { RegionTiles } from "@/components/storefront/RegionTiles";
 import { ReviewCarousel } from "@/components/storefront/ReviewCarousel";
 import { StorytellerSection } from "@/components/storefront/StorytellerSection";
 import { Container } from "@/components/ui/Container";
@@ -25,6 +28,7 @@ export default async function HomePage() {
     <>
       <BannerHero banners={heroBanners} />
 
+      {/* Shop by Craft */}
       <section className="py-20">
         <Container size="xl">
           <SectionHeading
@@ -38,6 +42,19 @@ export default async function HomePage() {
               <CategoryTile key={cat.slug} category={cat} />
             ))}
           </div>
+        </Container>
+      </section>
+
+      {/* Shop by Roots */}
+      <section className="bg-bg-elevated py-20">
+        <Container size="xl">
+          <SectionHeading
+            eyebrow="Shop by roots"
+            title="Where the looms live"
+            description="Each weave belongs to a place. Browse by the region that gave the craft its name."
+            className="mb-10"
+          />
+          <RegionTiles />
         </Container>
       </section>
 
@@ -56,6 +73,19 @@ export default async function HomePage() {
         ))}
       </CollectionRail>
 
+      {/* Shop by Cost */}
+      <section className="py-20">
+        <Container size="xl">
+          <SectionHeading
+            eyebrow="Shop by cost"
+            title="Find your range"
+            description="From everyday cottons to heirloom Kanjivarams."
+            className="mb-10"
+          />
+          <PriceTierTiles />
+        </Container>
+      </section>
+
       <StorytellerSection />
 
       <CollectionRail
@@ -73,9 +103,12 @@ export default async function HomePage() {
         ))}
       </CollectionRail>
 
+      {/* Community — reviews + instagram (each carries its own eyebrow + heading) */}
       <ReviewCarousel reviews={reviews} />
-
       <InstagramStrip />
+
+      {/* Explore all */}
+      <ExploreAllCTA />
     </>
   );
 }
