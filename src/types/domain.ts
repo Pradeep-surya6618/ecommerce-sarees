@@ -270,3 +270,21 @@ export interface BannerInput {
   sortOrder: number;
   active: boolean;
 }
+
+export type BlogPostStatus = "draft" | "published";
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string; // plain text; paragraphs separated by blank lines
+  coverImageUrl: string;
+  coverImageAlt: string;
+  authorName: string;
+  tags: string[];
+  status: BlogPostStatus;
+  publishedAt: string; // ISO; only meaningful if status === "published"
+  createdAt: string;
+  updatedAt: string;
+}
