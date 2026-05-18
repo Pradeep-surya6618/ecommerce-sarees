@@ -9,9 +9,10 @@ import type { ProductImage } from "@/types/domain";
 export interface ProductGalleryProps {
   images: ProductImage[];
   productName: string;
+  badge?: string;
 }
 
-export function ProductGallery({ images, productName }: ProductGalleryProps) {
+export function ProductGallery({ images, productName, badge }: ProductGalleryProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selected, setSelected] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
@@ -53,7 +54,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       </div>
 
       <div className="order-1 flex-1 md:order-2">
-        <div ref={emblaRef} className="overflow-hidden">
+        <div ref={emblaRef} className="relative overflow-hidden">
           <div className="flex">
             {images.map((img, idx) => (
               <div key={img.url} className="relative min-w-0 flex-[0_0_100%]">
@@ -85,6 +86,11 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               </div>
             ))}
           </div>
+          {badge && (
+            <span className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-ink-900/85 px-3.5 py-1.5 text-xs font-medium uppercase tracking-wide text-white backdrop-blur">
+              {badge}
+            </span>
+          )}
         </div>
       </div>
     </div>
