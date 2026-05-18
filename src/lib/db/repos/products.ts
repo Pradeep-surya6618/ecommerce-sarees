@@ -44,6 +44,10 @@ export interface SearchResult {
   hasMore: boolean;
 }
 
+export interface ListAllOptions {
+  includeArchived?: boolean;
+}
+
 export interface ProductsRepo {
   list(options?: ListOptions): Promise<Product[]>;
   listFeatured(options?: ListOptions): Promise<Product[]>;
@@ -54,6 +58,7 @@ export interface ProductsRepo {
   create(input: ProductDraft): Promise<Product>;
   update(id: string, input: Partial<ProductDraft>): Promise<Product | null>;
   archive(id: string): Promise<Product | null>;
+  listAll(options?: ListAllOptions): Promise<Product[]>;
 }
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -191,6 +196,15 @@ export const productsRepo: ProductsRepo = {
     const archived: Product = { ...existing, status: "archived" };
     store.set(id, archived);
     return archived;
+  },
+
+  async listAll(options) {
+    const includeArchived = options?.includeArchived ?? false;
+    const all = [...getStore().values()];
+    const filtered = includeArchived
+      ? all
+      : all.filter((p) => p.status === "active" || p.status === "draft");
+    return filtered.slice().sort(sortNewestFirst);
   },
 };
 
