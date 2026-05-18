@@ -9,8 +9,17 @@ vi.mock("@/lib/cart/guest-session", () => ({
   getGuestSessionId: vi.fn(async () => "gs_action_test"),
 }));
 
+const getCurrentUserMock = vi.hoisted(() =>
+  vi.fn<() => Promise<{ id: string } | null>>(async () => null),
+);
+vi.mock("@/lib/auth/current-user", () => ({ getCurrentUser: getCurrentUserMock }));
+
 describe("cart server actions", () => {
-  beforeEach(() => __resetCartRepo());
+  beforeEach(() => {
+    __resetCartRepo();
+    getCurrentUserMock.mockReset();
+    getCurrentUserMock.mockResolvedValue(null);
+  });
 
   it("addToCartAction adds an item using the current guest session", async () => {
     await addToCartAction({
@@ -65,5 +74,22 @@ describe("cart server actions", () => {
     await removeCartItemAction(itemId);
     cart = await cartRepo.getOrCreateForGuestSession("gs_action_test");
     expect(cart.items).toHaveLength(0);
+  });
+
+  it("addToCartAction targets the user cart when signed in", async () => {
+    getCurrentUserMock.mockResolvedValueOnce({ id: "usr_cart" });
+    await addToCartAction({
+      productId: "p",
+      productSlug: "p",
+      productName: "P",
+      variantSku: "sku",
+      variantLabel: "Color",
+      imageUrl: "https://x/y.jpg",
+      unitPricePaise: 100000,
+      unitMrpPaise: 120000,
+      quantity: 2,
+    });
+    const userCart = await cartRepo.getOrCreateForUser("usr_cart");
+    expect(userCart.items[0]?.quantity).toBe(2);
   });
 });

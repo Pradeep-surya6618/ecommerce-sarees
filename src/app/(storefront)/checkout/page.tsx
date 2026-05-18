@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { cartRepo } from "@/lib/db/repos/cart";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
@@ -10,8 +11,14 @@ export const metadata = {
 };
 
 export default async function CheckoutPage() {
-  const guestSessionId = await getGuestSessionId();
-  const cart = guestSessionId ? await cartRepo.getOrCreateForGuestSession(guestSessionId) : null;
+  const user = await getCurrentUser();
+  let cart;
+  if (user) {
+    cart = await cartRepo.getOrCreateForUser(user.id);
+  } else {
+    const guestSessionId = await getGuestSessionId();
+    cart = guestSessionId ? await cartRepo.getOrCreateForGuestSession(guestSessionId) : null;
+  }
 
   if (!cart || cart.items.length === 0) {
     return (

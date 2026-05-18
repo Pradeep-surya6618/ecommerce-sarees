@@ -19,8 +19,11 @@ export interface CartRepo {
   addItem(guestSessionId: string, input: AddItemInput): Promise<Cart>;
   addItemAsUser(userId: string, input: AddItemInput): Promise<Cart>;
   updateQuantity(guestSessionId: string, itemId: string, quantity: number): Promise<Cart>;
+  updateQuantityAsUser(userId: string, itemId: string, quantity: number): Promise<Cart>;
   removeItem(guestSessionId: string, itemId: string): Promise<Cart>;
+  removeItemAsUser(userId: string, itemId: string): Promise<Cart>;
   clear(guestSessionId: string): Promise<Cart>;
+  clearAsUser(userId: string): Promise<Cart>;
   mergeGuestIntoUser(guestSessionId: string, userId: string): Promise<Cart>;
 }
 
@@ -128,6 +131,34 @@ export const cartRepo: CartRepo = {
   async removeItem(guestSessionId, itemId) {
     const cart = ensureGuestCart(guestSessionId);
     cart.items = cart.items.filter((i) => i.id !== itemId);
+    cart.updatedAt = nowIso();
+    return cart;
+  },
+
+  async updateQuantityAsUser(userId, itemId, quantity) {
+    const cart = ensureUserCart(userId);
+    const item = cart.items.find((i) => i.id === itemId);
+    if (item) {
+      if (quantity <= 0) {
+        cart.items = cart.items.filter((i) => i.id !== itemId);
+      } else {
+        item.quantity = quantity;
+      }
+      cart.updatedAt = nowIso();
+    }
+    return cart;
+  },
+
+  async removeItemAsUser(userId, itemId) {
+    const cart = ensureUserCart(userId);
+    cart.items = cart.items.filter((i) => i.id !== itemId);
+    cart.updatedAt = nowIso();
+    return cart;
+  },
+
+  async clearAsUser(userId) {
+    const cart = ensureUserCart(userId);
+    cart.items = [];
     cart.updatedAt = nowIso();
     return cart;
   },

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { computeSubtotalPaise, computeTaxPaise, computeTotalPaise } from "@/lib/cart/totals";
 import { cartRepo } from "@/lib/db/repos/cart";
@@ -13,10 +14,15 @@ export const metadata = {
 };
 
 export default async function CartPage() {
-  const guestSessionId = await getGuestSessionId();
-  const cart = guestSessionId
-    ? await cartRepo.getOrCreateForGuestSession(guestSessionId)
-    : { id: "cart_empty", userId: null, guestSessionId: null, items: [], updatedAt: "" };
+  const user = await getCurrentUser();
+  const cart = user
+    ? await cartRepo.getOrCreateForUser(user.id)
+    : await (async () => {
+        const guestSessionId = await getGuestSessionId();
+        return guestSessionId
+          ? cartRepo.getOrCreateForGuestSession(guestSessionId)
+          : { id: "cart_empty", userId: null, guestSessionId: null, items: [], updatedAt: "" };
+      })();
   const subtotalPaise = computeSubtotalPaise(cart.items);
   const taxPaise = computeTaxPaise(subtotalPaise);
   const totalPaise = computeTotalPaise({ subtotalPaise, taxPaise, shippingPaise: 0 });
