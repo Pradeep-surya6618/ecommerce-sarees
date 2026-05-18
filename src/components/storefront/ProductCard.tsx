@@ -6,6 +6,7 @@ import { useState } from "react";
 import { clsx } from "@/lib/utils/clsx";
 import { PriceTag } from "@/components/ui/PriceTag";
 import type { Product } from "@/types/domain";
+import { WishlistButton } from "./WishlistButton";
 
 export interface ProductCardProps {
   product: Product;
@@ -24,7 +25,7 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
   return (
     <Link
       href={`/product/${product.slug}`}
-      className={clsx("group flex flex-col gap-3", className)}
+      className={clsx("group relative flex flex-col gap-3", className)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -37,6 +38,16 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
           priority={priority}
           className="object-cover transition duration-500 group-hover:scale-[1.03]"
         />
+        <div className="absolute right-3 top-3">
+          <WishlistButton
+            productId={product.id}
+            productSlug={product.slug}
+            productName={product.name}
+            imageUrl={primaryImage.url}
+            priceInPaise={product.priceInPaise}
+            mrpInPaise={product.mrpInPaise}
+          />
+        </div>
       </div>
       <div className="flex flex-col gap-1">
         <h3 className="font-display text-lg text-ink-900">{product.name}</h3>
