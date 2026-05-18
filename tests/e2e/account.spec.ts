@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function signUpAndVerify(page: import("@playwright/test").Page, email: string) {
+async function signUpAndVerify(page: Page, email: string) {
   await page.goto("/auth/signup");
   await page.getByLabel(/Full name/i).fill("Account Test");
   await page.getByLabel(/^Email/i).fill(email);
