@@ -49,4 +49,41 @@ describe("usersRepo (mock)", () => {
     const updated = await usersRepo.updatePasswordHash(user.id, "new");
     expect(updated?.passwordHash).toBe("new");
   });
+
+  it("findOrCreateGoogle creates a verified Google user when none exists", async () => {
+    const user = await usersRepo.findOrCreateGoogle({
+      email: "priya@gmail.com",
+      fullName: "Priya Sharma",
+    });
+    expect(user.id).toMatch(/^usr_/);
+    expect(user.email).toBe("priya@gmail.com");
+    expect(user.emailVerified).toBe(true);
+    expect(user.provider).toBe("google");
+    expect(user.passwordHash).toBe("");
+  });
+
+  it("findOrCreateGoogle returns the same user on repeat calls", async () => {
+    const first = await usersRepo.findOrCreateGoogle({
+      email: "anita@gmail.com",
+      fullName: "Anita Iyer",
+    });
+    const second = await usersRepo.findOrCreateGoogle({
+      email: "anita@gmail.com",
+      fullName: "Anita Iyer",
+    });
+    expect(second.id).toBe(first.id);
+  });
+
+  it("promoteToAdmin flips the role to admin", async () => {
+    const user = await usersRepo.create({
+      email: "staff@example.com",
+      fullName: "Staff Member",
+      passwordHash: "h",
+    });
+    expect(user.role).toBe("customer");
+    const promoted = await usersRepo.promoteToAdmin(user.id);
+    expect(promoted?.role).toBe("admin");
+    const fetched = await usersRepo.findById(user.id);
+    expect(fetched?.role).toBe("admin");
+  });
 });

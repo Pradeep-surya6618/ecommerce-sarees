@@ -1,11 +1,12 @@
 import { nanoid } from "nanoid";
-import type { User, UserRole } from "@/types/domain";
+import type { AuthProvider, User, UserRole } from "@/types/domain";
 
 export interface CreateUserInput {
   email: string;
   fullName: string;
   passwordHash: string;
   role?: UserRole;
+  provider?: AuthProvider;
 }
 
 export interface UsersRepo {
@@ -14,6 +15,8 @@ export interface UsersRepo {
   findById(id: string): Promise<User | null>;
   markEmailVerified(id: string): Promise<User | null>;
   updatePasswordHash(id: string, passwordHash: string): Promise<User | null>;
+  findOrCreateGoogle(input: { email: string; fullName: string }): Promise<User>;
+  promoteToAdmin(id: string): Promise<User | null>;
 }
 
 declare global {
@@ -48,6 +51,7 @@ export const usersRepo: UsersRepo = {
       passwordHash: input.passwordHash,
       emailVerified: false,
       role: input.role ?? "customer",
+      provider: input.provider ?? "email",
       createdAt: now,
       updatedAt: now,
     };
@@ -77,6 +81,35 @@ export const usersRepo: UsersRepo = {
     const user = users.get(id);
     if (!user) return null;
     user.passwordHash = passwordHash;
+    user.updatedAt = nowIso();
+    return user;
+  },
+
+  async findOrCreateGoogle({ email, fullName }) {
+    const normEmail = normaliseEmail(email);
+    const existing = await usersRepo.findByEmail(normEmail);
+    if (existing) return existing;
+    const now = nowIso();
+    const user: User = {
+      id: `usr_${nanoid(12)}`,
+      email: normEmail,
+      fullName,
+      passwordHash: "",
+      emailVerified: true,
+      role: "customer",
+      provider: "google",
+      createdAt: now,
+      updatedAt: now,
+    };
+    users.set(user.id, user);
+    byEmail.set(normEmail, user.id);
+    return user;
+  },
+
+  async promoteToAdmin(id) {
+    const user = users.get(id);
+    if (!user) return null;
+    user.role = "admin";
     user.updatedAt = nowIso();
     return user;
   },
