@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
-  AtSign,
   Globe,
   Heart,
   Link as LinkIcon,
   Mail,
-  MessageCircle,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
@@ -225,21 +223,39 @@ export function ProductBuyBox({ product }: { product: Product }) {
       <div className="flex items-center gap-3 border-t border-ink-500/10 pt-5">
         <span className="text-xs font-semibold uppercase tracking-wide text-ink-700">Share:</span>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Copy link"
+            onClick={onCopyLink}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink-500/10 text-ink-700 transition hover:bg-ink-900 hover:text-white"
+          >
+            <LinkIcon className="h-4 w-4" />
+          </button>
           {[
-            { icon: LinkIcon, label: "Copy link", onClick: onCopyLink },
-            { icon: AtSign, label: "Share on Instagram", onClick: undefined },
-            { icon: MessageCircle, label: "Share on Messenger", onClick: undefined },
-            { icon: Mail, label: "Share via email", onClick: undefined },
+            {
+              icon: InstagramIcon,
+              label: "Share on Instagram",
+              href: "https://www.instagram.com/",
+            },
+            { icon: WhatsAppIcon, label: "Share on WhatsApp", href: "https://wa.me/" },
+            {
+              icon: PinterestIcon,
+              label: "Share on Pinterest",
+              href: "https://www.pinterest.com/",
+            },
+            { icon: FacebookIcon, label: "Share on Facebook", href: "https://www.facebook.com/" },
+            { icon: Mail, label: "Share via email", href: "mailto:" },
           ].map((item) => (
-            <button
+            <a
               key={item.label}
-              type="button"
+              href={item.href}
+              target="_blank"
+              rel="noreferrer noopener"
               aria-label={item.label}
-              onClick={item.onClick}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink-500/10 text-ink-700 transition hover:bg-ink-900 hover:text-white"
             >
               <item.icon className="h-4 w-4" />
-            </button>
+            </a>
           ))}
         </div>
       </div>
@@ -265,6 +281,38 @@ export function ProductBuyBox({ product }: { product: Product }) {
         </ul>
       </div>
     </div>
+  );
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M12 2.2c3.2 0 3.6 0 4.8.07 1.2.05 1.8.25 2.2.42.6.22 1 .5 1.5 1 .5.5.78.9 1 1.5.17.4.37 1 .42 2.2.07 1.2.08 1.6.08 4.8s0 3.6-.08 4.8c-.05 1.2-.25 1.8-.42 2.2-.22.6-.5 1-1 1.5-.5.5-.9.78-1.5 1-.4.17-1 .37-2.2.42-1.2.07-1.6.08-4.8.08s-3.6 0-4.8-.08c-1.2-.05-1.8-.25-2.2-.42-.6-.22-1-.5-1.5-1-.5-.5-.78-.9-1-1.5-.17-.4-.37-1-.42-2.2C2.21 15.6 2.2 15.2 2.2 12s0-3.6.08-4.8c.05-1.2.25-1.8.42-2.2.22-.6.5-1 1-1.5.5-.5.9-.78 1.5-1 .4-.17 1-.37 2.2-.42C8.4 2.21 8.8 2.2 12 2.2zm0 1.8c-3.14 0-3.51 0-4.74.07-1.14.05-1.76.24-2.17.4-.55.22-.94.47-1.36.89-.42.42-.67.81-.89 1.36-.16.41-.35 1.03-.4 2.17C2.37 8.49 2.36 8.86 2.36 12s0 3.51.07 4.74c.05 1.14.24 1.76.4 2.17.22.55.47.94.89 1.36.42.42.81.67 1.36.89.41.16 1.03.35 2.17.4 1.23.06 1.6.07 4.74.07s3.51 0 4.74-.07c1.14-.05 1.76-.24 2.17-.4.55-.22.94-.47 1.36-.89.42-.42.67-.81.89-1.36.16-.41.35-1.03.4-2.17.06-1.23.07-1.6.07-4.74s0-3.51-.07-4.74c-.05-1.14-.24-1.76-.4-2.17a3.68 3.68 0 0 0-.89-1.36 3.68 3.68 0 0 0-1.36-.89c-.41-.16-1.03-.35-2.17-.4C15.51 4 15.14 4 12 4zm0 3.13a4.87 4.87 0 1 1 0 9.74 4.87 4.87 0 0 1 0-9.74zm0 1.8a3.07 3.07 0 1 0 0 6.14 3.07 3.07 0 0 0 0-6.14zm5.08-2a1.14 1.14 0 1 1 0 2.28 1.14 1.14 0 0 1 0-2.28z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.93 9.93 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.05 20.15h-.01a8.23 8.23 0 0 1-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23a8.2 8.2 0 0 1 5.83 2.42 8.18 8.18 0 0 1 2.4 5.82c0 4.54-3.7 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.55.13-.16.25-.64.81-.78.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.55-1.33-.76-1.82-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.43.06-.65.31-.23.25-.85.83-.85 2.02 0 1.19.87 2.34.99 2.5.12.16 1.71 2.62 4.15 3.67.58.25 1.03.4 1.39.51.58.18 1.11.16 1.53.1.47-.07 1.47-.6 1.67-1.18.2-.58.2-1.07.14-1.18-.06-.11-.22-.17-.47-.29z" />
+    </svg>
+  );
+}
+
+function PinterestIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M12 2C6.48 2 2 6.48 2 12c0 4.23 2.63 7.84 6.34 9.29-.09-.79-.17-2 .03-2.86.18-.78 1.17-4.97 1.17-4.97s-.3-.6-.3-1.48c0-1.39.81-2.43 1.81-2.43.85 0 1.27.64 1.27 1.41 0 .86-.55 2.14-.83 3.33-.24 1 .5 1.81 1.48 1.81 1.78 0 3.14-1.87 3.14-4.57 0-2.39-1.72-4.06-4.17-4.06-2.84 0-4.51 2.13-4.51 4.33 0 .86.33 1.78.74 2.28.08.1.09.18.07.29-.07.31-.25 1.01-.28 1.15-.04.19-.15.23-.34.14-1.25-.58-2.03-2.41-2.03-3.88 0-3.16 2.29-6.06 6.61-6.06 3.47 0 6.17 2.47 6.17 5.78 0 3.45-2.18 6.23-5.2 6.23-1.01 0-1.97-.53-2.3-1.15l-.62 2.38c-.23.86-.83 1.93-1.23 2.59.93.29 1.91.44 2.94.44 5.52 0 10-4.48 10-10S17.52 2 12 2z" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M13.5 21v-7.5h2.52l.38-2.94H13.5V8.7c0-.85.24-1.43 1.46-1.43h1.56V4.64c-.27-.04-1.2-.12-2.28-.12-2.25 0-3.79 1.37-3.79 3.9v2.17H8v2.94h2.45V21h3.05z" />
+    </svg>
   );
 }
 
