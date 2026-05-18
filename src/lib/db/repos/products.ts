@@ -24,6 +24,7 @@ export interface ListOptions {
 }
 
 export interface SearchOptions {
+  q?: string;
   categorySlugs?: string[];
   fabrics?: string[];
   colors?: string[];
@@ -92,6 +93,21 @@ function lowerSet(values: string[]): Set<string> {
 }
 
 function matchesFilters(p: Product, o: SearchOptions): boolean {
+  if (o.q && o.q.trim().length > 0) {
+    const needle = o.q.trim().toLowerCase();
+    const haystack = [
+      p.name,
+      p.description,
+      p.fabric,
+      p.categorySlug,
+      ...p.tags,
+      ...p.occasion,
+      ...p.variants.map((v) => v.colorName),
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(needle)) return false;
+  }
   if (o.categorySlugs && o.categorySlugs.length > 0) {
     if (!o.categorySlugs.includes(p.categorySlug)) return false;
   }

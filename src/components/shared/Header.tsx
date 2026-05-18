@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Heart, Menu, Search, User } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
-import { computeSubtotalPaise } from "@/lib/cart/totals";
 import { cartRepo } from "@/lib/db/repos/cart";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { CartTrigger } from "@/components/storefront/CartTrigger";
@@ -34,7 +33,6 @@ export async function Header() {
     getCurrentUser(),
     readCart(),
   ]);
-  const subtotalPaise = computeSubtotalPaise(cart.items);
   const accountHref = user ? "/account" : "/auth/login";
   const accountLabel = user ? "Account" : "Sign in";
 
@@ -71,12 +69,20 @@ export async function Header() {
           </nav>
 
           <div className="flex items-center gap-1">
-            <IconButton aria-label="Search" size="sm">
+            <Link
+              href="/search"
+              aria-label="Search"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
+            >
               <Search className="h-5 w-5" />
-            </IconButton>
-            <IconButton aria-label="Wishlist" size="sm">
+            </Link>
+            <Link
+              href="/account/wishlist"
+              aria-label="Wishlist"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
+            >
               <Heart className="h-5 w-5" />
-            </IconButton>
+            </Link>
             <Link
               href={accountHref}
               aria-label={accountLabel}
@@ -84,7 +90,7 @@ export async function Header() {
             >
               <User className="h-5 w-5" />
             </Link>
-            <CartTrigger cart={cart} subtotalPaise={subtotalPaise} />
+            <CartTrigger cart={cart} />
           </div>
         </div>
       </Container>
