@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 import { loginAction } from "@/server/actions/auth";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -70,6 +71,12 @@ export function LoginForm() {
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
+      <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-500">
+        <span className="h-px flex-1 bg-ink-500/15" />
+        Or
+        <span className="h-px flex-1 bg-ink-500/15" />
+      </div>
+      <GoogleSignInButton />
     </form>
   );
 }
