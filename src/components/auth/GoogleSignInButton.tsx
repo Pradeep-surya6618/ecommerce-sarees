@@ -2,12 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { DEMO_GOOGLE_ACCOUNTS, type DemoGoogleEmail } from "@/lib/auth/google-demo-accounts";
 import { clsx } from "@/lib/utils/clsx";
-import {
-  DEMO_GOOGLE_ACCOUNTS,
-  googleSignInAction,
-  type DemoGoogleEmail,
-} from "@/server/actions/google-auth";
+import { googleSignInAction } from "@/server/actions/google-auth";
 import { Sheet } from "@/components/ui/Sheet";
 
 export function GoogleSignInButton({ className }: { className?: string }) {
