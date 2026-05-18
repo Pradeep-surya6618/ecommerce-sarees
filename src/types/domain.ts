@@ -180,3 +180,33 @@ export interface OtpRecord {
   expiresAt: string;
   consumedAt: string | null;
 }
+
+export interface SavedAddress {
+  id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: "IN";
+  label?: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  productId: string;
+  productSlug: string;
+  productName: string;
+  imageUrl: string;
+  priceInPaise: number;
+  mrpInPaise: number;
+  addedAt: string;
+}
