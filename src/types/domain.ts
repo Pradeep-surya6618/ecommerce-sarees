@@ -149,3 +149,34 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
+
+export type UserRole = "customer" | "staff" | "admin";
+
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  passwordHash: string;
+  emailVerified: boolean;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Session {
+  id: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export type OtpPurpose = "signup" | "password-reset";
+
+export interface OtpRecord {
+  id: string;
+  email: string;
+  purpose: OtpPurpose;
+  code: string;
+  expiresAt: string;
+  consumedAt: string | null;
+}
