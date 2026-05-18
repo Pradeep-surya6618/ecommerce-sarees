@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Heart, Menu, Search, User } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { computeSubtotalPaise } from "@/lib/cart/totals";
 import { cartRepo } from "@/lib/db/repos/cart";
@@ -10,6 +11,10 @@ import { IconButton } from "@/components/ui/IconButton";
 import type { Cart } from "@/types/domain";
 
 async function readCart(): Promise<Cart> {
+  const user = await getCurrentUser();
+  if (user) {
+    return cartRepo.getOrCreateForUser(user.id);
+  }
   const guestSessionId = await getGuestSessionId();
   if (!guestSessionId) {
     return {
@@ -24,8 +29,14 @@ async function readCart(): Promise<Cart> {
 }
 
 export async function Header() {
-  const [categories, cart] = await Promise.all([categoriesRepo.listTopLevel(), readCart()]);
+  const [categories, user, cart] = await Promise.all([
+    categoriesRepo.listTopLevel(),
+    getCurrentUser(),
+    readCart(),
+  ]);
   const subtotalPaise = computeSubtotalPaise(cart.items);
+  const accountHref = user ? "/account" : "/auth/login";
+  const accountLabel = user ? "Account" : "Sign in";
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-500/10 bg-bg-base/90 backdrop-blur">
@@ -66,9 +77,13 @@ export async function Header() {
             <IconButton aria-label="Wishlist" size="sm">
               <Heart className="h-5 w-5" />
             </IconButton>
-            <IconButton aria-label="Account" size="sm">
+            <Link
+              href={accountHref}
+              aria-label={accountLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
+            >
               <User className="h-5 w-5" />
-            </IconButton>
+            </Link>
             <CartTrigger cart={cart} subtotalPaise={subtotalPaise} />
           </div>
         </div>
