@@ -23,7 +23,8 @@ test.describe("Auth flow", () => {
     // Sanity: assert we are NOT on the login page
     await expect(page).not.toHaveURL(/\/auth\/login/);
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { level: 1, name: /Test User/ })).toBeVisible();
+    // Phase 5 dashboard greets the first name only — "Welcome back, Test."
+    await expect(page.getByRole("heading", { level: 1, name: /Welcome back, Test/ })).toBeVisible();
   });
 
   test("middleware redirects unauthenticated /account access to /auth/login", async ({ page }) => {
