@@ -5,12 +5,10 @@ import { redirect } from "next/navigation";
 import { DEMO_GOOGLE_ACCOUNTS, type DemoGoogleEmail } from "@/lib/auth/google-demo-accounts";
 import { setSessionCookie } from "@/lib/auth/session-cookie";
 import { clearGuestSessionCookie } from "@/lib/cart/clear-guest-session";
-import { ensureGuestSessionId } from "@/lib/cart/guest-session";
+import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { cartRepo } from "@/lib/db/repos/cart";
 import { sessionsRepo } from "@/lib/db/repos/sessions";
 import { usersRepo } from "@/lib/db/repos/users";
-
-export { DEMO_GOOGLE_ACCOUNTS, type DemoGoogleEmail };
 
 export async function googleSignInAction(email: DemoGoogleEmail): Promise<void> {
   const account = DEMO_GOOGLE_ACCOUNTS.find((a) => a.email === email);
@@ -25,7 +23,7 @@ export async function googleSignInAction(email: DemoGoogleEmail): Promise<void> 
   await setSessionCookie(session.id);
 
   // Merge guest cart if present, then clear the guest cookie.
-  const guestSessionId = await ensureGuestSessionId();
+  const guestSessionId = await getGuestSessionId();
   if (guestSessionId) {
     await cartRepo.mergeGuestIntoUser(guestSessionId, user.id);
     await clearGuestSessionCookie();
