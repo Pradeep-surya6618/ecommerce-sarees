@@ -146,7 +146,7 @@ export const productsRepo: ProductsRepo = {
   },
 
   async getById(id) {
-    return [...getStore().values()].find((p) => p.id === id && activeOnly(p)) ?? null;
+    return getStore().get(id) ?? null;
   },
 
   async search(options) {
