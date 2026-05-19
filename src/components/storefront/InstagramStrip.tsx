@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { InstagramGlyph } from "@/components/shared/icons";
+import { InstagramBrandIcon } from "@/components/shared/icons";
+import { SareeMotifBg } from "@/components/storefront/SareeMotifBg";
 import { Container } from "@/components/ui/Container";
 import type { InstagramSettings } from "@/types/domain";
 
@@ -10,20 +11,30 @@ export function InstagramStrip({ settings }: { settings: InstagramSettings }) {
   if (tiles.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-20">
-      <Container size="xl">
+    <section className="relative overflow-hidden bg-accent-primary py-12 text-bg-base md:py-20">
+      <SareeMotifBg
+        id="instagram-strip"
+        variant="temple"
+        tileSize={200}
+        className="text-accent-gold opacity-[0.3]"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/45 to-transparent"
+      />
+      <Container size="xl" className="relative">
         {/* Heading */}
         <header className="mb-8 flex flex-col items-center gap-3 text-center md:mb-12">
           <Link
             href={settings.ctaHref}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-accent-gold transition hover:text-accent-primary sm:text-xs"
+            className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-accent-gold transition hover:text-bg-base sm:text-xs"
           >
-            <InstagramGlyph className="h-3.5 w-3.5" />
+            <InstagramBrandIcon className="h-[18px] w-[18px]" />
             {settings.handle}
           </Link>
-          <h2 className="font-display text-2xl leading-tight text-ink-900 sm:text-3xl md:text-4xl">
+          <h2 className="font-display text-2xl leading-tight text-bg-base sm:text-3xl md:text-4xl">
             From the gram
           </h2>
           <span
@@ -41,7 +52,7 @@ export function InstagramStrip({ settings }: { settings: InstagramSettings }) {
               target="_blank"
               rel="noreferrer noopener"
               aria-label={`Open Instagram post ${t.id}`}
-              className="group relative aspect-square overflow-hidden rounded-sm bg-ink-500/10"
+              className="group relative aspect-square overflow-hidden rounded-sm bg-ink-900"
             >
               <Image
                 src={t.imageUrl}
@@ -61,7 +72,7 @@ export function InstagramStrip({ settings }: { settings: InstagramSettings }) {
                 className="absolute inset-0 flex items-center justify-center opacity-0 transition duration-300 group-hover:opacity-100"
               >
                 <span className="inline-flex h-9 w-9 scale-75 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition duration-300 group-hover:scale-100">
-                  <InstagramGlyph className="h-4 w-4" />
+                  <InstagramBrandIcon className="h-4 w-4" />
                 </span>
               </span>
             </Link>
@@ -74,9 +85,9 @@ export function InstagramStrip({ settings }: { settings: InstagramSettings }) {
             href={settings.ctaHref}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-2 rounded-sm border border-ink-900 px-5 py-2.5 text-xs font-medium text-ink-900 transition hover:bg-ink-900 hover:text-white sm:px-6 sm:py-3 sm:text-sm"
+            className="inline-flex items-center gap-2 rounded-sm bg-bg-base px-5 py-2.5 text-xs font-medium text-ink-900 transition hover:bg-bg-elevated sm:px-6 sm:py-3 sm:text-sm"
           >
-            <InstagramGlyph className="h-4 w-4" />
+            <InstagramBrandIcon className="h-4 w-4" />
             Follow on Instagram
           </Link>
         </div>

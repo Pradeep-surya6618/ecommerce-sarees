@@ -34,23 +34,29 @@ const FOOTER_GROUPS = [
 
 export function Footer() {
   return (
-    <footer className="mt-24 border-t border-ink-500/10 bg-bg-elevated">
+    <footer className="bg-ink-900 text-bg-base">
       <Container size="xl">
         <div className="grid gap-10 py-16 md:grid-cols-4">
           <div className="flex flex-col gap-3">
-            <span className="font-display text-2xl text-ink-900">Saree Store</span>
-            <p className="text-sm text-ink-700">
+            <div className="flex flex-col">
+              <span className="font-display text-2xl text-bg-base">Saree Store</span>
+              <span
+                aria-hidden
+                className="mt-1.5 h-px w-10 bg-gradient-to-r from-accent-gold to-transparent"
+              />
+            </div>
+            <p className="mt-1 text-sm text-bg-base/75">
               Handpicked sarees from looms across India. Slow fashion, fairly sourced.
             </p>
             <form className="mt-4 flex max-w-sm gap-2">
               <input
                 type="email"
                 placeholder="Your email"
-                className="flex-1 rounded-sm border border-ink-500/20 bg-bg-base px-3 py-2 text-sm focus:border-accent-primary focus:outline-none"
+                className="flex-1 rounded-sm border border-bg-base/20 bg-white/[0.06] px-3 py-2 text-sm text-bg-base placeholder:text-bg-base/45 focus:border-accent-gold focus:outline-none"
               />
               <button
                 type="submit"
-                className="rounded-sm bg-ink-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-ink-700"
+                className="rounded-sm bg-accent-gold px-4 py-2 text-sm font-medium text-ink-900 transition hover:bg-accent-gold/85"
               >
                 Subscribe
               </button>
@@ -58,13 +64,13 @@ export function Footer() {
           </div>
           {FOOTER_GROUPS.map((group) => (
             <div key={group.heading}>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-ink-900">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-accent-gold">
                 {group.heading}
               </h3>
-              <ul className="flex flex-col gap-2 text-sm text-ink-700">
+              <ul className="flex flex-col gap-2 text-sm text-bg-base/75">
                 {group.links.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className="transition hover:text-ink-900">
+                    <Link href={link.href} className="transition hover:text-bg-base">
                       {link.label}
                     </Link>
                   </li>
@@ -73,7 +79,7 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="border-t border-ink-500/10 py-6 text-xs text-ink-500">
+        <div className="border-t border-bg-base/15 py-6 text-xs text-bg-base/55">
           © 2026 Saree Store. Crafted in India.
         </div>
       </Container>

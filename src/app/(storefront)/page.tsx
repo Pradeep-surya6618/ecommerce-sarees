@@ -13,6 +13,7 @@ import { PriceTierTiles } from "@/components/storefront/PriceTierTiles";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { RegionTiles } from "@/components/storefront/RegionTiles";
 import { ReviewCarousel } from "@/components/storefront/ReviewCarousel";
+import { SareeMotifBg } from "@/components/storefront/SareeMotifBg";
 import { StorytellerSection } from "@/components/storefront/StorytellerSection";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -32,8 +33,14 @@ export default async function HomePage() {
       <BannerHero banners={heroBanners} />
 
       {/* Shop by Craft */}
-      <section className="py-20">
-        <Container size="xl">
+      <section className="relative overflow-hidden py-20">
+        <SareeMotifBg
+          id="shop-by-craft"
+          variant="diamond"
+          tileSize={220}
+          className="text-accent-primary opacity-[0.18]"
+        />
+        <Container size="xl" className="relative">
           <SectionHeading
             eyebrow="Shop by craft"
             title="Explore the edit"
@@ -65,6 +72,9 @@ export default async function HomePage() {
         eyebrow="Just in"
         title="New arrivals"
         description="The most recent additions to our edit."
+        motif="star"
+        motifId="new-arrivals"
+        motifTileSize={240}
       >
         {newest.map((p) => (
           <div
@@ -77,7 +87,7 @@ export default async function HomePage() {
       </CollectionRail>
 
       {/* Shop by Cost */}
-      <section className="py-20">
+      <section className="bg-bg-elevated py-20">
         <Container size="xl">
           <SectionHeading
             eyebrow="Shop by cost"

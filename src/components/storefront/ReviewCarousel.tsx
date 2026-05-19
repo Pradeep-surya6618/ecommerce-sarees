@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { MessageSquareQuote, Star } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
+import { SareeMotifBg } from "@/components/storefront/SareeMotifBg";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import type { Review } from "@/types/domain";
 
 export function ReviewCarousel({ reviews }: { reviews: Review[] }) {
   return (
-    <section className="bg-bg-elevated py-12 md:py-20">
-      <Container size="xl">
+    <section className="relative overflow-hidden bg-bg-elevated py-12 md:py-20">
+      <SareeMotifBg
+        id="reviews"
+        variant="lotus"
+        tileSize={240}
+        className="text-accent-primary opacity-[0.16]"
+      />
+      <Container size="xl" className="relative">
         <SectionHeading
           eyebrow="From the community"
           title="What customers say"

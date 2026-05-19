@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Flame } from "lucide-react";
 import { formatRupees } from "@/lib/money";
 import { clsx } from "@/lib/utils/clsx";
 import type { Product } from "@/types/domain";
@@ -133,7 +133,7 @@ export function MegaMenu({ items }: MegaMenuProps) {
 
       {showPanel && openItem && (
         <div
-          className="absolute left-1/2 top-full z-50 mt-[1px] w-[min(1200px,calc(100vw-2rem))] -translate-x-1/2"
+          className="megamenu-enter absolute left-1/2 top-full z-50 mt-[1px] w-[min(1200px,calc(100vw-2rem))]"
           onMouseEnter={() => openWith(openItem.id)}
           onMouseLeave={scheduleClose}
         >
@@ -171,7 +171,7 @@ function MegaMenuPanel({ item, onNavigate }: { item: MegaMenuItem; onNavigate: (
               <Link
                 href={c.href}
                 onClick={onNavigate}
-                className="block text-sm text-ink-700 transition hover:text-accent-primary"
+                className="inline-block text-sm text-ink-700 underline decoration-transparent decoration-2 underline-offset-4 transition-all duration-200 hover:text-accent-primary hover:decoration-accent-primary/60"
               >
                 {c.label}
               </Link>
@@ -191,12 +191,19 @@ function MegaMenuPanel({ item, onNavigate }: { item: MegaMenuItem; onNavigate: (
       {/* Trending — only for category-kind items */}
       {hasTrending && (
         <div className="flex flex-col gap-4">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-ink-500">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-ink-500">
+            <span className="megamenu-flame-pulse inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-primary/10 text-accent-primary">
+              <Flame className="h-3 w-3" />
+            </span>
             Trending
           </span>
           <ul className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {trending.map((p) => (
-              <li key={p.id}>
+            {trending.map((p, idx) => (
+              <li
+                key={p.id}
+                className="megamenu-item-enter"
+                style={{ animationDelay: `${idx * 40}ms` }}
+              >
                 <Link
                   href={`/product/${p.slug}`}
                   onClick={onNavigate}

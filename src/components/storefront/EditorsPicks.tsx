@@ -17,7 +17,7 @@ export function EditorsPicks({ products }: EditorsPicksProps) {
   const items = [...products, ...products];
 
   return (
-    <section className="overflow-hidden bg-bg-elevated py-12 md:py-20">
+    <section className="overflow-hidden bg-bg-base py-12 md:py-20">
       <Container size="xl" className="mb-8 md:mb-12">
         <div className="flex flex-col gap-3 sm:gap-2 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-1.5 sm:gap-2">

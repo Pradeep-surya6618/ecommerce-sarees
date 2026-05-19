@@ -47,7 +47,7 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-ink-500/5">
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-ink-900">
         <Image
           src={currentImage.url}
           alt={currentImage.alt}

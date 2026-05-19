@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SareeMotifBg, type SareeMotif } from "@/components/storefront/SareeMotifBg";
 import { Container } from "@/components/ui/Container";
 import { IconButton } from "@/components/ui/IconButton";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -11,9 +12,20 @@ export interface CollectionRailProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  motif?: SareeMotif;
+  motifId?: string;
+  motifTileSize?: number;
 }
 
-export function CollectionRail({ eyebrow, title, description, children }: CollectionRailProps) {
+export function CollectionRail({
+  eyebrow,
+  title,
+  description,
+  children,
+  motif,
+  motifId,
+  motifTileSize,
+}: CollectionRailProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const scrollBy = useCallback((dir: 1 | -1) => {
@@ -23,15 +35,33 @@ export function CollectionRail({ eyebrow, title, description, children }: Collec
   }, []);
 
   return (
-    <section className="py-20">
-      <Container size="xl">
+    <section className="relative overflow-hidden py-20">
+      {motif && (
+        <SareeMotifBg
+          id={motifId ?? `rail-${motif}`}
+          variant={motif}
+          tileSize={motifTileSize}
+          className="text-accent-primary opacity-[0.16]"
+        />
+      )}
+      <Container size="xl" className="relative">
         <div className="mb-8 flex items-end justify-between gap-6">
           <SectionHeading eyebrow={eyebrow} title={title} description={description} />
           <div className="hidden items-center gap-2 md:flex">
-            <IconButton aria-label="Previous" variant="outline" onClick={() => scrollBy(-1)}>
+            <IconButton
+              aria-label="Previous"
+              variant="solid"
+              onClick={() => scrollBy(-1)}
+              className="border-0 bg-accent-primary text-bg-base hover:bg-accent-primary-hover hover:text-bg-base"
+            >
               <ChevronLeft className="h-5 w-5" />
             </IconButton>
-            <IconButton aria-label="Next" variant="outline" onClick={() => scrollBy(1)}>
+            <IconButton
+              aria-label="Next"
+              variant="solid"
+              onClick={() => scrollBy(1)}
+              className="border-0 bg-accent-primary text-bg-base hover:bg-accent-primary-hover hover:text-bg-base"
+            >
               <ChevronRight className="h-5 w-5" />
             </IconButton>
           </div>
