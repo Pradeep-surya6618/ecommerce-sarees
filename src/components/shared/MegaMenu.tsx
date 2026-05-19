@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { formatRupees } from "@/lib/money";
@@ -27,10 +28,34 @@ export interface MegaMenuProps {
   items: MegaMenuItem[];
 }
 
+function isItemActive(href: string, pathname: string, sp: URLSearchParams): boolean {
+  const [hrefPath, hrefQuery] = href.split("?");
+  if (!hrefPath) return false;
+  // Items whose href specifies query params (e.g. /shop?sort=newest):
+  // match only when pathname AND every query param match the current URL.
+  if (hrefQuery) {
+    if (pathname !== hrefPath) return false;
+    const hrefSp = new URLSearchParams(hrefQuery);
+    for (const [k, v] of hrefSp.entries()) {
+      if (sp.get(k) !== v) return false;
+    }
+    return true;
+  }
+  // Plain /shop should not light up when the URL has a `sort` param
+  // (that variant belongs to a sibling item like "New Arrivals").
+  if (hrefPath === "/shop") {
+    return pathname === "/shop" && !sp.has("sort");
+  }
+  // Category paths — exact path or any sub-path.
+  return pathname === hrefPath || pathname.startsWith(hrefPath + "/");
+}
+
 export function MegaMenu({ items }: MegaMenuProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -74,37 +99,36 @@ export function MegaMenu({ items }: MegaMenuProps) {
       <nav className="flex h-20 items-center gap-1 lg:gap-2">
         {items.map((item) => {
           const isOpen = openId === item.id && item.children.length > 0;
+          const isActive = isItemActive(item.href, pathname, searchParams);
+          const highlighted = isOpen || isActive;
           return (
             <Link
               key={item.id}
               href={item.href}
               aria-haspopup={item.children.length > 0 ? "true" : undefined}
               aria-expanded={item.children.length > 0 ? isOpen : undefined}
+              aria-current={isActive ? "page" : undefined}
               onMouseEnter={() => openWith(item.id)}
               onFocus={() => openWith(item.id)}
               onClick={() => setOpenId(null)}
               className={clsx(
-                "group relative inline-flex h-full cursor-pointer items-center px-3 text-[11px] font-medium uppercase tracking-[0.18em] transition lg:px-4 lg:text-xs lg:tracking-[0.22em]",
-                isOpen ? "text-accent-primary" : "text-ink-700 hover:text-ink-900",
+                "group relative inline-flex h-full cursor-pointer items-center px-3 font-display text-[15px] transition lg:px-4 lg:text-base",
+                highlighted
+                  ? "font-medium text-accent-primary"
+                  : "font-normal text-ink-700 hover:text-ink-900",
               )}
             >
               <span>{item.label}</span>
               <span
                 aria-hidden
                 className={clsx(
-                  "absolute bottom-5 left-1/2 h-[1.5px] -translate-x-1/2 bg-accent-primary transition-all duration-300",
-                  isOpen ? "w-6" : "w-0 group-hover:w-6",
+                  "absolute bottom-4 left-1/2 h-[1.5px] -translate-x-1/2 bg-accent-primary transition-all duration-300",
+                  highlighted ? "w-6" : "w-0 group-hover:w-6",
                 )}
               />
             </Link>
           );
         })}
-        <Link
-          href="/shop"
-          className="ml-1 inline-flex h-full items-center px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-primary transition hover:text-accent-primary-hover lg:px-4 lg:text-xs lg:tracking-[0.22em]"
-        >
-          All Sarees
-        </Link>
       </nav>
 
       {showPanel && openItem && (

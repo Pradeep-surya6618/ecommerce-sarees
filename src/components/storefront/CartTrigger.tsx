@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { HandbagIcon } from "@/components/shared/icons";
 import { NavTooltip } from "@/components/shared/NavTooltip";
 import type { Cart } from "@/types/domain";
 
@@ -16,7 +16,7 @@ export function CartTrigger({ cart }: CartTriggerProps) {
       aria-label={`Cart${count > 0 ? `, ${count} items` : ""}`}
       className="group relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
     >
-      <ShoppingBag className="h-[18px] w-[18px]" />
+      <HandbagIcon className="h-[20px] w-[20px]" />
       {count > 0 && (
         <span
           aria-hidden

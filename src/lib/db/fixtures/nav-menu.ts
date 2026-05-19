@@ -3,6 +3,28 @@ import type { NavMenuItem } from "@/types/domain";
 // Seed mirrors current category tree plus a couple of custom-link examples.
 // Admin can edit everything from /admin/navigation.
 export const NAV_MENU_FIXTURE: NavMenuItem[] = [
+  // Top-level: All Sarees (custom link)
+  {
+    id: "nav_all",
+    label: "All Sarees",
+    kind: "custom-link",
+    categorySlug: null,
+    href: "/shop",
+    parentId: null,
+    sortOrder: 1,
+    visible: true,
+  },
+  // Top-level: New Arrivals (custom link)
+  {
+    id: "nav_new_arrivals",
+    label: "New Arrivals",
+    kind: "custom-link",
+    categorySlug: null,
+    href: "/shop?sort=newest",
+    parentId: null,
+    sortOrder: 2,
+    visible: true,
+  },
   // Top-level: Silk Sarees (category)
   {
     id: "nav_silk",
@@ -11,7 +33,7 @@ export const NAV_MENU_FIXTURE: NavMenuItem[] = [
     categorySlug: "silk",
     href: null,
     parentId: null,
-    sortOrder: 1,
+    sortOrder: 3,
     visible: true,
   },
   // Top-level: Cotton Sarees (category)
@@ -22,7 +44,7 @@ export const NAV_MENU_FIXTURE: NavMenuItem[] = [
     categorySlug: "cotton",
     href: null,
     parentId: null,
-    sortOrder: 2,
+    sortOrder: 4,
     visible: true,
   },
   // Top-level: Linen (category)
@@ -33,7 +55,7 @@ export const NAV_MENU_FIXTURE: NavMenuItem[] = [
     categorySlug: "linen",
     href: null,
     parentId: null,
-    sortOrder: 3,
+    sortOrder: 5,
     visible: true,
   },
   // Top-level: Designer Edit (category)
@@ -44,7 +66,7 @@ export const NAV_MENU_FIXTURE: NavMenuItem[] = [
     categorySlug: "designer",
     href: null,
     parentId: null,
-    sortOrder: 4,
+    sortOrder: 6,
     visible: true,
   },
 

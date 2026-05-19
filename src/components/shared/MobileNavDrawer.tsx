@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Heart, Menu, User as UserIcon, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
+import {
+  CloseIcon,
+  HeartIcon,
+  MenuIcon,
+  UserIcon as PremiumUserIcon,
+} from "@/components/shared/icons";
 import type { MegaMenuItem } from "@/components/shared/MegaMenu";
-import { IconButton } from "@/components/ui/IconButton";
 import type { User } from "@/types/domain";
 
 export interface MobileNavDrawerProps {
@@ -72,12 +77,17 @@ export function MobileNavDrawer({ items, user }: MobileNavDrawerProps) {
               className="mt-1.5 h-px w-8 bg-gradient-to-r from-accent-gold to-transparent"
             />
           </div>
-          <IconButton aria-label="Close" size="sm" onClick={close}>
-            <X className="h-5 w-5" />
-          </IconButton>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={close}
+            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-accent-primary text-white shadow-sm transition hover:bg-accent-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
+          >
+            <CloseIcon className="h-4 w-4" />
+          </button>
         </header>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
+        <nav className="scrollbar-hide flex-1 overflow-y-auto px-2 py-3">
           <ul className="flex flex-col">
             {items.map((item) => {
               const isExpanded = expanded === item.id;
@@ -102,49 +112,49 @@ export function MobileNavDrawer({ items, user }: MobileNavDrawerProps) {
                       >
                         <ChevronDown
                           className={clsx(
-                            "h-4 w-4 transition-transform",
+                            "h-4 w-4 transition-transform duration-300",
                             isExpanded && "rotate-180",
                           )}
                         />
                       </button>
                     )}
                   </div>
-                  {hasChildren && isExpanded && (
-                    <ul className="flex flex-col gap-1 bg-ink-500/[0.03] px-3 pb-3 pt-1">
-                      {item.children.map((c) => (
-                        <li key={c.id}>
+                  {hasChildren && (
+                    <div
+                      className={clsx(
+                        "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+                        isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                      )}
+                    >
+                      <ul className="flex flex-col gap-1 overflow-hidden bg-ink-500/[0.03] px-3">
+                        <li className="pt-1" aria-hidden />
+                        {item.children.map((c) => (
+                          <li key={c.id}>
+                            <Link
+                              href={c.href}
+                              onClick={close}
+                              className="block rounded-sm px-3 py-2 text-sm text-ink-700 transition hover:bg-ink-500/10 hover:text-ink-900"
+                            >
+                              {c.label}
+                            </Link>
+                          </li>
+                        ))}
+                        <li>
                           <Link
-                            href={c.href}
+                            href={item.href}
                             onClick={close}
-                            className="block rounded-sm px-3 py-2 text-sm text-ink-700 transition hover:bg-ink-500/10 hover:text-ink-900"
+                            className="block rounded-sm px-3 py-2 text-sm font-medium text-accent-primary transition hover:bg-ink-500/10"
                           >
-                            {c.label}
+                            View all {item.label} →
                           </Link>
                         </li>
-                      ))}
-                      <li>
-                        <Link
-                          href={item.href}
-                          onClick={close}
-                          className="block rounded-sm px-3 py-2 text-sm font-medium text-accent-primary transition hover:bg-ink-500/10"
-                        >
-                          View all {item.label} →
-                        </Link>
-                      </li>
-                    </ul>
+                        <li className="pb-3" aria-hidden />
+                      </ul>
+                    </div>
                   )}
                 </li>
               );
             })}
-            <li>
-              <Link
-                href="/shop"
-                onClick={close}
-                className="block px-3 py-3 text-sm font-medium text-accent-primary"
-              >
-                All Sarees
-              </Link>
-            </li>
           </ul>
         </nav>
 
@@ -156,7 +166,7 @@ export function MobileNavDrawer({ items, user }: MobileNavDrawerProps) {
                 onClick={close}
                 className="flex items-center gap-3 rounded-sm px-3 py-3 text-sm text-ink-700 transition hover:bg-ink-500/10 hover:text-ink-900"
               >
-                <UserIcon className="h-4 w-4" />
+                <PremiumUserIcon className="h-[18px] w-[18px]" />
                 {accountLabel}
               </Link>
             </li>
@@ -166,7 +176,7 @@ export function MobileNavDrawer({ items, user }: MobileNavDrawerProps) {
                 onClick={close}
                 className="flex items-center gap-3 rounded-sm px-3 py-3 text-sm text-ink-700 transition hover:bg-ink-500/10 hover:text-ink-900"
               >
-                <Heart className="h-4 w-4" />
+                <HeartIcon className="h-[18px] w-[18px]" />
                 Wishlist
               </Link>
             </li>
@@ -184,7 +194,7 @@ export function MobileNavDrawer({ items, user }: MobileNavDrawerProps) {
         onClick={openDrawer}
         className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
       >
-        <Menu className="h-[18px] w-[18px]" />
+        <MenuIcon className="h-[20px] w-[20px]" />
       </button>
       {overlay && typeof document !== "undefined" ? createPortal(overlay, document.body) : null}
     </>

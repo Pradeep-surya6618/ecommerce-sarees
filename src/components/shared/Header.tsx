@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { User } from "lucide-react";
+import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { cartRepo } from "@/lib/db/repos/cart";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { loadMegaMenu } from "@/lib/nav/mega-menu";
+import { UserIcon } from "@/components/shared/icons";
 import { MegaMenu } from "@/components/shared/MegaMenu";
 import { MobileNavDrawer } from "@/components/shared/MobileNavDrawer";
 import { NavTooltip } from "@/components/shared/NavTooltip";
@@ -41,12 +42,12 @@ function BrandWordmark({ centered = false }: { centered?: boolean }) {
       aria-label="Saree Store · Home"
       className={`inline-flex flex-col justify-center ${centered ? "items-center" : "items-start"}`}
     >
-      <span className="whitespace-nowrap font-display text-lg leading-none tracking-wide text-ink-900 sm:text-xl md:text-[26px]">
+      <span className="whitespace-nowrap font-display text-md leading-none tracking-wide text-ink-900 sm:text-lg md:text-[26px]">
         Saree Store
       </span>
       <span
         aria-hidden
-        className={`mt-1.5 h-px w-10 bg-gradient-to-r ${
+        className={`mt-1 h-px w-7 bg-gradient-to-r sm:mt-1.5 md:w-10 ${
           centered
             ? "from-transparent via-accent-gold to-transparent"
             : "from-accent-gold to-transparent"
@@ -65,7 +66,7 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-500/10 bg-bg-base/85 backdrop-blur-md">
       <div className="w-full px-4 sm:px-6 md:px-10 lg:px-12">
-        <div className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-2 md:h-20 md:grid-cols-[1fr_auto_1fr] md:gap-6">
+        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 md:h-20 md:grid-cols-[1fr_auto_1fr] md:gap-6">
           {/* LEFT */}
           <div className="flex items-center justify-start">
             <div className="md:hidden">
@@ -82,22 +83,22 @@ export async function Header() {
               <BrandWordmark centered />
             </div>
             <div className="hidden md:block">
-              <MegaMenu items={menuItems} />
+              <Suspense fallback={<div className="h-20" />}>
+                <MegaMenu items={menuItems} />
+              </Suspense>
             </div>
           </div>
 
           {/* RIGHT */}
           <div className="flex items-center justify-end gap-0.5 md:gap-1.5">
             <SearchPanel />
-            <div className="hidden md:block">
-              <WishlistTrigger count={wishlistCount} />
-            </div>
+            <WishlistTrigger count={wishlistCount} />
             <Link
               href={accountHref}
               aria-label={accountLabel}
               className={`${iconBtn} hidden md:inline-flex`}
             >
-              <User className="h-[18px] w-[18px]" />
+              <UserIcon className="h-[20px] w-[20px]" />
               <NavTooltip label={accountLabel} />
             </Link>
             <CartTrigger cart={cart} />

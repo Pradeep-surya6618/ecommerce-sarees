@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { HeartIcon } from "@/components/shared/icons";
 import { NavTooltip } from "@/components/shared/NavTooltip";
 
 export interface WishlistTriggerProps {
@@ -13,7 +13,7 @@ export function WishlistTrigger({ count }: WishlistTriggerProps) {
       aria-label={`Wishlist${count > 0 ? `, ${count} items` : ""}`}
       className="group relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
     >
-      <Heart className="h-[18px] w-[18px]" />
+      <HeartIcon className="h-[20px] w-[20px]" />
       {count > 0 && (
         <span
           aria-hidden

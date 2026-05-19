@@ -1,21 +1,21 @@
 export const colors = {
-  ink900: "#1f1414",
-  ink700: "#3d2929",
-  ink500: "#6b5252",
-  bgBase: "#faf7f2",
+  ink900: "#1a1b2e",
+  ink700: "#383a52",
+  ink500: "#6d6f88",
+  bgBase: "#f7f2ea",
   bgElevated: "#ffffff",
-  accentPrimary: "#8e2a2a",
-  accentPrimaryHover: "#761f1f",
-  accentGold: "#b8893e",
+  accentPrimary: "#1e3a8a",
+  accentPrimaryHover: "#162a66",
+  accentGold: "#8b5a3c",
   success: "#1a7a3a",
-  warning: "#b8722c",
+  warning: "#a06a3c",
   danger: "#b3261e",
 } as const;
 
 export const radii = { sm: 4, md: 12, lg: 24 } as const;
 
 export const typography = {
-  display: '"Cormorant Garamond", Georgia, serif',
+  display: '"Playfair Display", Georgia, serif',
   body: "Inter, system-ui, -apple-system, sans-serif",
 } as const;
 

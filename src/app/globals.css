@@ -2,20 +2,20 @@
 
 @theme inline {
   /* Brand color tokens — exported as Tailwind utilities like bg-ink-900, text-accent-primary */
-  --color-ink-900: #1f1414;
-  --color-ink-700: #3d2929;
-  --color-ink-500: #6b5252;
-  --color-bg-base: #faf7f2;
+  --color-ink-900: #1a1b2e;
+  --color-ink-700: #383a52;
+  --color-ink-500: #6d6f88;
+  --color-bg-base: #f7f2ea;
   --color-bg-elevated: #ffffff;
-  --color-accent-primary: #8e2a2a;
-  --color-accent-primary-hover: #761f1f;
-  --color-accent-gold: #b8893e;
+  --color-accent-primary: #1e3a8a;
+  --color-accent-primary-hover: #162a66;
+  --color-accent-gold: #8b5a3c;
   --color-success: #1a7a3a;
-  --color-warning: #b8722c;
+  --color-warning: #a06a3c;
   --color-danger: #b3261e;
 
   /* Typography */
-  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-display: var(--font-playfair), "Playfair Display", Georgia, serif;
   --font-body: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
   --font-sans: var(--font-body);
 
@@ -37,8 +37,8 @@
   --radius-lg: 24px;
 
   /* Shadows */
-  --shadow-card: 0 1px 2px rgba(31, 20, 20, 0.04), 0 8px 24px rgba(31, 20, 20, 0.06);
-  --shadow-elev: 0 6px 16px rgba(31, 20, 20, 0.08), 0 24px 48px rgba(31, 20, 20, 0.1);
+  --shadow-card: 0 1px 2px rgba(26, 27, 46, 0.05), 0 8px 24px rgba(26, 27, 46, 0.07);
+  --shadow-elev: 0 6px 16px rgba(26, 27, 46, 0.09), 0 24px 48px rgba(26, 27, 46, 0.11);
 
   /* Motion */
   --ease-default: cubic-bezier(0.2, 0.7, 0.1, 1);
@@ -69,6 +69,63 @@ h2,
 h3 {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
+}
+
+/* Hide scrollbar but keep scrolling functional */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/legacy Edge */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
+/* Banner hero circular progress ring */
+@keyframes banner-circular-progress {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.banner-circular-fill {
+  animation-name: banner-circular-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Banner hero Ken Burns: starts zoomed-in, eases out to scale(1) */
+@keyframes banner-ken-burns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.banner-ken-burns {
+  animation-name: banner-ken-burns;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+/* Dark reveal overlay: fades out as the banner zooms out */
+@keyframes banner-overlay-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.banner-overlay-fade {
+  animation-name: banner-overlay-fade;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
