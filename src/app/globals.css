@@ -51,6 +51,37 @@
   color-scheme: light;
 }
 
+/* Page + global scrollbar — themed and slim */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: #2a6b56 #e6efde;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: #e6efde;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a6b56;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #1e5443;
+}
+/* Kill the native up/down stepper buttons */
+*::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 html,
 body {
   background: var(--color-bg-base);
