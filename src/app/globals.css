@@ -51,19 +51,20 @@
   color-scheme: light;
 }
 
-/* Page + global scrollbar — themed and slim */
+/* Page + global scrollbar — themed and slim, transparent track */
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-color: #2a6b56 #e6efde;
+  scrollbar-color: #2a6b56 transparent;
 }
 
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
+  background: transparent;
 }
 *::-webkit-scrollbar-track {
-  background: #e6efde;
+  background: transparent;
 }
 *::-webkit-scrollbar-thumb {
   background: #2a6b56;
