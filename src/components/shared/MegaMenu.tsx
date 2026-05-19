@@ -171,9 +171,13 @@ function MegaMenuPanel({ item, onNavigate }: { item: MegaMenuItem; onNavigate: (
               <Link
                 href={c.href}
                 onClick={onNavigate}
-                className="inline-block text-sm text-ink-700 underline decoration-transparent decoration-2 underline-offset-4 transition-all duration-200 hover:text-accent-primary hover:decoration-accent-primary/60"
+                className="group relative inline-block text-sm text-ink-700 transition hover:text-accent-primary"
               >
                 {c.label}
+                <span
+                  aria-hidden
+                  className="absolute -bottom-1 left-0 h-[1.5px] w-0 bg-accent-primary transition-all duration-300 ease-out group-hover:w-full"
+                />
               </Link>
             </li>
           ))}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
+import { NavTooltip } from "@/components/shared/NavTooltip";
 
 /**
  * Appears in the bottom-right after the user scrolls past ~50% of the page
@@ -41,11 +42,12 @@ export function ScrollToTopButton() {
       onClick={scrollToTop}
       tabIndex={visible ? 0 : -1}
       className={clsx(
-        "fixed bottom-6 right-6 z-40 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-accent-primary text-bg-base shadow-elev transition-all duration-300 hover:bg-accent-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary sm:bottom-8 sm:right-8 sm:h-12 sm:w-12",
+        "group fixed bottom-6 right-6 z-40 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-accent-primary text-bg-base shadow-elev transition-all duration-300 hover:bg-accent-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary sm:bottom-8 sm:right-8 sm:h-12 sm:w-12",
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
       )}
     >
       <ArrowUp className="h-5 w-5" />
+      <NavTooltip label="Scroll to top" position="top" />
     </button>
   );
 }

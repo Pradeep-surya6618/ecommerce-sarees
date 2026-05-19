@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { formatRupees } from "@/lib/money";
 import { clsx } from "@/lib/utils/clsx";
 import { searchProductsAction } from "@/server/actions/search";
@@ -154,19 +154,35 @@ export function SearchPanel() {
                   }}
                   placeholder="Search products…"
                   aria-label="Search products"
-                  className="h-8 min-w-0 flex-1 bg-transparent text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none sm:h-10 sm:text-base"
+                  className="h-8 min-w-0 flex-1 bg-transparent text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none sm:h-10 sm:text-base [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
                 />
+                {query.length > 0 && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => {
+                      setQuery("");
+                      setResults([]);
+                      inputRef.current?.focus();
+                    }}
+                    className="group relative inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-sm text-danger transition hover:bg-danger/10 hover:text-danger sm:h-8 sm:w-8"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <NavTooltip label="Clear" tone="danger" />
+                  </button>
+                )}
                 <button
                   type="button"
                   aria-label="Close search"
                   onClick={closeAndReset}
-                  className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-sm text-ink-500 transition hover:bg-ink-900/5 hover:text-ink-900 sm:h-8 sm:w-8"
+                  className="group relative inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-sm text-ink-500 transition hover:bg-ink-900/5 hover:text-ink-900 sm:h-8 sm:w-8"
                 >
                   <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <NavTooltip label="Close" />
                 </button>
               </div>
 
-              <div className="max-h-[60vh] overflow-y-auto">
+              <div className="scrollbar-hide max-h-[60vh] overflow-y-auto">
                 {!showResults && (
                   <div className="px-3 py-4 text-xs text-ink-500 sm:px-4 sm:py-6 sm:text-sm">
                     Try a fabric (silk, linen), an occasion (wedding, office), or a colour (maroon,
