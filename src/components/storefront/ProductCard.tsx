@@ -89,12 +89,7 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
         <h3 className="font-display text-lg text-ink-900">{product.name}</h3>
         <span className="text-xs uppercase tracking-wide text-ink-500">{product.fabric}</span>
         <div className="mt-1 flex items-center justify-between">
-          <PriceTag
-            priceInPaise={product.priceInPaise}
-            mrpInPaise={product.mrpInPaise}
-            size="sm"
-            hideDiscount
-          />
+          <PriceTag priceInPaise={product.priceInPaise} mrpInPaise={product.mrpInPaise} size="sm" />
           <div className="flex items-center gap-1">
             {product.variants.slice(0, 4).map((v) => (
               <span

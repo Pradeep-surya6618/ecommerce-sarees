@@ -299,8 +299,36 @@ export interface AnnouncementSettings {
   enabled: boolean;
 }
 
+export interface InstagramTile {
+  id: string;
+  imageUrl: string;
+  href: string;
+  visible: boolean;
+}
+
+export interface InstagramSettings {
+  handle: string;
+  ctaHref: string;
+  enabled: boolean;
+  tiles: InstagramTile[];
+}
+
+export interface AboutPageContent {
+  title: string;
+  description: string;
+  introBody: string;
+  imageUrl: string;
+  imageAlt: string;
+  beliefHeading: string;
+  beliefBody: string;
+  teamHeading: string;
+  teamBody: string;
+}
+
 export interface SiteSettings {
   announcement: AnnouncementSettings;
+  about: AboutPageContent;
+  instagram: InstagramSettings;
 }
 
 export type BlogPostStatus = "draft" | "published";

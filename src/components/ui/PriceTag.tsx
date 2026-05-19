@@ -6,7 +6,6 @@ export interface PriceTagProps {
   mrpInPaise?: number;
   size?: "sm" | "md" | "lg";
   className?: string;
-  hideDiscount?: boolean;
 }
 
 const sizeClass: Record<NonNullable<PriceTagProps["size"]>, { price: string; rest: string }> = {
@@ -15,31 +14,17 @@ const sizeClass: Record<NonNullable<PriceTagProps["size"]>, { price: string; res
   lg: { price: "text-2xl font-semibold", rest: "text-base" },
 };
 
-export function PriceTag({
-  priceInPaise,
-  mrpInPaise,
-  size = "md",
-  className,
-  hideDiscount = false,
-}: PriceTagProps) {
+export function PriceTag({ priceInPaise, mrpInPaise, size = "md", className }: PriceTagProps) {
   const showStrike = typeof mrpInPaise === "number" && mrpInPaise > priceInPaise;
-  const discountPct = showStrike ? Math.round(((mrpInPaise - priceInPaise) / mrpInPaise) * 100) : 0;
   const classes = sizeClass[size];
 
   return (
     <div className={clsx("flex flex-wrap items-baseline gap-2 tabular-nums", className)}>
       <span className={clsx("text-ink-900", classes.price)}>{formatRupees(priceInPaise)}</span>
       {showStrike && (
-        <>
-          <span className={clsx("text-ink-500 line-through", classes.rest)}>
-            {formatRupees(mrpInPaise)}
-          </span>
-          {!hideDiscount && (
-            <span className={clsx("text-success font-medium", classes.rest)}>
-              {discountPct}% off
-            </span>
-          )}
-        </>
+        <span className={clsx("text-ink-500 line-through", classes.rest)}>
+          {formatRupees(mrpInPaise)}
+        </span>
       )}
     </div>
   );

@@ -2,9 +2,11 @@ import { bannersRepo } from "@/lib/db/repos/banners";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { productsRepo } from "@/lib/db/repos/products";
 import { reviewsRepo } from "@/lib/db/repos/reviews";
+import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import { BannerHero } from "@/components/storefront/BannerHero";
 import { CategoryTile } from "@/components/storefront/CategoryTile";
 import { CollectionRail } from "@/components/storefront/CollectionRail";
+import { EditorsPicks } from "@/components/storefront/EditorsPicks";
 import { ExploreAllCTA } from "@/components/storefront/ExploreAllCTA";
 import { InstagramStrip } from "@/components/storefront/InstagramStrip";
 import { PriceTierTiles } from "@/components/storefront/PriceTierTiles";
@@ -16,12 +18,13 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export default async function HomePage() {
-  const [heroBanners, categories, featured, newest, reviews] = await Promise.all([
+  const [heroBanners, categories, featured, newest, reviews, settings] = await Promise.all([
     bannersRepo.listByPlacement("home-hero"),
     categoriesRepo.listTopLevel(),
     productsRepo.listFeatured({ limit: 8 }),
     productsRepo.list({ limit: 8 }),
     reviewsRepo.listFeatured({ limit: 6 }),
+    siteSettingsRepo.get(),
   ]);
 
   return (
@@ -88,24 +91,11 @@ export default async function HomePage() {
 
       <StorytellerSection />
 
-      <CollectionRail
-        eyebrow="Editor's picks"
-        title="Featured this season"
-        description="Sarees we keep reaching for."
-      >
-        {featured.map((p) => (
-          <div
-            key={p.id}
-            className="min-w-0 flex-[0_0_70%] snap-start md:flex-[0_0_30%] lg:flex-[0_0_22%]"
-          >
-            <ProductCard product={p} />
-          </div>
-        ))}
-      </CollectionRail>
+      <EditorsPicks products={featured} />
 
       {/* Community — reviews + instagram (each carries its own eyebrow + heading) */}
       <ReviewCarousel reviews={reviews} />
-      <InstagramStrip />
+      <InstagramStrip settings={settings.instagram} />
 
       {/* Explore all */}
       <ExploreAllCTA />

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   Banknote,
+  BookOpen,
   FolderTree,
   Image as ImageIcon,
   LayoutDashboard,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
 import { logoutAction } from "@/server/actions/auth";
+import { InstagramGlyph } from "@/components/shared/icons";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -27,6 +29,8 @@ const NAV = [
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/banners", label: "Banners", icon: ImageIcon },
   { href: "/admin/navigation", label: "Navigation", icon: ListTree },
+  { href: "/admin/about", label: "About page", icon: BookOpen },
+  { href: "/admin/instagram", label: "Instagram", icon: InstagramGlyph },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

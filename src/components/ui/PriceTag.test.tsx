@@ -9,15 +9,16 @@ describe("PriceTag", () => {
     expect(screen.queryByText(/% off/)).not.toBeInTheDocument();
   });
 
-  it("renders price + MRP strike + discount % when MRP exceeds price", () => {
+  it("renders price + strikethrough MRP when MRP exceeds price", () => {
     render(<PriceTag priceInPaise={100000} mrpInPaise={150000} />);
     expect(screen.getByText("₹1,000")).toBeInTheDocument();
     expect(screen.getByText("₹1,500")).toBeInTheDocument();
-    expect(screen.getByText("33% off")).toBeInTheDocument();
   });
 
-  it("does not render discount when MRP equals price", () => {
+  it("hides MRP strike when MRP equals price", () => {
     render(<PriceTag priceInPaise={100000} mrpInPaise={100000} />);
-    expect(screen.queryByText(/% off/)).not.toBeInTheDocument();
+    expect(screen.queryByText("₹1,000")).toBeInTheDocument();
+    // Only one ₹1,000 (the price) — no strike line equal to price.
+    expect(screen.queryAllByText("₹1,000")).toHaveLength(1);
   });
 });

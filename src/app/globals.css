@@ -96,6 +96,25 @@ h3 {
   animation-fill-mode: forwards;
 }
 
+/* Editor's picks marquee — slow continuous horizontal flow */
+@keyframes editors-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.editors-marquee {
+  animation: editors-marquee 60s linear infinite;
+}
+
+.editors-marquee-pause:hover .editors-marquee,
+.editors-marquee-pause:focus-within .editors-marquee {
+  animation-play-state: paused;
+}
+
 /* Banner hero Ken Burns: starts zoomed-in, eases out to scale(1) */
 @keyframes banner-ken-burns {
   from {
