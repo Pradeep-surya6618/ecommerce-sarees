@@ -1,22 +1,19 @@
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { Heart } from "lucide-react";
 import { NavTooltip } from "@/components/shared/NavTooltip";
-import type { Cart } from "@/types/domain";
 
-export interface CartTriggerProps {
-  cart: Cart;
+export interface WishlistTriggerProps {
+  count: number;
 }
 
-export function CartTrigger({ cart }: CartTriggerProps) {
-  const count = cart.items.reduce((n, i) => n + i.quantity, 0);
-
+export function WishlistTrigger({ count }: WishlistTriggerProps) {
   return (
     <Link
-      href="/cart"
-      aria-label={`Cart${count > 0 ? `, ${count} items` : ""}`}
+      href="/account/wishlist"
+      aria-label={`Wishlist${count > 0 ? `, ${count} items` : ""}`}
       className="group relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
     >
-      <ShoppingBag className="h-[18px] w-[18px]" />
+      <Heart className="h-[18px] w-[18px]" />
       {count > 0 && (
         <span
           aria-hidden
@@ -25,7 +22,7 @@ export function CartTrigger({ cart }: CartTriggerProps) {
           {count}
         </span>
       )}
-      <NavTooltip label="Cart" />
+      <NavTooltip label="Wishlist" />
     </Link>
   );
 }

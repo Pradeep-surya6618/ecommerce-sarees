@@ -8,6 +8,7 @@ import {
   FolderTree,
   Image as ImageIcon,
   LayoutDashboard,
+  ListTree,
   LogOut,
   Package,
   Settings,
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/admin/customers", label: "Customers", icon: UsersRound },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/banners", label: "Banners", icon: ImageIcon },
+  { href: "/admin/navigation", label: "Navigation", icon: ListTree },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

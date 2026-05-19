@@ -271,6 +271,38 @@ export interface BannerInput {
   active: boolean;
 }
 
+export type NavMenuItemKind = "category" | "custom-link";
+
+export interface NavMenuItem {
+  id: string;
+  label: string;
+  kind: NavMenuItemKind;
+  categorySlug: string | null;
+  href: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  visible: boolean;
+}
+
+export interface NavMenuItemInput {
+  label: string;
+  kind: NavMenuItemKind;
+  categorySlug: string | null;
+  href: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  visible: boolean;
+}
+
+export interface AnnouncementSettings {
+  message: string;
+  enabled: boolean;
+}
+
+export interface SiteSettings {
+  announcement: AnnouncementSettings;
+}
+
 export type BlogPostStatus = "draft" | "published";
 
 export interface BlogPost {

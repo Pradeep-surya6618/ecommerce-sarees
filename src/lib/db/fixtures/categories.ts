@@ -22,6 +22,46 @@ export const CATEGORIES_FIXTURE: Category[] = [
     sortOrder: 2,
   },
   {
+    id: "cat_cotton_pure",
+    slug: "pure-cotton",
+    name: "Pure Cotton",
+    description: "100% cotton handloom weaves for daily wear.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "cotton",
+    sortOrder: 21,
+  },
+  {
+    id: "cat_cotton_handloom",
+    slug: "handloom-cotton",
+    name: "Handloom Cotton",
+    description: "Slow-weave handloom cottons from regional clusters.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "cotton",
+    sortOrder: 22,
+  },
+  {
+    id: "cat_cotton_block",
+    slug: "block-print-cotton",
+    name: "Block Print Cotton",
+    description: "Bagru and Sanganeri hand-block printed cottons.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "cotton",
+    sortOrder: 23,
+  },
+  {
+    id: "cat_cotton_jamdani",
+    slug: "jamdani-cotton",
+    name: "Jamdani",
+    description: "Bengali Jamdani cottons with discontinuous weft motifs.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "cotton",
+    sortOrder: 24,
+  },
+  {
     id: "cat_banarasi",
     slug: "banarasi",
     name: "Banarasi",
@@ -40,6 +80,46 @@ export const CATEGORIES_FIXTURE: Category[] = [
       "https://images.unsplash.com/photo-1583391733981-86d0d2c0e9aa?auto=format&fit=crop&w=1200&q=80",
     parentSlug: "silk",
     sortOrder: 4,
+  },
+  {
+    id: "cat_silk_soft",
+    slug: "soft-silk",
+    name: "Soft Silk",
+    description: "Lightweight soft-silk drapes with subtle sheen.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "silk",
+    sortOrder: 41,
+  },
+  {
+    id: "cat_silk_mysore",
+    slug: "mysore-silk",
+    name: "Mysore Silk",
+    description: "Crepe-finish Mysore silk in jewel tones.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "silk",
+    sortOrder: 42,
+  },
+  {
+    id: "cat_silk_wedding",
+    slug: "wedding-silk",
+    name: "Wedding Silk",
+    description: "Statement bridal silks with heavy zari work.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "silk",
+    sortOrder: 43,
+  },
+  {
+    id: "cat_silk_ikkat",
+    slug: "ikkat-silk",
+    name: "Ikkat Silk",
+    description: "Resist-dyed Pochampally ikkat in silk.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=80",
+    parentSlug: "silk",
+    sortOrder: 44,
   },
   {
     id: "cat_linen",

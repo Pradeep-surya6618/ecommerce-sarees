@@ -23,9 +23,16 @@ export interface CategoryDraft {
   sortOrder: number;
 }
 
+export interface CategoryTreeNode {
+  parent: Category;
+  children: Category[];
+}
+
 export interface CategoriesRepo {
   list(): Promise<Category[]>;
   listTopLevel(): Promise<Category[]>;
+  listChildren(parentSlug: string): Promise<Category[]>;
+  listTree(): Promise<CategoryTreeNode[]>;
   getBySlug(slug: string): Promise<Category | null>;
   getById(id: string): Promise<Category | null>;
   create(input: CategoryDraft): Promise<Category>;
@@ -47,6 +54,22 @@ export const categoriesRepo: CategoriesRepo = {
       .filter((c) => c.parentSlug === null)
       .slice()
       .sort(bySortOrder);
+  },
+
+  async listChildren(parentSlug) {
+    return [...getStore().values()]
+      .filter((c) => c.parentSlug === parentSlug)
+      .slice()
+      .sort(bySortOrder);
+  },
+
+  async listTree() {
+    const all = [...getStore().values()];
+    const parents = all.filter((c) => c.parentSlug === null).sort(bySortOrder);
+    return parents.map((parent) => ({
+      parent,
+      children: all.filter((c) => c.parentSlug === parent.slug).sort(bySortOrder),
+    }));
   },
 
   async getBySlug(slug) {

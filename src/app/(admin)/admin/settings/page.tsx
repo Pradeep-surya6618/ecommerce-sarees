@@ -1,3 +1,5 @@
+import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
+import { AnnouncementBarEditor } from "@/components/admin/AnnouncementBarEditor";
 import { Badge } from "@/components/ui/Badge";
 
 export const metadata = { title: "Settings · Admin" };
@@ -30,7 +32,9 @@ const KEYS = [
   { label: "SES SMTP credentials", value: "Not connected", status: "missing" },
 ];
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
+  const settings = await siteSettingsRepo.get();
+
   return (
     <div className="flex flex-col gap-8">
       <header>
@@ -39,6 +43,10 @@ export default function AdminSettingsPage() {
           Store profile, tax, shipping, and integration keys. Editable in a later backend phase.
         </p>
       </header>
+
+      <Section title="Announcement bar">
+        <AnnouncementBarEditor initial={settings.announcement} />
+      </Section>
 
       <Section title="Store profile">
         <Field label="Legal name" value={STORE.legalName} />

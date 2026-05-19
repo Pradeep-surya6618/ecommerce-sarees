@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Search, X } from "lucide-react";
 import { formatRupees } from "@/lib/money";
 import { searchProductsAction } from "@/server/actions/search";
+import { NavTooltip } from "@/components/shared/NavTooltip";
 import type { Product } from "@/types/domain";
 
 export function SearchPanel() {
@@ -80,9 +81,10 @@ export function SearchPanel() {
         aria-label="Search"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
+        className="group relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
       >
-        <Search className="h-5 w-5" />
+        <Search className="h-[18px] w-[18px]" />
+        {!open && <NavTooltip label="Search" />}
       </button>
 
       {open && (

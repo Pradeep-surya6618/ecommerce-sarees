@@ -53,6 +53,7 @@ export interface ProductsRepo {
   list(options?: ListOptions): Promise<Product[]>;
   listFeatured(options?: ListOptions): Promise<Product[]>;
   listByCategory(categorySlug: string, options?: ListOptions): Promise<Product[]>;
+  listByCategorySlugs(categorySlugs: string[], options?: ListOptions): Promise<Product[]>;
   getBySlug(slug: string): Promise<Product | null>;
   getById(id: string): Promise<Product | null>;
   search(options: SearchOptions): Promise<SearchResult>;
@@ -154,6 +155,20 @@ export const productsRepo: ProductsRepo = {
       .filter((p) => activeOnly(p) && p.categorySlug === categorySlug)
       .slice()
       .sort(sortNewestFirst);
+    return applyLimit(items, options);
+  },
+
+  async listByCategorySlugs(categorySlugs, options) {
+    if (categorySlugs.length === 0) return [];
+    const set = new Set(categorySlugs);
+    const items = [...getStore().values()]
+      .filter((p) => activeOnly(p) && set.has(p.categorySlug))
+      .slice()
+      .sort((a, b) => {
+        // Featured first, then newest
+        if (a.featured !== b.featured) return a.featured ? -1 : 1;
+        return sortNewestFirst(a, b);
+      });
     return applyLimit(items, options);
   },
 

@@ -1,13 +1,16 @@
 import Link from "next/link";
-import { Heart, Menu, User } from "lucide-react";
+import { User } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { cartRepo } from "@/lib/db/repos/cart";
-import { categoriesRepo } from "@/lib/db/repos/categories";
+import { wishlistRepo } from "@/lib/db/repos/wishlist";
+import { loadMegaMenu } from "@/lib/nav/mega-menu";
+import { MegaMenu } from "@/components/shared/MegaMenu";
+import { MobileNavDrawer } from "@/components/shared/MobileNavDrawer";
+import { NavTooltip } from "@/components/shared/NavTooltip";
 import { CartTrigger } from "@/components/storefront/CartTrigger";
 import { SearchPanel } from "@/components/storefront/SearchPanel";
-import { Container } from "@/components/ui/Container";
-import { IconButton } from "@/components/ui/IconButton";
+import { WishlistTrigger } from "@/components/storefront/WishlistTrigger";
 import type { Cart } from "@/types/domain";
 
 async function readCart(): Promise<Cart> {
@@ -28,67 +31,85 @@ async function readCart(): Promise<Cart> {
   return cartRepo.getOrCreateForGuestSession(guestSessionId);
 }
 
+const iconBtn =
+  "group relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary";
+
+function BrandWordmark({ centered = false }: { centered?: boolean }) {
+  return (
+    <Link
+      href="/"
+      aria-label="Saree Store · Home"
+      className={`inline-flex flex-col justify-center ${centered ? "items-center" : "items-start"}`}
+    >
+      <span className="whitespace-nowrap font-display text-lg leading-none tracking-wide text-ink-900 sm:text-xl md:text-[26px]">
+        Saree Store
+      </span>
+      <span
+        aria-hidden
+        className={`mt-1.5 h-px w-10 bg-gradient-to-r ${
+          centered
+            ? "from-transparent via-accent-gold to-transparent"
+            : "from-accent-gold to-transparent"
+        }`}
+      />
+    </Link>
+  );
+}
+
 export async function Header() {
-  const [categories, user, cart] = await Promise.all([
-    categoriesRepo.listTopLevel(),
-    getCurrentUser(),
-    readCart(),
-  ]);
+  const [menuItems, user, cart] = await Promise.all([loadMegaMenu(), getCurrentUser(), readCart()]);
+  const wishlistCount = user ? (await wishlistRepo.listByUser(user.id)).length : 0;
   const accountHref = user ? "/account" : "/auth/login";
   const accountLabel = user ? "Account" : "Sign in";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink-500/10 bg-bg-base/90 backdrop-blur">
-      <Container size="xl">
-        <div className="flex h-16 items-center justify-between gap-6">
-          <div className="flex items-center gap-3 md:hidden">
-            <IconButton aria-label="Open menu" size="sm">
-              <Menu className="h-5 w-5" />
-            </IconButton>
+    <header className="sticky top-0 z-40 border-b border-ink-500/10 bg-bg-base/85 backdrop-blur-md">
+      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-12">
+        <div className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-2 md:h-20 md:grid-cols-[1fr_auto_1fr] md:gap-6">
+          {/* LEFT */}
+          <div className="flex items-center justify-start">
+            <div className="md:hidden">
+              <MobileNavDrawer items={menuItems} user={user} />
+            </div>
+            <div className="hidden md:block">
+              <BrandWordmark />
+            </div>
           </div>
 
-          <Link href="/" className="font-display text-2xl text-ink-900">
-            Saree Store
-          </Link>
+          {/* CENTER */}
+          <div className="flex items-center justify-center">
+            <div className="md:hidden">
+              <BrandWordmark centered />
+            </div>
+            <div className="hidden md:block">
+              <MegaMenu items={menuItems} />
+            </div>
+          </div>
 
-          <nav className="hidden items-center gap-6 md:flex">
-            {categories.slice(0, 5).map((c) => (
-              <Link
-                key={c.slug}
-                href={`/shop/${c.slug}`}
-                className="text-sm text-ink-700 transition hover:text-ink-900"
-              >
-                {c.name}
-              </Link>
-            ))}
-            <Link
-              href="/shop"
-              className="text-sm font-medium text-accent-primary transition hover:text-accent-primary-hover"
-            >
-              All Sarees
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-1">
+          {/* RIGHT */}
+          <div className="flex items-center justify-end gap-0.5 md:gap-1.5">
             <SearchPanel />
-            <Link
-              href="/account/wishlist"
-              aria-label="Wishlist"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
-            >
-              <Heart className="h-5 w-5" />
-            </Link>
+            <div className="hidden md:block">
+              <WishlistTrigger count={wishlistCount} />
+            </div>
             <Link
               href={accountHref}
               aria-label={accountLabel}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/5 hover:text-ink-900"
+              className={`${iconBtn} hidden md:inline-flex`}
             >
-              <User className="h-5 w-5" />
+              <User className="h-[18px] w-[18px]" />
+              <NavTooltip label={accountLabel} />
             </Link>
             <CartTrigger cart={cart} />
           </div>
         </div>
-      </Container>
+      </div>
+
+      {/* Hairline accent stripe */}
+      <span
+        aria-hidden
+        className="block h-px w-full bg-gradient-to-r from-transparent via-accent-gold/30 to-transparent"
+      />
     </header>
   );
 }
