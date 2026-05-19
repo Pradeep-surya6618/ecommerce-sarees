@@ -38,7 +38,7 @@ export function CollectionRail({ eyebrow, title, description, children }: Collec
         </div>
         <div
           ref={scrollerRef}
-          className="-mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [scrollbar-width:none] md:-mx-8 md:px-8 [&::-webkit-scrollbar]:hidden"
+          className="scrollbar-hide -mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-8 pb-2 [scroll-padding-inline-start:2rem] md:-mx-8 md:gap-6 md:px-10 md:[scroll-padding-inline-start:2.5rem]"
         >
           {children}
         </div>

@@ -65,7 +65,7 @@ export function WishlistButton({
       aria-label={on ? "Remove from wishlist" : "Add to wishlist"}
       aria-pressed={on}
       className={clsx(
-        "inline-flex h-9 w-9 items-center justify-center rounded-full border bg-bg-elevated/90 backdrop-blur transition",
+        "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border bg-bg-elevated/90 backdrop-blur transition disabled:cursor-not-allowed disabled:opacity-70",
         on
           ? "border-accent-primary text-accent-primary"
           : "border-ink-500/20 text-ink-700 hover:border-ink-900 hover:text-ink-900",

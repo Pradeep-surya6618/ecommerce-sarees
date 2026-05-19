@@ -31,7 +31,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       ref={ref}
       type="button"
       className={clsx(
-        "inline-flex items-center justify-center rounded-sm transition",
+        "inline-flex cursor-pointer items-center justify-center rounded-sm transition disabled:cursor-not-allowed disabled:opacity-60",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2",
         sizeClass[size],
         variantClass[variant],

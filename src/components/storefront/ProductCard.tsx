@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { Star } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
 import { PriceTag } from "@/components/ui/PriceTag";
 import type { Product } from "@/types/domain";
@@ -14,6 +15,17 @@ export interface ProductCardProps {
   className?: string;
 }
 
+// Deterministic 4.0–5.0 rating from the product id so each card is stable but varied.
+// Will be replaced by real review aggregation when the backend lands.
+function pseudoRating(productId: string): number {
+  let hash = 0;
+  for (let i = 0; i < productId.length; i++) {
+    hash = (hash * 31 + productId.charCodeAt(i)) | 0;
+  }
+  const variance = (Math.abs(hash) % 11) / 10;
+  return Math.round((4.0 + variance) * 10) / 10;
+}
+
 export function ProductCard({ product, priority, className }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
   const primaryImage = product.images[0];
@@ -21,6 +33,12 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
   const currentImage = hovered ? secondaryImage : primaryImage;
 
   if (!primaryImage || !currentImage) return null;
+
+  const hasDiscount = product.mrpInPaise > product.priceInPaise;
+  const discountPct = hasDiscount
+    ? Math.round(((product.mrpInPaise - product.priceInPaise) / product.mrpInPaise) * 100)
+    : 0;
+  const rating = pseudoRating(product.id);
 
   return (
     <Link
@@ -38,6 +56,15 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
           priority={priority}
           className="object-cover transition duration-500 group-hover:scale-[1.03]"
         />
+
+        {/* Discount badge — top-left */}
+        {hasDiscount && (
+          <span className="pointer-events-none absolute left-3 top-3 inline-flex items-center rounded-sm bg-accent-primary px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
+            {discountPct}% OFF
+          </span>
+        )}
+
+        {/* Wishlist heart — top-right */}
         <div className="absolute right-3 top-3">
           <WishlistButton
             productId={product.id}
@@ -48,12 +75,26 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
             mrpInPaise={product.mrpInPaise}
           />
         </div>
+
+        {/* Rating chip — bottom-right */}
+        <span
+          aria-label={`Rated ${rating} out of 5`}
+          className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-sm bg-bg-elevated/95 px-2 py-1 text-xs font-semibold tabular-nums text-ink-900 shadow-sm backdrop-blur"
+        >
+          {rating.toFixed(1)}
+          <Star className="h-3 w-3 fill-accent-gold text-accent-gold" />
+        </span>
       </div>
       <div className="flex flex-col gap-1">
         <h3 className="font-display text-lg text-ink-900">{product.name}</h3>
         <span className="text-xs uppercase tracking-wide text-ink-500">{product.fabric}</span>
         <div className="mt-1 flex items-center justify-between">
-          <PriceTag priceInPaise={product.priceInPaise} mrpInPaise={product.mrpInPaise} size="sm" />
+          <PriceTag
+            priceInPaise={product.priceInPaise}
+            mrpInPaise={product.mrpInPaise}
+            size="sm"
+            hideDiscount
+          />
           <div className="flex items-center gap-1">
             {product.variants.slice(0, 4).map((v) => (
               <span

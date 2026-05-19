@@ -50,8 +50,8 @@ export default async function HomePage() {
         <Container size="xl">
           <SectionHeading
             eyebrow="Shop by roots"
-            title="Where the looms live"
-            description="Each weave belongs to a place. Browse by the region that gave the craft its name."
+            title="Crafts by region"
+            description="Each weave belongs to a place. Browse by where it's made."
             className="mb-10"
           />
           <RegionTiles />
