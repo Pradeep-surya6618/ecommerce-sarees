@@ -29,12 +29,27 @@ export function MobileNavDrawer({ items, user }: MobileNavDrawerProps) {
   const [show, setShow] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // Lock both html and body scroll while the drawer is mounted, and pad html
+  // by the scrollbar width so removing the scrollbar doesn't shift the page.
   useEffect(() => {
     if (!mounted) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      htmlPaddingRight: html.style.paddingRight,
+      bodyOverflow: body.style.overflow,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      html.style.paddingRight = `${scrollbarWidth}px`;
+    }
     return () => {
-      document.body.style.overflow = prev;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.paddingRight = prev.htmlPaddingRight;
+      body.style.overflow = prev.bodyOverflow;
     };
   }, [mounted]);
 

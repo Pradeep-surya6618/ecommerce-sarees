@@ -19,7 +19,7 @@ export function AccordionItem({ title, defaultOpen, children, className }: Accor
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 py-4 text-left text-sm font-medium text-ink-900 transition hover:text-accent-primary"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 py-4 text-left text-sm font-medium text-ink-900 transition hover:text-accent-primary"
       >
         <span>{title}</span>
         <ChevronDown

@@ -85,10 +85,14 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
           <Star className="h-3 w-3 fill-accent-gold text-accent-gold" />
         </span>
       </div>
-      <div className="flex flex-col gap-1">
-        <h3 className="font-display text-lg text-ink-900">{product.name}</h3>
-        <span className="text-xs uppercase tracking-wide text-ink-500">{product.fabric}</span>
-        <div className="mt-1 flex items-center justify-between">
+      <div className="flex min-w-0 flex-col gap-0.5 sm:gap-1">
+        <h3 className="font-display text-sm font-semibold leading-tight text-ink-900 sm:text-lg">
+          {product.name}
+        </h3>
+        <span className="text-[10px] uppercase tracking-[0.16em] text-ink-500 sm:text-xs sm:tracking-wide">
+          {product.fabric}
+        </span>
+        <div className="mt-0.5 flex items-center justify-between gap-2 sm:mt-1">
           <PriceTag priceInPaise={product.priceInPaise} mrpInPaise={product.mrpInPaise} size="sm" />
           <div className="flex items-center gap-1">
             {product.variants.slice(0, 4).map((v) => (
@@ -96,7 +100,7 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
                 key={v.sku}
                 aria-label={v.colorName}
                 title={v.colorName}
-                className="h-3 w-3 rounded-full border border-ink-500/30"
+                className="h-2.5 w-2.5 rounded-full border border-ink-500/30 sm:h-3 sm:w-3"
                 style={{ background: v.colorHex }}
               />
             ))}

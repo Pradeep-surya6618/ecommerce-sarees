@@ -60,16 +60,16 @@ export default async function ShopPage({ searchParams }: PageProps) {
         priceBuckets={PRICE_BUCKETS}
       />
 
-      <div className="grid gap-10 md:grid-cols-[260px_1fr]">
-        <div className="hidden md:block">
+      <div className="grid gap-10 md:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="hidden md:sticky md:top-24 md:block md:max-h-[calc(100vh-7rem)] md:self-start md:overflow-y-auto md:pr-1 scrollbar-hide">
           <FilterRail
             fabricOptions={fabricOptions}
             colorOptions={colorOptions}
             occasionOptions={occasionOptions}
             priceBuckets={PRICE_BUCKETS}
           />
-        </div>
-        <div className="flex flex-col gap-12">
+        </aside>
+        <div className="flex min-w-0 flex-col gap-12">
           {result.items.length === 0 ? (
             <EmptyState
               title="No sarees match these filters"
