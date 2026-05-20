@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Brand color tokens — emerald-green royal theme with sage surfaces + antique-brass accent */
-  --color-ink-900: #1a2820;
-  --color-ink-700: #3a4d44;
-  --color-ink-500: #6e8079;
-  --color-bg-base: #d8e5cf;
-  --color-bg-elevated: #e6efde;
-  --color-accent-primary: #2a6b56;
-  --color-accent-primary-hover: #1e5443;
+  /* Brand color tokens — royal purple theme with pale lavender surfaces + antique-brass accent */
+  --color-ink-900: #251f3e;
+  --color-ink-700: #443c5a;
+  --color-ink-500: #7a6e8a;
+  --color-bg-base: #e3dce8;
+  --color-bg-elevated: #ece7ef;
+  --color-accent-primary: #5b3a8a;
+  --color-accent-primary-hover: #432966;
   --color-accent-gold: #b8a064;
   --color-success: #1a7a3a;
   --color-warning: #a06a3c;
@@ -37,8 +37,8 @@
   --radius-lg: 24px;
 
   /* Shadows */
-  --shadow-card: 0 1px 2px rgba(26, 40, 32, 0.06), 0 8px 24px rgba(26, 40, 32, 0.08);
-  --shadow-elev: 0 6px 16px rgba(26, 40, 32, 0.1), 0 24px 48px rgba(26, 40, 32, 0.12);
+  --shadow-card: 0 1px 2px rgba(37, 31, 62, 0.06), 0 8px 24px rgba(37, 31, 62, 0.08);
+  --shadow-elev: 0 6px 16px rgba(37, 31, 62, 0.1), 0 24px 48px rgba(37, 31, 62, 0.12);
 
   /* Motion */
   --ease-default: cubic-bezier(0.2, 0.7, 0.1, 1);
@@ -55,7 +55,7 @@
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-color: #2a6b56 transparent;
+  scrollbar-color: #5b3a8a transparent;
 }
 
 *::-webkit-scrollbar {
@@ -67,11 +67,11 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: #2a6b56;
+  background: #5b3a8a;
   border-radius: 999px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #1e5443;
+  background: #432966;
 }
 /* Kill the native up/down stepper buttons */
 *::-webkit-scrollbar-button {

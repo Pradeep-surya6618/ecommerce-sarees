@@ -62,18 +62,18 @@ export function Footer() {
       {/* Full-bleed saree photograph as ambient backdrop */}
       <div className="pointer-events-none absolute inset-0">
         <Image
-          src="/Images/Saree-3.png"
+          src="/Images/Saree-2.png"
           alt=""
           aria-hidden
           fill
           sizes="100vw"
-          className="object-cover opacity-35"
+          className="object-cover opacity-60"
           priority={false}
         />
-        {/* Deep emerald-tinted gradient overlay so content reads cleanly on top */}
-        <div className="absolute inset-0 bg-gradient-to-b from-ink-900/85 via-ink-900/75 to-ink-900/90" />
+        {/* Purple-tinted gradient overlay so content reads cleanly on top */}
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-900/70 via-ink-900/55 to-ink-900/75" />
         {/* Soft vignette pushing focus toward the centered brand block */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#1a2820_80%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#251f3e_85%)]" />
       </div>
 
       {/* Top brass hairline */}
@@ -190,7 +190,24 @@ export function Footer() {
       {/* ── Copyright bar ── */}
       <Container size="xl" className="relative">
         <div className="flex flex-col items-center gap-2 py-5 text-xs text-bg-base/55 sm:flex-row sm:justify-between">
-          <span>© 2026 Saree Store. Crafted in India.</span>
+          <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 sm:justify-start">
+            <span>© {new Date().getFullYear()} Saree Store. Crafted by</span>
+            <a
+              href="https://incrix.com"
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="Incrix"
+              className="inline-flex items-center transition hover:opacity-90"
+            >
+              <Image
+                src="/Images/Incrix-Logo.png"
+                alt="Incrix"
+                width={56}
+                height={16}
+                className="h-3.5 w-auto object-contain sm:h-4"
+              />
+            </a>
+          </span>
           <span className="inline-flex items-center gap-2 font-display italic text-accent-gold/80">
             Slow-woven. Fairly sourced.
           </span>
