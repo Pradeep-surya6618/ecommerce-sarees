@@ -14,9 +14,11 @@ export default async function BlogIndexPage() {
   return (
     <Container size="xl" className="py-10">
       <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Journal" }]} />
-      <header className="mt-6 flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-[0.2em] text-accent-gold">The Journal</span>
-        <h1 className="font-display text-3xl text-ink-900 md:text-5xl">
+      <header className="mt-5 flex flex-col gap-1.5 sm:mt-6 sm:gap-2">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-accent-gold sm:text-xs">
+          The Journal
+        </span>
+        <h1 className="font-display text-2xl text-ink-900 sm:text-3xl md:text-5xl">
           Notes on weaves, craft, and care.
         </h1>
       </header>

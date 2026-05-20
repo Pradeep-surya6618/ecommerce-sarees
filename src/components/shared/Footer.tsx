@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { contentPagesRepo } from "@/lib/db/repos/content-pages";
 import {
   FacebookGlyph,
   InstagramGlyph,
@@ -8,45 +9,34 @@ import {
   YoutubeGlyph,
 } from "@/components/shared/icons";
 import { Container } from "@/components/ui/Container";
+import type { ContentPage } from "@/types/domain";
 
-const FOOTER_GROUPS = [
-  {
-    heading: "Shop",
-    links: [
-      { label: "All sarees", href: "/shop" },
-      { label: "Silk", href: "/shop/silk" },
-      { label: "Cotton", href: "/shop/cotton" },
-      { label: "Linen", href: "/shop/linen" },
-      { label: "Designer", href: "/shop/designer" },
-    ],
-  },
-  {
-    heading: "Help",
-    links: [
-      { label: "Shipping", href: "/policies/shipping" },
-      { label: "Returns", href: "/policies/returns" },
-      { label: "Saree care", href: "/policies/care" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
-  {
-    heading: "Company",
-    links: [
-      { label: "Our story", href: "/about" },
-      { label: "Journal", href: "/blog" },
-      { label: "Terms", href: "/policies/terms" },
-      { label: "Privacy", href: "/policies/privacy" },
-    ],
-  },
-  {
-    heading: "Visit",
-    links: [
-      { label: "27 Lavelle Road", href: "/contact" },
-      { label: "Bengaluru 560001", href: "/contact" },
-      { label: "Mon – Sat · 11am – 8pm", href: "/contact" },
-    ],
-  },
+interface FooterLink {
+  label: string;
+  href: string;
+}
+
+const SHOP_LINKS: FooterLink[] = [
+  { label: "All sarees", href: "/shop" },
+  { label: "Silk", href: "/shop/silk" },
+  { label: "Cotton", href: "/shop/cotton" },
+  { label: "Linen", href: "/shop/linen" },
+  { label: "Designer", href: "/shop/designer" },
 ];
+
+const VISIT_LINKS: FooterLink[] = [
+  { label: "27 Lavelle Road", href: "/p/contact" },
+  { label: "Bengaluru 560001", href: "/p/contact" },
+  { label: "Mon – Sat · 11am – 8pm", href: "/p/contact" },
+];
+
+function pageHref(p: ContentPage): string {
+  return p.externalHref ?? `/p/${p.slug}`;
+}
+
+function toFooterLinks(pages: ContentPage[]): FooterLink[] {
+  return pages.map((p) => ({ label: p.footerLabel || p.title, href: pageHref(p) }));
+}
 
 const SOCIAL_LINKS = [
   { Icon: InstagramGlyph, label: "Instagram", href: "https://instagram.com" },
@@ -56,7 +46,18 @@ const SOCIAL_LINKS = [
   { Icon: WhatsAppGlyph, label: "WhatsApp", href: "https://wa.me/" },
 ];
 
-export function Footer() {
+export async function Footer() {
+  const [helpPages, companyPages] = await Promise.all([
+    contentPagesRepo.listByGroup("help"),
+    contentPagesRepo.listByGroup("company"),
+  ]);
+
+  const footerGroups: { heading: string; links: FooterLink[] }[] = [
+    { heading: "Shop", links: SHOP_LINKS },
+    { heading: "Help", links: toFooterLinks(helpPages) },
+    { heading: "Company", links: toFooterLinks(companyPages) },
+    { heading: "Visit", links: VISIT_LINKS },
+  ];
   return (
     <footer className="relative overflow-hidden bg-ink-900 text-bg-base">
       {/* Full-bleed saree photograph as ambient backdrop */}
@@ -127,7 +128,7 @@ export function Footer() {
 
         {/* ── Link columns ── */}
         <div className="grid grid-cols-2 gap-y-6 gap-x-6 pb-8 sm:grid-cols-4 sm:gap-y-10 sm:gap-x-8 sm:pb-12">
-          {FOOTER_GROUPS.map((group) => (
+          {footerGroups.map((group) => (
             <div
               key={group.heading}
               className="flex flex-col gap-3 text-center sm:gap-4 sm:text-left"

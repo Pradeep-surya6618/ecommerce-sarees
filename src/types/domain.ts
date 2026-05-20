@@ -331,6 +331,36 @@ export interface SiteSettings {
   instagram: InstagramSettings;
 }
 
+export type ContentPageGroup = "help" | "company" | "none";
+
+export interface ContentPage {
+  id: string;
+  slug: string;
+  title: string;
+  body: string;
+  footerLabel: string;
+  group: ContentPageGroup;
+  sortOrder: number;
+  visible: boolean;
+  isSystem: boolean;
+  /** When set, the footer link points here and the markdown body is unused
+   *  (content lives in a dedicated admin editor — e.g. /about, /blog). */
+  externalHref: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentPageInput {
+  slug: string;
+  title: string;
+  body: string;
+  footerLabel: string;
+  group: ContentPageGroup;
+  sortOrder: number;
+  visible: boolean;
+  externalHref: string | null;
+}
+
 export type BlogPostStatus = "draft" | "published";
 
 export interface BlogPost {

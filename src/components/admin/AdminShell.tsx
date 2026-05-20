@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   Banknote,
   BookOpen,
+  FileText,
   FolderTree,
   Image as ImageIcon,
   LayoutDashboard,
@@ -29,6 +30,7 @@ const NAV = [
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/banners", label: "Banners", icon: ImageIcon },
   { href: "/admin/navigation", label: "Navigation", icon: ListTree },
+  { href: "/admin/pages", label: "Pages", icon: FileText },
   { href: "/admin/about", label: "About page", icon: BookOpen },
   { href: "/admin/instagram", label: "Instagram", icon: InstagramGlyph },
   { href: "/admin/settings", label: "Settings", icon: Settings },
