@@ -63,20 +63,34 @@ export function BannerHero({ banners }: BannerHeroProps) {
             <div className="absolute inset-0 bg-gradient-to-r from-ink-900/55 via-ink-900/20 to-transparent" />
             <Container size="xl" className="relative flex h-full items-center">
               <div className="max-w-xl text-white">
-                <span className="text-[10px] uppercase tracking-[0.22em] opacity-90 sm:text-xs sm:tracking-[0.25em]">
-                  The Edit
-                </span>
-                <h1 className="mt-2 font-display text-2xl leading-tight sm:mt-3 sm:text-4xl md:text-6xl">
+                {/* Eyebrow with brass hairlines + ornament */}
+                <div className="inline-flex items-center gap-2 sm:gap-3">
+                  <span aria-hidden className="h-px w-6 bg-accent-gold sm:w-8" />
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-accent-gold sm:text-xs sm:tracking-[0.35em]">
+                    The Edit
+                  </span>
+                  <span aria-hidden className="text-accent-gold/80">
+                    ✦
+                  </span>
+                </div>
+
+                {/* Title — editorial italic Cormorant with a brass leaf flourish */}
+                <h1 className="relative mt-3 font-display text-3xl italic leading-[1.05] sm:mt-4 sm:text-5xl md:text-[68px]">
                   {banner.title}
+                  <LeafFlourish
+                    aria-hidden
+                    className="ml-2 inline-block h-5 w-5 -translate-y-1 text-accent-gold sm:h-7 sm:w-7 md:h-9 md:w-9"
+                  />
                 </h1>
+
                 {banner.subtitle && (
-                  <p className="mt-3 max-w-md text-sm opacity-90 sm:mt-4 sm:text-base md:text-lg">
+                  <p className="mt-3 max-w-md text-sm font-light leading-relaxed opacity-90 sm:mt-5 sm:text-base md:text-lg">
                     {banner.subtitle}
                   </p>
                 )}
                 <Link
                   href={banner.ctaHref}
-                  className="mt-5 inline-flex items-center justify-center rounded-sm bg-bg-base px-4 py-2 text-xs font-medium text-ink-900 transition hover:bg-bg-elevated sm:mt-8 sm:px-6 sm:py-3 sm:text-sm"
+                  className="mt-5 inline-flex items-center gap-2 rounded-sm bg-accent-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-accent-primary-hover sm:mt-8 sm:px-6 sm:py-3 sm:text-sm"
                 >
                   {banner.ctaLabel}
                 </Link>
@@ -150,5 +164,28 @@ export function BannerHero({ banners }: BannerHeroProps) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Small two-leaf ornament that sits next to editorial headlines. */
+function LeafFlourish({ className }: { className?: string; "aria-hidden"?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 40 40"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Two opposing leaves growing from a center stem */}
+      <path d="M20 6 C26 12 26 20 20 28" />
+      <path d="M20 6 C14 12 14 20 20 28" />
+      <path d="M20 14 C24 16 26 20 24 24" />
+      <path d="M20 14 C16 16 14 20 16 24" />
+      <circle cx="20" cy="6" r="1.4" fill="currentColor" />
+    </svg>
   );
 }

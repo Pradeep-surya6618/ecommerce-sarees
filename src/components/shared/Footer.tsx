@@ -62,15 +62,18 @@ export function Footer() {
       {/* Full-bleed saree photograph as ambient backdrop */}
       <div className="pointer-events-none absolute inset-0">
         <Image
-          src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=2000&q=80"
+          src="/Images/Saree-3.png"
           alt=""
           aria-hidden
           fill
           sizes="100vw"
-          className="object-cover opacity-20"
+          className="object-cover opacity-35"
+          priority={false}
         />
-        {/* Deep gradient overlay so content reads on top */}
-        <div className="absolute inset-0 bg-gradient-to-b from-ink-900 via-ink-900/92 to-ink-900" />
+        {/* Deep emerald-tinted gradient overlay so content reads cleanly on top */}
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-900/85 via-ink-900/75 to-ink-900/90" />
+        {/* Soft vignette pushing focus toward the centered brand block */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#1a2820_80%)]" />
       </div>
 
       {/* Top brass hairline */}
@@ -81,32 +84,32 @@ export function Footer() {
 
       <Container size="xl" className="relative">
         {/* ── Brand block (centered, editorial) ── */}
-        <div className="flex flex-col items-center gap-5 py-16 text-center md:py-20">
-          <span aria-hidden className="text-accent-gold/70">
+        <div className="flex flex-col items-center gap-3 py-10 text-center sm:gap-5 sm:py-16 md:py-20">
+          <span aria-hidden className="text-xs text-accent-gold/70 sm:text-base">
             ✦
           </span>
-          <h2 className="font-display text-4xl leading-none text-bg-base sm:text-5xl md:text-6xl">
+          <h2 className="font-display text-3xl leading-none text-bg-base sm:text-5xl md:text-6xl">
             Saree Store
           </h2>
           <span
             aria-hidden
-            className="h-px w-16 bg-gradient-to-r from-transparent via-accent-gold to-transparent"
+            className="h-px w-10 bg-gradient-to-r from-transparent via-accent-gold to-transparent sm:w-16"
           />
-          <p className="max-w-xl text-sm leading-relaxed text-bg-base/75 sm:text-base">
+          <p className="max-w-xl text-xs leading-relaxed text-bg-base/75 sm:text-sm md:text-base">
             Handpicked sarees from looms across India. Slow fashion, fairly sourced — each weave
             chosen for its story, not the season.
           </p>
 
           {/* Newsletter */}
-          <form className="mt-4 flex w-full max-w-md flex-col gap-2 sm:flex-row">
+          <form className="mt-2 flex w-full max-w-md flex-col gap-2 sm:mt-4 sm:flex-row">
             <input
               type="email"
-              placeholder="Your email — first looks, drop notices, editorial notes"
-              className="flex-1 rounded-sm border border-bg-base/20 bg-white/[0.04] px-4 py-3 text-sm text-bg-base placeholder:text-bg-base/45 focus:border-accent-gold focus:outline-none"
+              placeholder="Your email"
+              className="flex-1 rounded-sm border border-bg-base/20 bg-white/[0.04] px-3 py-2.5 text-xs text-bg-base placeholder:text-bg-base/45 focus:border-accent-gold focus:outline-none sm:px-4 sm:py-3 sm:text-sm"
             />
             <button
               type="submit"
-              className="cursor-pointer rounded-sm bg-accent-gold px-5 py-3 text-sm font-medium uppercase tracking-[0.15em] text-ink-900 transition hover:bg-accent-gold/85"
+              className="cursor-pointer rounded-sm bg-accent-gold px-4 py-2.5 text-xs font-medium uppercase tracking-[0.15em] text-ink-900 transition hover:bg-accent-gold/85 sm:px-5 sm:py-3 sm:text-sm"
             >
               Subscribe
             </button>
@@ -114,22 +117,25 @@ export function Footer() {
         </div>
 
         {/* ── Ornamental divider ── */}
-        <div className="flex items-center justify-center gap-4 pb-10">
-          <span aria-hidden className="h-px flex-1 max-w-[180px] bg-bg-base/15" />
-          <span aria-hidden className="text-accent-gold/70">
+        <div className="flex items-center justify-center gap-3 pb-6 sm:gap-4 sm:pb-10">
+          <span aria-hidden className="h-px max-w-[120px] flex-1 bg-bg-base/15 sm:max-w-[180px]" />
+          <span aria-hidden className="text-xs text-accent-gold/70 sm:text-base">
             ✦
           </span>
-          <span aria-hidden className="h-px flex-1 max-w-[180px] bg-bg-base/15" />
+          <span aria-hidden className="h-px max-w-[120px] flex-1 bg-bg-base/15 sm:max-w-[180px]" />
         </div>
 
         {/* ── Link columns ── */}
-        <div className="grid grid-cols-2 gap-y-10 gap-x-8 pb-12 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-y-6 gap-x-6 pb-8 sm:grid-cols-4 sm:gap-y-10 sm:gap-x-8 sm:pb-12">
           {FOOTER_GROUPS.map((group) => (
-            <div key={group.heading} className="flex flex-col gap-4 text-center sm:text-left">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent-gold">
+            <div
+              key={group.heading}
+              className="flex flex-col gap-3 text-center sm:gap-4 sm:text-left"
+            >
+              <h3 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent-gold sm:text-[11px]">
                 {group.heading}
               </h3>
-              <ul className="flex flex-col gap-2.5 text-sm text-bg-base/75">
+              <ul className="flex flex-col gap-2 text-xs text-bg-base/75 sm:gap-2.5 sm:text-sm">
                 {group.links.map((link) => (
                   <li key={`${group.heading}-${link.label}`}>
                     <Link
@@ -150,15 +156,15 @@ export function Footer() {
         </div>
 
         {/* ── Social row + ornaments ── */}
-        <div className="flex flex-col items-center gap-5 border-t border-bg-base/10 pt-10 pb-8">
-          <div className="flex items-center gap-3">
-            <span aria-hidden className="h-px w-10 bg-accent-gold/50" />
-            <span className="text-[10px] uppercase tracking-[0.35em] text-accent-gold">
+        <div className="flex flex-col items-center gap-4 border-t border-bg-base/10 pt-6 pb-6 sm:gap-5 sm:pt-10 sm:pb-8">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
+            <span className="text-[9px] uppercase tracking-[0.3em] text-accent-gold sm:text-[10px] sm:tracking-[0.35em]">
               Follow our looms
             </span>
-            <span aria-hidden className="h-px w-10 bg-accent-gold/50" />
+            <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {SOCIAL_LINKS.map(({ Icon, label, href }) => (
               <Link
                 key={label}
@@ -166,9 +172,9 @@ export function Footer() {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={label}
-                className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-bg-base/20 bg-white/[0.04] text-bg-base/80 transition hover:border-accent-gold hover:bg-accent-gold/10 hover:text-accent-gold"
+                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-bg-base/20 bg-white/[0.04] text-bg-base/80 transition hover:border-accent-gold hover:bg-accent-gold/10 hover:text-accent-gold sm:h-10 sm:w-10"
               >
-                <Icon className="h-[16px] w-[16px]" />
+                <Icon className="h-[14px] w-[14px] sm:h-[16px] sm:w-[16px]" />
               </Link>
             ))}
           </div>
