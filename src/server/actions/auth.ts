@@ -82,14 +82,16 @@ export interface LoginInput {
   password: string;
 }
 
-export async function loginAction(input: LoginInput): Promise<void> {
+export type LoginResult = { ok: true } | { ok: false; error: string };
+
+export async function loginAction(input: LoginInput): Promise<LoginResult> {
   const user = await usersRepo.findByEmail(input.email);
   if (!user) {
-    throw new Error("Email or password is incorrect.");
+    return { ok: false, error: "Email or password is incorrect." };
   }
   const ok = await verifyPasswordStub(input.password, user.passwordHash);
   if (!ok) {
-    throw new Error("Email or password is incorrect.");
+    return { ok: false, error: "Email or password is incorrect." };
   }
   if (!user.emailVerified) {
     await otpsRepo.create({

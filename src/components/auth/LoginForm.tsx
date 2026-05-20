@@ -35,12 +35,14 @@ export function LoginForm() {
   function onSubmit(values: Values) {
     startTransition(async () => {
       try {
-        await loginAction(values);
+        const result = await loginAction(values);
+        if (result && !result.ok) {
+          toast.error(result.error);
+        }
       } catch (err) {
+        // `redirect()` throws NEXT_REDIRECT — let it through.
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        const message =
-          err instanceof Error ? err.message : "Couldn't sign you in. Please try again.";
-        toast.error(message);
+        toast.error("Couldn't sign you in. Please try again.");
       }
     });
   }

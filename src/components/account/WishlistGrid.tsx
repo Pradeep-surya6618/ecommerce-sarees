@@ -36,16 +36,21 @@ export function WishlistGrid({ items, productById }: WishlistGridProps) {
     const target = confirmItem;
     startTransition(async () => {
       try {
-        await removeFromWishlistAction(target.productId);
+        const result = await removeFromWishlistAction(target.productId);
+        if (!result.ok) {
+          setConfirmItem(null);
+          toast.error("Couldn't remove from wishlist", { description: result.error });
+          return;
+        }
         toast.success("Removed from wishlist", {
           description: `"${target.productName}" is no longer saved.`,
         });
         // If the row unmounts via revalidation, this is a no-op.
         setConfirmItem(null);
-      } catch (err) {
+      } catch {
         setConfirmItem(null);
         toast.error("Couldn't remove from wishlist", {
-          description: err instanceof Error ? err.message : "Please try again.",
+          description: "Please try again.",
         });
       }
     });

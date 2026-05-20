@@ -98,24 +98,29 @@ export function ProductBuyBox({
   function onToggleWishlist() {
     startWish(async () => {
       try {
+        const result = inWishlist
+          ? await removeFromWishlistAction(product.id)
+          : await addToWishlistAction({
+              productId: product.id,
+              productSlug: product.slug,
+              productName: product.name,
+              imageUrl: primaryImage,
+              priceInPaise: product.priceInPaise,
+              mrpInPaise: product.mrpInPaise,
+            });
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         if (inWishlist) {
-          await removeFromWishlistAction(product.id);
           setInWishlist(false);
           toast.success("Removed from wishlist");
         } else {
-          await addToWishlistAction({
-            productId: product.id,
-            productSlug: product.slug,
-            productName: product.name,
-            imageUrl: primaryImage,
-            priceInPaise: product.priceInPaise,
-            mrpInPaise: product.mrpInPaise,
-          });
           setInWishlist(true);
           toast.success("Added to wishlist");
         }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Sign in to use the wishlist.");
+      } catch {
+        toast.error("Couldn't update your wishlist. Please try again.");
       }
     });
   }
