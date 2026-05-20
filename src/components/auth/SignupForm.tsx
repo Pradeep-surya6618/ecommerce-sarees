@@ -3,13 +3,18 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { signupAction } from "@/server/actions/auth";
+import {
+  AuthDivider,
+  AuthField,
+  AuthInput,
+  AuthPasswordInput,
+  AuthSubmitButton,
+} from "@/components/auth/AuthFields";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
-import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z.object({
   fullName: z.string().min(2, "Required"),
@@ -41,50 +46,51 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      <FormField label="Full name" htmlFor="fullName" required error={errors.fullName?.message}>
-        <Input
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+      <AuthField label="Full name" htmlFor="fullName" required error={errors.fullName?.message}>
+        <AuthInput
           id="fullName"
+          icon={User}
           autoComplete="name"
+          placeholder="Your name"
           {...register("fullName")}
           invalid={!!errors.fullName}
         />
-      </FormField>
-      <FormField label="Email" htmlFor="email" required error={errors.email?.message}>
-        <Input
+      </AuthField>
+      <AuthField label="Email" htmlFor="email" required error={errors.email?.message}>
+        <AuthInput
           id="email"
           type="email"
+          icon={Mail}
           autoComplete="email"
+          placeholder="you@example.com"
           {...register("email")}
           invalid={!!errors.email}
         />
-      </FormField>
-      <FormField
+      </AuthField>
+      <AuthField
         label="Password"
         htmlFor="password"
         required
         hint="At least 8 characters"
         error={errors.password?.message}
       >
-        <PasswordInput
+        <AuthPasswordInput
           id="password"
+          icon={Lock}
           autoComplete="new-password"
+          placeholder="••••••••"
           {...register("password")}
           invalid={!!errors.password}
         />
-      </FormField>
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-2 rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Creating account…" : "Create account"}
-      </button>
-      <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-500">
-        <span className="h-px flex-1 bg-ink-500/15" />
-        Or
-        <span className="h-px flex-1 bg-ink-500/15" />
-      </div>
+      </AuthField>
+
+      <AuthSubmitButton pending={pending} pendingLabel="Creating account…">
+        Create account
+      </AuthSubmitButton>
+
+      <AuthDivider label="or" />
+
       <GoogleSignInButton />
     </form>
   );

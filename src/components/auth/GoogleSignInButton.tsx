@@ -30,7 +30,7 @@ export function GoogleSignInButton({ className }: { className?: string }) {
         onClick={() => setOpen(true)}
         disabled={pending}
         className={clsx(
-          "inline-flex w-full items-center justify-center gap-3 rounded-sm border border-ink-500/30 bg-bg-elevated px-4 py-3 text-sm font-medium text-ink-900 transition hover:border-ink-700",
+          "inline-flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-bg-base/20 bg-bg-base/[0.06] px-4 text-xs font-medium uppercase tracking-[0.18em] text-bg-base transition hover:border-accent-gold hover:bg-bg-base/[0.12] sm:h-12 sm:text-sm sm:tracking-[0.15em]",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}

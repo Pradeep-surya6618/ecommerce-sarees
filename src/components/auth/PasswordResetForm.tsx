@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { KeyRound, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { resetPasswordAction } from "@/server/actions/auth";
-import { FormField } from "@/components/ui/FormField";
+import { AuthField, AuthPasswordInput, AuthSubmitButton } from "@/components/auth/AuthFields";
 import { OtpInput } from "@/components/ui/OtpInput";
-import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z.object({
   password: z.string().min(8, "Use at least 8 characters"),
@@ -40,29 +40,38 @@ export function PasswordResetForm({ email }: { email: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      <p className="text-sm text-ink-700">
-        Enter the code sent to <span className="font-medium text-ink-900">{email}</span> and choose
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+      <p className="text-center text-xs text-bg-base/70 sm:text-sm">
+        Enter the code sent to <span className="font-medium text-bg-base">{email}</span> and choose
         a new password.
       </p>
-      <FormField label="Verification code" htmlFor="otp" required>
-        <OtpInput value={code} onChange={setCode} />
-      </FormField>
-      <FormField label="New password" htmlFor="password" required error={errors.password?.message}>
-        <PasswordInput
+      <AuthField label="Verification code" htmlFor="otp" required>
+        <div className="flex items-center gap-2 rounded-full border border-bg-base/15 bg-bg-base/[0.08] py-2 pl-1 pr-3 sm:gap-3 sm:pr-4">
+          <span className="pointer-events-none inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg-base text-accent-primary sm:h-10 sm:w-10">
+            <KeyRound className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+          </span>
+          <OtpInput value={code} onChange={setCode} variant="dark" />
+        </div>
+      </AuthField>
+      <AuthField
+        label="New password"
+        htmlFor="password"
+        required
+        error={errors.password?.message}
+        hint="At least 8 characters"
+      >
+        <AuthPasswordInput
           id="password"
+          icon={Lock}
           autoComplete="new-password"
+          placeholder="••••••••"
           {...register("password")}
           invalid={!!errors.password}
         />
-      </FormField>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Updating…" : "Update password"}
-      </button>
+      </AuthField>
+      <AuthSubmitButton pending={pending} pendingLabel="Updating…">
+        Update password
+      </AuthSubmitButton>
     </form>
   );
 }

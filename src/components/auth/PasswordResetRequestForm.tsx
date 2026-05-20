@@ -3,11 +3,11 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { requestPasswordResetAction } from "@/server/actions/auth";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
+import { AuthField, AuthInput, AuthSubmitButton } from "@/components/auth/AuthFields";
 
 const schema = z.object({ email: z.email("Enter a valid email") });
 type Values = z.infer<typeof schema>;
@@ -32,23 +32,21 @@ export function PasswordResetRequestForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      <FormField label="Email" htmlFor="email" required error={errors.email?.message}>
-        <Input
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+      <AuthField label="Email" htmlFor="email" required error={errors.email?.message}>
+        <AuthInput
           id="email"
           type="email"
+          icon={Mail}
           autoComplete="email"
+          placeholder="you@example.com"
           {...register("email")}
           invalid={!!errors.email}
         />
-      </FormField>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Sending…" : "Send reset code"}
-      </button>
+      </AuthField>
+      <AuthSubmitButton pending={pending} pendingLabel="Sending…">
+        Send reset code
+      </AuthSubmitButton>
     </form>
   );
 }

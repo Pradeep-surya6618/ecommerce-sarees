@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { resendOtpAction, verifyOtpAction } from "@/server/actions/auth";
+import { AuthSubmitButton } from "@/components/auth/AuthFields";
 import { OtpInput } from "@/components/ui/OtpInput";
 
 export interface OtpFormProps {
@@ -47,24 +48,23 @@ export function OtpForm({ email }: OtpFormProps) {
         e.preventDefault();
         submit();
       }}
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-5 sm:gap-6"
     >
-      <p className="text-sm text-ink-700">
-        We sent a 6-digit code to <span className="font-medium text-ink-900">{email}</span>.
+      <p className="text-center text-xs text-bg-base/70 sm:text-sm">
+        We sent a 6-digit code to <span className="font-medium text-bg-base">{email}</span>.
       </p>
-      <OtpInput value={code} onChange={setCode} />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Verifying…" : "Verify and continue"}
-      </button>
+
+      <OtpInput value={code} onChange={setCode} variant="dark" />
+
+      <AuthSubmitButton pending={pending} pendingLabel="Verifying…">
+        Verify and continue
+      </AuthSubmitButton>
+
       <button
         type="button"
         onClick={resend}
         disabled={resending}
-        className="text-sm text-ink-500 underline-offset-4 transition hover:text-ink-900 hover:underline"
+        className="cursor-pointer text-center text-[11px] uppercase tracking-[0.2em] text-bg-base/65 transition hover:text-accent-gold disabled:opacity-50 sm:text-xs"
       >
         {resending ? "Sending a new code…" : "Resend code"}
       </button>

@@ -4,13 +4,18 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { loginAction } from "@/server/actions/auth";
+import {
+  AuthDivider,
+  AuthField,
+  AuthInput,
+  AuthPasswordInput,
+  AuthSubmitButton,
+} from "@/components/auth/AuthFields";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
-import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const schema = z.object({
   email: z.email("Enter a valid email"),
@@ -41,41 +46,44 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      <FormField label="Email" htmlFor="email" required error={errors.email?.message}>
-        <Input
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+      <AuthField label="Email" htmlFor="email" required error={errors.email?.message}>
+        <AuthInput
           id="email"
           type="email"
+          icon={Mail}
           autoComplete="email"
+          placeholder="you@example.com"
           {...register("email")}
           invalid={!!errors.email}
         />
-      </FormField>
-      <FormField label="Password" htmlFor="password" required error={errors.password?.message}>
-        <PasswordInput
+      </AuthField>
+      <AuthField label="Password" htmlFor="password" required error={errors.password?.message}>
+        <AuthPasswordInput
           id="password"
+          icon={Lock}
           autoComplete="current-password"
+          placeholder="••••••••"
           {...register("password")}
           invalid={!!errors.password}
         />
-      </FormField>
-      <div className="-mt-2 text-right">
-        <Link href="/auth/forgot-password" className="text-xs text-ink-500 hover:text-ink-900">
+      </AuthField>
+
+      <div className="-mt-1 flex justify-end pr-2">
+        <Link
+          href="/auth/forgot-password"
+          className="text-[11px] uppercase tracking-[0.18em] text-bg-base/65 transition hover:text-accent-gold sm:text-xs"
+        >
           Forgot password?
         </Link>
       </div>
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-2 rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Signing in…" : "Sign in"}
-      </button>
-      <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-500">
-        <span className="h-px flex-1 bg-ink-500/15" />
-        Or
-        <span className="h-px flex-1 bg-ink-500/15" />
-      </div>
+
+      <AuthSubmitButton pending={pending} pendingLabel="Signing in…">
+        Sign in
+      </AuthSubmitButton>
+
+      <AuthDivider label="or" />
+
       <GoogleSignInButton />
     </form>
   );
