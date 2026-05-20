@@ -230,6 +230,7 @@ export async function Footer() {
                 alt="Incrix"
                 width={56}
                 height={16}
+                unoptimized
                 className="h-3.5 w-auto object-contain sm:h-4"
               />
             </a>

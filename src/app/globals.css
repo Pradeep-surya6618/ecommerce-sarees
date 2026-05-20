@@ -83,6 +83,32 @@ body {
   background: transparent;
 }
 
+/* Hide all scrollbars on mobile / touch viewports — content still scrolls
+   normally, just without the visible chrome. Covers small screens (≤767px)
+   and any device with a coarse pointer (phones, most tablets).
+   `!important` is required to beat the themed-scrollbar rules above. */
+@media (max-width: 767px), (pointer: coarse) {
+  html,
+  body,
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-thumb {
+    background: transparent !important;
+  }
+}
+
 html,
 body {
   background: var(--color-bg-base);
@@ -110,6 +136,15 @@ h2,
 h3 {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
+}
+
+/* Bulletproof nav-tooltip hide on touch devices. Some Android browsers
+   report `hover: hover` falsely, so we check multiple touch indicators and
+   force `display: none` with !important to win against any utility classes. */
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .nav-tooltip {
+    display: none !important;
+  }
 }
 
 /* Hide scrollbar but keep scrolling functional */

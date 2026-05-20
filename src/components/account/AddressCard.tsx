@@ -91,7 +91,7 @@ export function AddressCard({
               </button>
               <span
                 aria-hidden
-                className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-sm bg-accent-primary-hover px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white opacity-0 shadow-md transition-opacity delay-100 duration-150 group-hover/star:opacity-100 [@media(hover:none)]:hidden"
+                className="nav-tooltip pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-sm bg-accent-primary-hover px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white opacity-0 shadow-md transition-opacity delay-100 duration-150 group-hover/star:opacity-100"
               >
                 Set as default
               </span>
@@ -109,7 +109,7 @@ export function AddressCard({
             </button>
             <span
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-sm bg-[#7a1812] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white opacity-0 shadow-md transition-opacity delay-100 duration-150 group-hover/trash:opacity-100 [@media(hover:none)]:hidden"
+              className="nav-tooltip pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-sm bg-[#7a1812] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white opacity-0 shadow-md transition-opacity delay-100 duration-150 group-hover/trash:opacity-100"
             >
               Delete
             </span>
