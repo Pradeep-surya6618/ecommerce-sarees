@@ -24,7 +24,7 @@ export function QuantityStepper({
   return (
     <div
       className={clsx(
-        "inline-flex items-center rounded-full border border-ink-500/20 bg-bg-elevated",
+        "inline-flex items-center gap-1 rounded-sm border border-ink-500/20 bg-bg-elevated p-1",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function QuantityStepper({
         aria-label="Decrease quantity"
         onClick={dec}
         disabled={value <= min}
-        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-ink-700 transition hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30 sm:h-9 sm:w-9"
+        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm text-ink-700 transition hover:bg-ink-900/[0.06] hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30 sm:h-8 sm:w-8"
       >
         <Minus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
       </button>
@@ -48,7 +48,7 @@ export function QuantityStepper({
         aria-label="Increase quantity"
         onClick={inc}
         disabled={value >= max}
-        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-accent-primary text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
+        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm bg-accent-primary text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-40 sm:h-8 sm:w-8"
       >
         <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
       </button>

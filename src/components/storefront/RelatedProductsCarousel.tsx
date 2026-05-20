@@ -45,19 +45,19 @@ export function RelatedProductsCarousel({ products, categoryName }: RelatedProdu
   return (
     <div className="relative">
       <div ref={emblaRef} className="overflow-hidden">
-        <div className="flex gap-5 pb-2">
+        <div className="flex gap-3 pb-2 sm:gap-5">
           {products.map((p) => {
             const image = p.images[0];
             return (
               <div
                 key={p.id}
-                className="min-w-0 flex-[0_0_75%] sm:flex-[0_0_45%] lg:flex-[0_0_22%]"
+                className="min-w-0 flex-[0_0_70%] sm:flex-[0_0_45%] lg:flex-[0_0_22%]"
               >
                 <Link
                   href={`/product/${p.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-md border border-ink-500/10 bg-bg-elevated transition hover:border-ink-700"
                 >
-                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-ink-500/5">
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-ink-900">
                     {image && (
                       <Image
                         src={image.url}
@@ -68,12 +68,14 @@ export function RelatedProductsCarousel({ products, categoryName }: RelatedProdu
                       />
                     )}
                   </div>
-                  <div className="flex flex-col gap-1 p-4">
-                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-primary">
+                  <div className="flex flex-col gap-0.5 p-3 sm:gap-1 sm:p-4">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-primary sm:text-xs sm:tracking-[0.12em]">
                       {categoryName ?? p.categorySlug.replace(/-/g, " ")}
                     </span>
-                    <h3 className="line-clamp-2 font-display text-base text-ink-900">{p.name}</h3>
-                    <span className="mt-1 font-semibold tabular-nums text-ink-900">
+                    <h3 className="line-clamp-2 font-display text-sm text-ink-900 sm:text-base">
+                      {p.name}
+                    </h3>
+                    <span className="mt-0.5 text-sm font-semibold tabular-nums text-ink-900 sm:mt-1 sm:text-base">
                       {formatRupees(p.priceInPaise)}
                     </span>
                   </div>
@@ -90,18 +92,18 @@ export function RelatedProductsCarousel({ products, categoryName }: RelatedProdu
         aria-label="Previous"
         disabled={!canPrev}
         onClick={() => emblaApi?.scrollPrev()}
-        className="absolute -left-3 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 shadow-card transition hover:text-ink-900 disabled:opacity-30 md:-left-5"
+        className="absolute -left-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 shadow-card transition hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30 sm:-left-3 sm:h-10 sm:w-10 md:-left-5"
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
       <button
         type="button"
         aria-label="Next"
         disabled={!canNext}
         onClick={() => emblaApi?.scrollNext()}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 shadow-card transition hover:text-ink-900 disabled:opacity-30 md:-right-5"
+        className="absolute -right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 shadow-card transition hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30 sm:-right-3 sm:h-10 sm:w-10 md:-right-5"
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
     </div>
   );

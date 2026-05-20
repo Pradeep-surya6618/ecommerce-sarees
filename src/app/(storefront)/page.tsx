@@ -1,8 +1,10 @@
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { bannersRepo } from "@/lib/db/repos/banners";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { productsRepo } from "@/lib/db/repos/products";
 import { reviewsRepo } from "@/lib/db/repos/reviews";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
+import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { BannerHero } from "@/components/storefront/BannerHero";
 import { CategoryTile } from "@/components/storefront/CategoryTile";
 import { CollectionRail } from "@/components/storefront/CollectionRail";
@@ -19,14 +21,18 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export default async function HomePage() {
-  const [heroBanners, categories, featured, newest, reviews, settings] = await Promise.all([
-    bannersRepo.listByPlacement("home-hero"),
-    categoriesRepo.listTopLevel(),
-    productsRepo.listFeatured({ limit: 8 }),
-    productsRepo.list({ limit: 8 }),
-    reviewsRepo.listFeatured({ limit: 6 }),
-    siteSettingsRepo.get(),
-  ]);
+  const user = await getCurrentUser();
+  const [heroBanners, categories, featured, newest, reviews, settings, wishlistItems] =
+    await Promise.all([
+      bannersRepo.listByPlacement("home-hero"),
+      categoriesRepo.listTopLevel(),
+      productsRepo.listFeatured({ limit: 8 }),
+      productsRepo.list({ limit: 8 }),
+      reviewsRepo.listFeatured({ limit: 6 }),
+      siteSettingsRepo.get(),
+      user ? wishlistRepo.listByUser(user.id) : Promise.resolve([]),
+    ]);
+  const wishlistProductIds = new Set(wishlistItems.map((w) => w.productId));
 
   return (
     <>
@@ -81,7 +87,7 @@ export default async function HomePage() {
             key={p.id}
             className="min-w-0 flex-[0_0_70%] snap-start md:flex-[0_0_30%] lg:flex-[0_0_22%]"
           >
-            <ProductCard product={p} />
+            <ProductCard product={p} isInWishlist={wishlistProductIds.has(p.id)} />
           </div>
         ))}
       </CollectionRail>

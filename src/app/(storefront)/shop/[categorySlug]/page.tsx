@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { productsRepo } from "@/lib/db/repos/products";
+import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { parseShopFilters, serializeShopFilters } from "@/lib/utils/shop-filters";
 import {
   getColorOptions,
@@ -38,18 +40,22 @@ export default async function CategoryShopPage({ params, searchParams }: PagePro
 
   const rawParams = await searchParams;
   const filters = parseShopFilters(rawParams);
-
-  const result = await productsRepo.search({
-    categorySlugs: [category.slug],
-    fabrics: filters.fabrics.length > 0 ? filters.fabrics : undefined,
-    colors: filters.colors.length > 0 ? filters.colors : undefined,
-    occasions: filters.occasions.length > 0 ? filters.occasions : undefined,
-    priceMinPaise: filters.priceMinPaise,
-    priceMaxPaise: filters.priceMaxPaise,
-    inStockOnly: filters.inStockOnly,
-    sort: filters.sort,
-    page: filters.page,
-  });
+  const user = await getCurrentUser();
+  const [result, wishlistItems] = await Promise.all([
+    productsRepo.search({
+      categorySlugs: [category.slug],
+      fabrics: filters.fabrics.length > 0 ? filters.fabrics : undefined,
+      colors: filters.colors.length > 0 ? filters.colors : undefined,
+      occasions: filters.occasions.length > 0 ? filters.occasions : undefined,
+      priceMinPaise: filters.priceMinPaise,
+      priceMaxPaise: filters.priceMaxPaise,
+      inStockOnly: filters.inStockOnly,
+      sort: filters.sort,
+      page: filters.page,
+    }),
+    user ? wishlistRepo.listByUser(user.id) : Promise.resolve([]),
+  ]);
+  const wishlistProductIds = new Set(wishlistItems.map((w) => w.productId));
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
 
   const fabricOptions = getFabricOptions();
@@ -96,7 +102,7 @@ export default async function CategoryShopPage({ params, searchParams }: PagePro
               description="Try removing a filter or two to see more."
             />
           ) : (
-            <ProductGrid products={result.items} />
+            <ProductGrid products={result.items} wishlistProductIds={wishlistProductIds} />
           )}
           <Pagination currentPage={result.page} totalPages={totalPages} buildHref={buildHref} />
         </div>

@@ -16,15 +16,22 @@ import { toast } from "sonner";
 import { formatRupees } from "@/lib/money";
 import { clsx } from "@/lib/utils/clsx";
 import { addToCartAction } from "@/server/actions/cart";
-import { addToWishlistAction } from "@/server/actions/wishlist";
+import { addToWishlistAction, removeFromWishlistAction } from "@/server/actions/wishlist";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { VariantPicker } from "@/components/ui/VariantPicker";
 import type { Product } from "@/types/domain";
 
-export function ProductBuyBox({ product }: { product: Product }) {
+export function ProductBuyBox({
+  product,
+  initiallyInWishlist = false,
+}: {
+  product: Product;
+  initiallyInWishlist?: boolean;
+}) {
   const firstInStock = product.variants.find((v) => v.stock > 0) ?? product.variants[0] ?? null;
   const [selectedSku, setSelectedSku] = useState<string | null>(firstInStock?.sku ?? null);
   const [quantity, setQuantity] = useState(1);
+  const [inWishlist, setInWishlist] = useState(initiallyInWishlist);
   const [pendingAdd, startAdd] = useTransition();
   const [pendingBuy, startBuy] = useTransition();
   const [pendingWish, startWish] = useTransition();
@@ -87,18 +94,25 @@ export function ProductBuyBox({ product }: { product: Product }) {
     });
   }
 
-  function onAddToWishlist() {
+  function onToggleWishlist() {
     startWish(async () => {
       try {
-        await addToWishlistAction({
-          productId: product.id,
-          productSlug: product.slug,
-          productName: product.name,
-          imageUrl: primaryImage,
-          priceInPaise: product.priceInPaise,
-          mrpInPaise: product.mrpInPaise,
-        });
-        toast.success("Added to wishlist");
+        if (inWishlist) {
+          await removeFromWishlistAction(product.id);
+          setInWishlist(false);
+          toast.success("Removed from wishlist");
+        } else {
+          await addToWishlistAction({
+            productId: product.id,
+            productSlug: product.slug,
+            productName: product.name,
+            imageUrl: primaryImage,
+            priceInPaise: product.priceInPaise,
+            mrpInPaise: product.mrpInPaise,
+          });
+          setInWishlist(true);
+          toast.success("Added to wishlist");
+        }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Sign in to use the wishlist.");
       }
@@ -114,24 +128,33 @@ export function ProductBuyBox({ product }: { product: Product }) {
   }
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-5 sm:gap-7">
       {/* Title block */}
-      <div className="flex flex-col gap-3">
-        <h1 className="font-display text-3xl text-ink-900 md:text-4xl">{product.name}</h1>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
+      <div className="flex flex-col gap-2 sm:gap-3">
+        <h1 className="font-display text-xl leading-tight text-ink-900 sm:text-3xl md:text-4xl">
+          {product.name}
+        </h1>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-500 sm:gap-x-3 sm:text-sm">
           <Link href="/about" className="font-medium text-accent-primary hover:underline">
             Saree Store
           </Link>
           <span className="hidden text-ink-500/40 sm:inline">|</span>
-          <span className="font-mono text-xs uppercase tracking-wide">SKU: {primarySku}</span>
+          <span className="font-mono text-[10px] uppercase tracking-wide sm:text-xs">
+            SKU: {primarySku}
+          </span>
           <span className="hidden text-ink-500/40 sm:inline">|</span>
           <span
             className={clsx(
-              "inline-flex items-center gap-1.5 text-sm font-medium",
+              "inline-flex items-center gap-1.5 text-[11px] font-medium sm:text-sm",
               inStock ? "text-success" : "text-danger",
             )}
           >
-            <span className={clsx("h-2 w-2 rounded-full", inStock ? "bg-success" : "bg-danger")} />
+            <span
+              className={clsx(
+                "h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2",
+                inStock ? "bg-success" : "bg-danger",
+              )}
+            />
             {inStock ? "In Stock" : "Out of stock"}
           </span>
         </div>
@@ -139,21 +162,21 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
       {/* Price block */}
       <div className="flex flex-col gap-1">
-        <div className="flex items-baseline gap-3 tabular-nums">
-          <span className="font-display text-3xl font-semibold text-accent-primary md:text-4xl">
+        <div className="flex items-baseline gap-2 tabular-nums sm:gap-3">
+          <span className="font-display text-2xl font-semibold text-accent-primary sm:text-3xl md:text-4xl">
             {formatRupees(product.priceInPaise)}
           </span>
           {product.mrpInPaise > product.priceInPaise && (
-            <span className="text-base text-ink-500 line-through">
+            <span className="text-sm text-ink-500 line-through sm:text-base">
               {formatRupees(product.mrpInPaise)}
             </span>
           )}
         </div>
-        <span className="text-xs text-ink-500">Tax included.</span>
+        <span className="text-[11px] text-ink-500 sm:text-xs">Tax included.</span>
       </div>
 
       {/* Description */}
-      <p className="text-ink-700">{product.description}</p>
+      <p className="text-sm text-ink-700 sm:text-base">{product.description}</p>
 
       {/* Variant picker */}
       <VariantPicker
@@ -172,7 +195,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
           type="button"
           onClick={onAddToCart}
           disabled={!inStock || pendingAdd}
-          className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-ink-900 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-sm bg-ink-900 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ShoppingBag className="h-4 w-4" />
           {pendingAdd ? "Adding…" : "Add to cart"}
@@ -184,7 +207,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
         type="button"
         onClick={onBuyItNow}
         disabled={!inStock || pendingBuy}
-        className="flex items-center justify-center gap-2 rounded-sm bg-accent-primary px-6 py-3.5 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex cursor-pointer items-center justify-center gap-2 rounded-sm bg-accent-primary px-6 py-3.5 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pendingBuy ? "Working…" : "Buy It Now"}
       </button>
@@ -193,12 +216,24 @@ export function ProductBuyBox({ product }: { product: Product }) {
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-ink-500/10 py-4 text-sm text-ink-700">
         <button
           type="button"
-          onClick={onAddToWishlist}
+          onClick={onToggleWishlist}
           disabled={pendingWish}
-          className="inline-flex items-center gap-2 transition hover:text-ink-900 disabled:opacity-50"
+          aria-pressed={inWishlist}
+          className={clsx(
+            "inline-flex cursor-pointer items-center gap-2 transition disabled:cursor-not-allowed disabled:opacity-50",
+            inWishlist
+              ? "text-accent-primary hover:text-accent-primary-hover"
+              : "hover:text-ink-900",
+          )}
         >
-          <Heart className="h-4 w-4" />
-          {pendingWish ? "Adding…" : "Add to Wishlist"}
+          <Heart className={clsx("h-4 w-4", inWishlist && "fill-current")} />
+          {pendingWish
+            ? inWishlist
+              ? "Removing…"
+              : "Adding…"
+            : inWishlist
+              ? "Remove from Wishlist"
+              : "Add to Wishlist"}
         </button>
         <span className="inline-flex items-center gap-2">
           <Truck className="h-4 w-4" />
@@ -206,7 +241,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
         </span>
         <span className="inline-flex items-center gap-2">
           <Globe className="h-4 w-4" />
-          International Shipping
+          Shipping only in India
         </span>
       </div>
 
@@ -227,7 +262,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
             type="button"
             aria-label="Copy link"
             onClick={onCopyLink}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink-500/10 text-ink-700 transition hover:bg-ink-900 hover:text-white"
+            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-ink-500/10 text-ink-700 transition hover:bg-ink-900 hover:text-white"
           >
             <LinkIcon className="h-4 w-4" />
           </button>

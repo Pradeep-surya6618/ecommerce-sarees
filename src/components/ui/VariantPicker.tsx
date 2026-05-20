@@ -54,7 +54,7 @@ export function VariantPicker({ variants, selectedSku, onChange, className }: Va
                 aria-label={c.name}
                 aria-pressed={active}
                 className={clsx(
-                  "relative h-9 w-9 rounded-full border-2 transition",
+                  "relative h-9 w-9 cursor-pointer rounded-full border-2 transition",
                   active ? "border-ink-900" : "border-ink-500/20 hover:border-ink-700",
                 )}
                 style={{ background: c.hex }}
@@ -79,7 +79,7 @@ export function VariantPicker({ variants, selectedSku, onChange, className }: Va
                   aria-pressed={active}
                   onClick={() => onChange(s.sku)}
                   className={clsx(
-                    "min-w-12 rounded-sm border px-3 py-2 text-sm transition",
+                    "min-w-12 cursor-pointer rounded-sm border px-3 py-2 text-sm transition",
                     active
                       ? "border-ink-900 bg-ink-900 text-white"
                       : "border-ink-500/30 text-ink-700 hover:border-ink-700",

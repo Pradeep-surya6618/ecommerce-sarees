@@ -4,12 +4,14 @@ interface SectionFlourishHeadingProps {
 
 export function SectionFlourishHeading({ title }: SectionFlourishHeadingProps) {
   return (
-    <header className="flex flex-col items-center gap-2 text-center">
-      <h2 className="font-display text-3xl text-ink-900 md:text-4xl">{title}</h2>
+    <header className="flex flex-col items-center gap-1.5 text-center sm:gap-2">
+      <h2 className="font-display text-xl leading-tight text-ink-900 sm:text-3xl md:text-4xl">
+        {title}
+      </h2>
       <svg
         aria-hidden
         viewBox="0 0 120 16"
-        className="h-4 w-32 text-accent-primary"
+        className="h-3 w-20 text-accent-primary sm:h-4 sm:w-32"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.6"

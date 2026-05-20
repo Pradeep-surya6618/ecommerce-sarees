@@ -13,6 +13,7 @@ export interface ProductCardProps {
   product: Product;
   priority?: boolean;
   className?: string;
+  isInWishlist?: boolean;
 }
 
 // Deterministic 4.0–5.0 rating from the product id so each card is stable but varied.
@@ -26,7 +27,7 @@ function pseudoRating(productId: string): number {
   return Math.round((4.0 + variance) * 10) / 10;
 }
 
-export function ProductCard({ product, priority, className }: ProductCardProps) {
+export function ProductCard({ product, priority, className, isInWishlist }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
   const primaryImage = product.images[0];
   const secondaryImage = product.images[1] ?? primaryImage;
@@ -67,12 +68,16 @@ export function ProductCard({ product, priority, className }: ProductCardProps) 
         {/* Wishlist heart — top-right */}
         <div className="absolute right-3 top-3">
           <WishlistButton
+            // Re-key on the server-fetched membership so the button's local
+            // state resets to match after navigation / revalidation.
+            key={isInWishlist ? "on" : "off"}
             productId={product.id}
             productSlug={product.slug}
             productName={product.name}
             imageUrl={primaryImage.url}
             priceInPaise={product.priceInPaise}
             mrpInPaise={product.mrpInPaise}
+            initiallyOn={isInWishlist}
           />
         </div>
 

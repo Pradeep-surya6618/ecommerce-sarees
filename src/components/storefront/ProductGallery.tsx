@@ -44,7 +44,7 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
             onClick={() => onThumbClick(idx)}
             aria-label={`View image ${idx + 1}`}
             className={clsx(
-              "relative h-20 w-20 shrink-0 overflow-hidden rounded-sm border transition",
+              "relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-sm border transition",
               selected === idx ? "border-ink-900" : "border-ink-500/15 hover:border-ink-700",
             )}
           >
@@ -59,7 +59,7 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
             {images.map((img, idx) => (
               <div key={img.url} className="relative min-w-0 flex-[0_0_100%]">
                 <div
-                  className="group relative aspect-[3/4] w-full overflow-hidden rounded-md bg-ink-500/5"
+                  className="group relative aspect-[3/4] w-full cursor-zoom-in overflow-hidden rounded-md bg-ink-500/5"
                   onMouseMove={onMouseMove}
                   onMouseLeave={() => setZoom(null)}
                 >
