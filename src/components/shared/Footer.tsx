@@ -39,11 +39,36 @@ function toFooterLinks(pages: ContentPage[]): FooterLink[] {
 }
 
 const SOCIAL_LINKS = [
-  { Icon: InstagramGlyph, label: "Instagram", href: "https://instagram.com" },
-  { Icon: FacebookGlyph, label: "Facebook", href: "https://facebook.com" },
-  { Icon: PinterestGlyph, label: "Pinterest", href: "https://pinterest.com" },
-  { Icon: YoutubeGlyph, label: "YouTube", href: "https://youtube.com" },
-  { Icon: WhatsAppGlyph, label: "WhatsApp", href: "https://wa.me/" },
+  {
+    Icon: InstagramGlyph,
+    label: "Instagram",
+    href: "https://instagram.com",
+    hoverClass: "hover:border-[#E1306C] hover:bg-[#E1306C] hover:text-white",
+  },
+  {
+    Icon: FacebookGlyph,
+    label: "Facebook",
+    href: "https://facebook.com",
+    hoverClass: "hover:border-[#1877F2] hover:bg-[#1877F2] hover:text-white",
+  },
+  {
+    Icon: PinterestGlyph,
+    label: "Pinterest",
+    href: "https://pinterest.com",
+    hoverClass: "hover:border-[#E60023] hover:bg-[#E60023] hover:text-white",
+  },
+  {
+    Icon: YoutubeGlyph,
+    label: "YouTube",
+    href: "https://youtube.com",
+    hoverClass: "hover:border-[#FF0000] hover:bg-[#FF0000] hover:text-white",
+  },
+  {
+    Icon: WhatsAppGlyph,
+    label: "WhatsApp",
+    href: "https://wa.me/",
+    hoverClass: "hover:border-[#25D366] hover:bg-[#25D366] hover:text-white",
+  },
 ];
 
 export async function Footer() {
@@ -166,14 +191,14 @@ export async function Footer() {
             <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            {SOCIAL_LINKS.map(({ Icon, label, href }) => (
+            {SOCIAL_LINKS.map(({ Icon, label, href, hoverClass }) => (
               <Link
                 key={label}
                 href={href}
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={label}
-                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-bg-base/20 bg-white/[0.04] text-bg-base/80 transition hover:border-accent-gold hover:bg-accent-gold/10 hover:text-accent-gold sm:h-10 sm:w-10"
+                className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-bg-base/20 bg-white/[0.04] text-bg-base/80 transition sm:h-10 sm:w-10 ${hoverClass}`}
               >
                 <Icon className="h-[14px] w-[14px] sm:h-[16px] sm:w-[16px]" />
               </Link>
