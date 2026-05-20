@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
+import { addressesRepo } from "@/lib/db/repos/addresses";
 import { cartRepo } from "@/lib/db/repos/cart";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { Container } from "@/components/ui/Container";
@@ -22,14 +23,14 @@ export default async function CheckoutPage() {
 
   if (!cart || cart.items.length === 0) {
     return (
-      <Container size="lg" className="py-20">
+      <Container size="lg" className="py-12 sm:py-16 md:py-20">
         <EmptyState
           title="Your cart is empty"
           description="Add a saree to begin checkout."
           action={
             <Link
               href="/shop"
-              className="mt-2 inline-flex items-center justify-center rounded-sm bg-ink-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-ink-700"
+              className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full bg-ink-900 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-ink-700 sm:h-11 sm:px-5 sm:text-xs sm:tracking-[0.2em]"
             >
               Shop sarees
             </Link>
@@ -39,5 +40,8 @@ export default async function CheckoutPage() {
     );
   }
 
-  return <CheckoutFlow cart={cart} />;
+  // Hydrate saved addresses for the address step. Empty for guests.
+  const savedAddresses = user ? await addressesRepo.listByUser(user.id) : [];
+
+  return <CheckoutFlow cart={cart} savedAddresses={savedAddresses} />;
 }

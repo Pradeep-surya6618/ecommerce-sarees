@@ -287,6 +287,54 @@ h3 {
   animation-fill-mode: forwards;
 }
 
+/* Order tracking timeline animations */
+@keyframes order-step-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.order-step-pop {
+  animation: order-step-pop 480ms cubic-bezier(0.2, 0.7, 0.1, 1.2) both;
+}
+
+@keyframes order-step-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(26, 122, 58, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(26, 122, 58, 0);
+  }
+}
+
+.order-step-pulse {
+  animation: order-step-pulse 1.8s ease-out infinite;
+}
+
+@keyframes order-progress-fill {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.order-progress-fill {
+  transform-origin: top;
+  animation: order-progress-fill 700ms cubic-bezier(0.2, 0.7, 0.1, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

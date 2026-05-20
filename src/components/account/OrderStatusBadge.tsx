@@ -1,16 +1,17 @@
 import { Badge } from "@/components/ui/Badge";
 import type { OrderStatus } from "@/types/domain";
 
-const TONE: Record<OrderStatus, "neutral" | "accent" | "gold" | "success" | "warning" | "danger"> =
-  {
-    pending_payment: "warning",
-    confirmed: "neutral",
-    paid: "gold",
-    shipped: "accent",
-    delivered: "success",
-    cancelled: "danger",
-    payment_failed: "danger",
-  };
+type BadgeTone = "neutral" | "accent" | "gold" | "success" | "success-solid" | "warning" | "danger";
+
+const TONE: Record<OrderStatus, BadgeTone> = {
+  pending_payment: "warning",
+  confirmed: "success-solid",
+  paid: "gold",
+  shipped: "accent",
+  delivered: "success-solid",
+  cancelled: "danger",
+  payment_failed: "danger",
+};
 
 const LABEL: Record<OrderStatus, string> = {
   pending_payment: "Pending payment",

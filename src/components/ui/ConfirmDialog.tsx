@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
+
+// useSyncExternalStore-based client check — returns false during SSR/first
+// render, true once we know we're on the client. Avoids hydration mismatches
+// without triggering react-hooks/set-state-in-effect.
+const subscribe = () => () => {};
+const useIsClient = () =>
+  useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
 
 const TRANSITION_MS = 220;
 
@@ -77,7 +88,8 @@ export function ConfirmDialog({
     };
   }, [open, onClose]);
 
-  if (typeof document === "undefined") return null;
+  const isClient = useIsClient();
+  if (!isClient) return null;
 
   const Icon = icon ?? AlertTriangle;
   const isDanger = tone === "danger";

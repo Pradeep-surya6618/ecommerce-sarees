@@ -1,7 +1,7 @@
 "use client";
 
-import { forwardRef, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { forwardRef, useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Eye, EyeOff, Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
 
@@ -170,6 +170,238 @@ export const PillPasswordInput = forwardRef<HTMLInputElement, PillPasswordInputP
     );
   },
 );
+
+// ─── Pill listbox (custom dropdown) ──────────────────────────────────────────
+
+export interface PillListboxProps {
+  id?: string;
+  icon: LucideIcon;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  options: readonly string[];
+  placeholder?: string;
+  invalid?: boolean;
+}
+
+export function PillListbox({
+  id,
+  icon,
+  value,
+  onChange,
+  onBlur,
+  options,
+  placeholder = "Select…",
+  invalid,
+}: PillListboxProps) {
+  const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState<number>(-1);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  function filterFor(q: string): string[] {
+    const t = q.trim().toLowerCase();
+    return t === "" ? [...options] : options.filter((o) => o.toLowerCase().includes(t));
+  }
+  const filtered = filterFor(query);
+
+  function openPanel() {
+    const selectedIdx = options.findIndex((o) => o === value);
+    setActiveIdx(selectedIdx >= 0 ? selectedIdx : 0);
+    setOpen(true);
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }
+
+  function closePanel() {
+    setOpen(false);
+    setQuery("");
+    setActiveIdx(-1);
+    onBlur?.();
+  }
+
+  function onQueryChange(next: string) {
+    setQuery(next);
+    const matches = filterFor(next);
+    setActiveIdx(matches.length > 0 ? 0 : -1);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        closePanel();
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || activeIdx < 0) return;
+    const node = listRef.current?.children[activeIdx] as HTMLElement | undefined;
+    node?.scrollIntoView({ block: "nearest" });
+  }, [open, activeIdx]);
+
+  function commit(opt: string) {
+    onChange(opt);
+    closePanel();
+    triggerRef.current?.focus();
+  }
+
+  function onTriggerKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      openPanel();
+    } else if (e.key === "Escape" && open) {
+      e.preventDefault();
+      closePanel();
+    }
+  }
+
+  function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const opt = filtered[activeIdx];
+      if (opt !== undefined) commit(opt);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closePanel();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(filtered.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(0, i - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIdx(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIdx(filtered.length - 1);
+    } else if (e.key === "Tab") {
+      closePanel();
+    }
+  }
+
+  const hasValue = value !== "";
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        ref={triggerRef}
+        id={id}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={id ? `${id}-listbox` : undefined}
+        aria-invalid={invalid ? "true" : undefined}
+        onClick={() => (open ? closePanel() : openPanel())}
+        onKeyDown={onTriggerKeyDown}
+        className={clsx(
+          "flex w-full cursor-pointer items-center gap-2 rounded-full border bg-bg-elevated pl-1 pr-1 text-left transition sm:gap-3",
+          open
+            ? invalid
+              ? "border-danger"
+              : "border-accent-primary"
+            : invalid
+              ? "border-danger/60"
+              : hasValue
+                ? "border-accent-primary/50 hover:border-accent-primary"
+                : "border-ink-500/20 hover:border-ink-500/40",
+        )}
+      >
+        <IconCircle icon={icon} invalid={invalid} />
+        <span
+          className={clsx(
+            "flex-1 truncate text-sm sm:text-base",
+            hasValue ? "text-ink-900" : "text-ink-500",
+          )}
+        >
+          {hasValue ? value : placeholder}
+        </span>
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900/[0.04] text-ink-500 transition sm:h-10 sm:w-10">
+          <ChevronDown className={clsx("h-4 w-4 transition", open && "-rotate-180")} aria-hidden />
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-ink-500/15 bg-bg-elevated shadow-elev"
+          role="presentation"
+        >
+          <span
+            aria-hidden
+            className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+          />
+
+          <div className="flex items-center gap-2 border-b border-ink-500/10 px-3 py-2 sm:px-4 sm:py-2.5">
+            <Search className="h-4 w-4 shrink-0 text-ink-500" aria-hidden />
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              onKeyDown={onSearchKeyDown}
+              placeholder="Type to filter…"
+              autoComplete="off"
+              spellCheck={false}
+              aria-autocomplete="list"
+              aria-controls={id ? `${id}-listbox` : undefined}
+              aria-activedescendant={id && activeIdx >= 0 ? `${id}-option-${activeIdx}` : undefined}
+              className="autofill-on-light h-8 w-full bg-transparent text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none sm:h-9 sm:text-[15px]"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
+            <p className="px-4 py-4 text-center text-xs text-ink-500 sm:text-sm">
+              No matches for &ldquo;{query}&rdquo;.
+            </p>
+          ) : (
+            <ul
+              ref={listRef}
+              id={id ? `${id}-listbox` : undefined}
+              role="listbox"
+              className="max-h-64 overflow-y-auto py-1.5 sm:max-h-72"
+            >
+              {filtered.map((opt, idx) => {
+                const selected = opt === value;
+                const active = idx === activeIdx;
+                return (
+                  <li
+                    key={opt}
+                    id={id ? `${id}-option-${idx}` : undefined}
+                    role="option"
+                    aria-selected={selected}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      commit(opt);
+                    }}
+                    className={clsx(
+                      "flex cursor-pointer items-center justify-between gap-3 px-4 py-2 text-sm transition sm:py-2.5 sm:text-[15px]",
+                      active && "bg-accent-primary/10 text-ink-900",
+                      !active && "text-ink-700",
+                    )}
+                  >
+                    <span className="truncate">{opt}</span>
+                    {selected && (
+                      <Check aria-hidden className="h-4 w-4 shrink-0 text-accent-primary" />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Submit button: pill, accent-primary, gold accent stripe ─────────────────
 

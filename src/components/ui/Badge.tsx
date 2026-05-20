@@ -1,6 +1,6 @@
 import { clsx } from "@/lib/utils/clsx";
 
-type Tone = "neutral" | "accent" | "gold" | "success" | "warning" | "danger";
+type Tone = "neutral" | "accent" | "gold" | "success" | "success-solid" | "warning" | "danger";
 
 export interface BadgeProps {
   tone?: Tone;
@@ -13,6 +13,7 @@ const toneClass: Record<Tone, string> = {
   accent: "bg-accent-primary text-white",
   gold: "bg-accent-gold text-white",
   success: "bg-success/10 text-success border border-success/20",
+  "success-solid": "bg-success text-white",
   warning: "bg-warning/10 text-warning border border-warning/30",
   danger: "bg-danger/10 text-danger border border-danger/30",
 };

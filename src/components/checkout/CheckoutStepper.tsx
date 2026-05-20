@@ -16,34 +16,51 @@ const STEPS: { id: CheckoutStepId; label: string; index: number }[] = [
 
 export function CheckoutStepper({ current, completed }: CheckoutStepperProps) {
   return (
-    <ol className="flex items-center gap-3">
+    <ol className="flex w-full items-center gap-2 sm:gap-3">
       {STEPS.map((step, idx) => {
         const isCurrent = step.id === current;
         const isDone = completed.includes(step.id) && !isCurrent;
+        const isLast = idx === STEPS.length - 1;
         return (
-          <li key={step.id} className="flex flex-1 items-center gap-3">
+          <li
+            key={step.id}
+            className={clsx("flex shrink-0 items-center gap-2 sm:gap-3", !isLast && "flex-1")}
+          >
+            {/* Step badge */}
             <div
               className={clsx(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums",
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums transition sm:h-8 sm:w-8 sm:text-xs",
                 isDone
-                  ? "border-accent-primary bg-accent-primary text-white"
+                  ? "border-accent-primary bg-accent-primary text-white shadow-sm"
                   : isCurrent
-                    ? "border-ink-900 text-ink-900"
-                    : "border-ink-500/30 text-ink-500",
+                    ? "border-ink-900 bg-ink-900 text-bg-base"
+                    : "border-ink-500/30 bg-bg-elevated text-ink-500",
               )}
             >
-              {isDone ? <Check className="h-4 w-4" /> : step.index}
+              {isDone ? <Check className="h-3.5 w-3.5" /> : step.index}
             </div>
+
+            {/* Label — visible on current step on mobile, all steps on desktop */}
             <span
               className={clsx(
-                "text-xs uppercase tracking-wide",
-                isCurrent ? "text-ink-900" : "text-ink-500",
+                "whitespace-nowrap text-[10px] uppercase tracking-[0.2em] transition sm:text-xs",
+                isCurrent ? "text-ink-900" : isDone ? "text-ink-700" : "text-ink-500",
+                // Hide non-current labels on mobile to save room
+                !isCurrent && "hidden sm:inline",
               )}
             >
               {step.label}
             </span>
-            {idx < STEPS.length - 1 && (
-              <span className="hidden flex-1 border-t border-ink-500/20 md:block" />
+
+            {/* Connector */}
+            {!isLast && (
+              <span
+                aria-hidden
+                className={clsx(
+                  "h-px flex-1 transition",
+                  isDone ? "bg-accent-primary" : "bg-ink-500/20",
+                )}
+              />
             )}
           </li>
         );

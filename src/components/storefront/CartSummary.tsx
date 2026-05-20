@@ -70,7 +70,7 @@ export function CartSummary({
       {/* Total */}
       <div className="mt-4 flex items-baseline justify-between gap-2 border-t border-ink-500/10 pt-3 sm:mt-5 sm:pt-4">
         <span className="font-display text-base text-ink-900 sm:text-lg">Total</span>
-        <span className="font-display text-lg tabular-nums text-ink-900 sm:text-2xl">
+        <span className="font-display text-lg tabular-nums text-accent-primary sm:text-2xl">
           {formatRupees(totalPaise)}
         </span>
       </div>
