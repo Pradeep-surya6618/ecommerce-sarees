@@ -3,11 +3,11 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, User } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { updateNameAction } from "@/server/actions/profile";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
+import { PillField, PillInput, PillSubmitButton } from "@/components/account/AccountFields";
 
 const schema = z.object({
   fullName: z.string().min(2, "Required"),
@@ -43,20 +43,35 @@ export function ProfileForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      <FormField label="Full name" htmlFor="fullName" required error={errors.fullName?.message}>
-        <Input id="fullName" {...register("fullName")} invalid={!!errors.fullName} />
-      </FormField>
-      <FormField label="Email" htmlFor="email" hint="Email cannot be changed in this phase">
-        <Input id="email" value={email} disabled />
-      </FormField>
-      <button
-        type="submit"
-        disabled={pending}
-        className="self-start rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Saving…" : "Save changes"}
-      </button>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+      <PillField label="Full name" htmlFor="fullName" required error={errors.fullName?.message}>
+        <PillInput
+          id="fullName"
+          icon={User}
+          autoComplete="name"
+          placeholder="Your name"
+          {...register("fullName")}
+          invalid={!!errors.fullName}
+        />
+      </PillField>
+
+      <PillField label="Email" htmlFor="email" hint="Email cannot be changed in this phase.">
+        <PillInput
+          id="email"
+          icon={Mail}
+          type="email"
+          value={email}
+          readOnly
+          disabled
+          autoComplete="email"
+        />
+      </PillField>
+
+      <div className="flex justify-end">
+        <PillSubmitButton pending={pending} pendingLabel="Saving…">
+          Save changes
+        </PillSubmitButton>
+      </div>
     </form>
   );
 }

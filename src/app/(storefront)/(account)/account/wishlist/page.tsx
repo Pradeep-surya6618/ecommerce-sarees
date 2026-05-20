@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { WishlistGrid } from "@/components/account/WishlistGrid";
@@ -20,7 +21,7 @@ export default async function WishlistPage() {
         action={
           <Link
             href="/shop"
-            className="mt-2 inline-flex items-center justify-center rounded-sm bg-ink-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-ink-700"
+            className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full bg-ink-900 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-ink-700 sm:h-11 sm:px-5 sm:text-xs sm:tracking-[0.2em]"
           >
             Shop sarees
           </Link>
@@ -30,10 +31,18 @@ export default async function WishlistPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl text-ink-900">Wishlist</h1>
-        <p className="text-sm text-ink-700">{items.length} saved sarees.</p>
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+      <header className="flex min-w-0 flex-col gap-1.5">
+        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-accent-gold sm:text-xs">
+          <Sparkles className="h-3 w-3" />
+          Your space
+        </span>
+        <h1 className="font-display text-lg leading-tight text-ink-900 sm:text-2xl md:text-3xl">
+          Wishlist
+        </h1>
+        <p className="text-[11px] text-ink-700 sm:text-sm">
+          {items.length} saved {items.length === 1 ? "saree" : "sarees"}.
+        </p>
       </header>
       <WishlistGrid items={items} />
     </div>

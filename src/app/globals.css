@@ -91,6 +91,15 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
+/* Clip any accidental horizontal overflow at the page edges (mobile nav rows,
+   marquees, oversized headlines). `overflow-x: clip` does NOT establish a
+   scroll context, so it leaves `position: sticky` working — unlike
+   `overflow-x: hidden`, which would break sticky sidebars/headers. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -126,6 +135,25 @@ h3 {
     background-color 600000s 0s,
     color 600000s 0s;
   caret-color: var(--color-bg-base);
+}
+
+/* Kill the autofill background on light-surface inputs. Uses
+   `background-clip: text` so the browser paints only the text glyphs and
+   leaves the input's actual background fully transparent — the underlying
+   pill wrapper shows through with its real bg colour. Text colour and caret
+   are forced back to ink-900 so autofilled values look identical to typed
+   ones. */
+.autofill-on-light:-webkit-autofill,
+.autofill-on-light:-webkit-autofill:hover,
+.autofill-on-light:-webkit-autofill:focus,
+.autofill-on-light:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-ink-900);
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition:
+    background-color 600000s 0s,
+    color 600000s 0s;
+  caret-color: var(--color-ink-900);
 }
 
 /* Banner hero circular progress ring */

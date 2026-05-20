@@ -3,11 +3,11 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { KeyRound, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { changePasswordAction } from "@/server/actions/profile";
-import { FormField } from "@/components/ui/FormField";
-import { PasswordInput } from "@/components/ui/PasswordInput";
+import { PillField, PillPasswordInput, PillSubmitButton } from "@/components/account/AccountFields";
 
 const schema = z.object({
   currentPassword: z.string().min(1, "Required"),
@@ -37,41 +37,44 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      <FormField
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+      <PillField
         label="Current password"
         htmlFor="currentPassword"
         required
         error={errors.currentPassword?.message}
       >
-        <PasswordInput
+        <PillPasswordInput
           id="currentPassword"
+          icon={KeyRound}
           autoComplete="current-password"
+          placeholder="••••••••"
           {...register("currentPassword")}
           invalid={!!errors.currentPassword}
         />
-      </FormField>
-      <FormField
+      </PillField>
+      <PillField
         label="New password"
         htmlFor="newPassword"
         required
-        hint="At least 8 characters"
+        hint="At least 8 characters."
         error={errors.newPassword?.message}
       >
-        <PasswordInput
+        <PillPasswordInput
           id="newPassword"
+          icon={Lock}
           autoComplete="new-password"
+          placeholder="••••••••"
           {...register("newPassword")}
           invalid={!!errors.newPassword}
         />
-      </FormField>
-      <button
-        type="submit"
-        disabled={pending}
-        className="self-start rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? "Updating…" : "Change password"}
-      </button>
+      </PillField>
+
+      <div className="flex justify-end">
+        <PillSubmitButton pending={pending} pendingLabel="Updating…">
+          Change password
+        </PillSubmitButton>
+      </div>
     </form>
   );
 }
