@@ -105,7 +105,7 @@ export function Footer() {
             <input
               type="email"
               placeholder="Your email"
-              className="flex-1 rounded-sm border border-bg-base/20 bg-white/[0.04] px-3 py-2.5 text-xs text-bg-base placeholder:text-bg-base/45 focus:border-accent-gold focus:outline-none sm:px-4 sm:py-3 sm:text-sm"
+              className="autofill-on-dark flex-1 rounded-sm border border-bg-base/20 bg-white/[0.04] px-3 py-2.5 text-xs text-bg-base placeholder:text-bg-base/45 focus:border-accent-gold focus:outline-none sm:px-4 sm:py-3 sm:text-sm"
             />
             <button
               type="submit"

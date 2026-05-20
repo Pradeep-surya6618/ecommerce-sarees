@@ -112,6 +112,22 @@ h3 {
   display: none; /* Chrome / Safari */
 }
 
+/* Kill the blue autofill background WebKit applies on inputs sitting on a
+   dark surface (footer newsletter). Repaints the fill transparent and keeps
+   the text colored to match the dark background. */
+.autofill-on-dark:-webkit-autofill,
+.autofill-on-dark:-webkit-autofill:hover,
+.autofill-on-dark:-webkit-autofill:focus,
+.autofill-on-dark:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-bg-base);
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  box-shadow: 0 0 0 1000px transparent inset;
+  transition:
+    background-color 600000s 0s,
+    color 600000s 0s;
+  caret-color: var(--color-bg-base);
+}
+
 /* Banner hero circular progress ring */
 @keyframes banner-circular-progress {
   from {
