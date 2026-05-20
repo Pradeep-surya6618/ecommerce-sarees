@@ -42,24 +42,37 @@ export function ConfirmDialog({
   icon,
   pending = false,
 }: ConfirmDialogProps) {
-  // Lock body scroll while open + close on Escape. Pad the body by the
-  // scrollbar width so removing the scrollbar doesn't cause a horizontal jump.
+  // Lock page scroll while open + close on Escape. Locks BOTH html and body
+  // (html is the viewport scroll container; body holds layout), and pads each
+  // by the scrollbar width so removing the scrollbar doesn't cause a sideways
+  // jump. Compatible with `overflow-x: clip` set globally on html/body.
   useEffect(() => {
     if (!open) return;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      htmlPaddingRight: html.style.paddingRight,
+      bodyOverflow: body.style.overflow,
+      bodyPaddingRight: body.style.paddingRight,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    // Reserve the scrollbar's width on the viewport (html) only — padding
+    // both would double-shift the content.
     if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      html.style.paddingRight = `${scrollbarWidth}px`;
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.paddingRight = prev.htmlPaddingRight;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.paddingRight = prev.bodyPaddingRight;
       document.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
@@ -76,11 +89,11 @@ export function ConfirmDialog({
       aria-hidden={!open ? "true" : undefined}
       aria-labelledby="confirm-dialog-title"
       aria-describedby={description ? "confirm-dialog-desc" : undefined}
-      // `inert` makes the entire subtree non-focusable and non-interactive when
-      // the dialog is closed. Supported in all modern browsers.
-      {...(!open ? { inert: "" as unknown as boolean } : {})}
+      // `inert` makes the entire subtree non-focusable and non-interactive
+      // when the dialog is closed. React 19 expects a real boolean here.
+      inert={!open}
       className={clsx(
-        "fixed inset-0 z-[80] flex items-start justify-center px-4 py-10 sm:items-center sm:px-6",
+        "fixed inset-0 z-[80] flex items-center justify-center px-4 py-10 sm:px-6",
         !open && "pointer-events-none",
       )}
     >

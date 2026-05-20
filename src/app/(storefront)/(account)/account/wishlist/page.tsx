@@ -2,9 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { productsRepo } from "@/lib/db/repos/products";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { WishlistGrid } from "@/components/account/WishlistGrid";
 import { EmptyState } from "@/components/ui/EmptyState";
+import type { Product } from "@/types/domain";
 
 export const metadata = { title: "Wishlist · Saree Store" };
 
@@ -30,6 +32,14 @@ export default async function WishlistPage() {
     );
   }
 
+  // Hydrate each wishlist item with its full product so the grid can show
+  // discount, fabric, ratings, colour swatches — same data as ProductCard.
+  const products = await Promise.all(items.map((i) => productsRepo.getById(i.productId)));
+  const productById = new Map<string, Product>();
+  for (const p of products) {
+    if (p) productById.set(p.id, p);
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
       <header className="flex min-w-0 flex-col gap-1.5">
@@ -44,7 +54,7 @@ export default async function WishlistPage() {
           {items.length} saved {items.length === 1 ? "saree" : "sarees"}.
         </p>
       </header>
-      <WishlistGrid items={items} />
+      <WishlistGrid items={items} productById={Object.fromEntries(productById)} />
     </div>
   );
 }

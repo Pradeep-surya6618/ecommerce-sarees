@@ -2,59 +2,160 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { removeFromWishlistAction } from "@/server/actions/wishlist";
-import { IconButton } from "@/components/ui/IconButton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PriceTag } from "@/components/ui/PriceTag";
-import type { WishlistItem } from "@/types/domain";
+import type { Product, WishlistItem } from "@/types/domain";
 
-export function WishlistGrid({ items }: { items: WishlistItem[] }) {
+// Deterministic 4.0–5.0 rating from product id — mirrors ProductCard so cards
+// in the wishlist read consistently with the catalogue. (Replace with real
+// review aggregation when the backend lands.)
+function pseudoRating(productId: string): number {
+  let hash = 0;
+  for (let i = 0; i < productId.length; i++) {
+    hash = (hash * 31 + productId.charCodeAt(i)) | 0;
+  }
+  const variance = (Math.abs(hash) % 11) / 10;
+  return Math.round((4.0 + variance) * 10) / 10;
+}
+
+export interface WishlistGridProps {
+  items: WishlistItem[];
+  productById: Record<string, Product>;
+}
+
+export function WishlistGrid({ items, productById }: WishlistGridProps) {
   const [pending, startTransition] = useTransition();
+  const [confirmItem, setConfirmItem] = useState<WishlistItem | null>(null);
 
-  function removeItem(productId: string) {
+  function confirmRemove() {
+    if (!confirmItem) return;
+    const target = confirmItem;
     startTransition(async () => {
       try {
-        await removeFromWishlistAction(productId);
-        toast.success("Removed from wishlist");
+        await removeFromWishlistAction(target.productId);
+        toast.success("Removed from wishlist", {
+          description: `"${target.productName}" is no longer saved.`,
+        });
+        // If the row unmounts via revalidation, this is a no-op.
+        setConfirmItem(null);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed");
+        setConfirmItem(null);
+        toast.error("Couldn't remove from wishlist", {
+          description: err instanceof Error ? err.message : "Please try again.",
+        });
       }
     });
   }
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3">
-      {items.map((item) => (
-        <div key={item.id} className="relative">
-          <Link href={`/product/${item.productSlug}`} className="group flex flex-col gap-3">
-            <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-ink-500/5">
-              {item.imageUrl && (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.productName}
-                  fill
-                  sizes="(min-width: 768px) 33vw, 50vw"
-                  className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                />
-              )}
-            </div>
-            <h3 className="font-display text-lg text-ink-900">{item.productName}</h3>
-            <PriceTag priceInPaise={item.priceInPaise} mrpInPaise={item.mrpInPaise} size="sm" />
-          </Link>
-          <div className="absolute right-3 top-3">
-            <IconButton
+    <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-4 sm:gap-y-10 md:grid-cols-3">
+      {items.map((item) => {
+        const product = productById[item.productId];
+        const priceInPaise = product?.priceInPaise ?? item.priceInPaise;
+        const mrpInPaise = product?.mrpInPaise ?? item.mrpInPaise;
+        const hasDiscount = mrpInPaise > priceInPaise;
+        const discountPct = hasDiscount
+          ? Math.round(((mrpInPaise - priceInPaise) / mrpInPaise) * 100)
+          : 0;
+        const rating = pseudoRating(item.productId);
+        const imageUrl = product?.images[0]?.url ?? item.imageUrl;
+
+        return (
+          <div key={item.id} className="group relative flex flex-col gap-2 sm:gap-3">
+            <Link href={`/product/${item.productSlug}`} className="flex flex-col gap-2 sm:gap-3">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-ink-900">
+                {imageUrl && (
+                  <Image
+                    src={imageUrl}
+                    alt={item.productName}
+                    fill
+                    sizes="(min-width: 768px) 33vw, 50vw"
+                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                  />
+                )}
+
+                {/* Discount badge — top-left */}
+                {hasDiscount && (
+                  <span className="pointer-events-none absolute left-2 top-2 inline-flex items-center rounded-sm bg-accent-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm sm:left-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
+                    {discountPct}% OFF
+                  </span>
+                )}
+
+                {/* Rating chip — bottom-right */}
+                <span
+                  aria-label={`Rated ${rating} out of 5`}
+                  className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-sm bg-bg-elevated/95 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-ink-900 shadow-sm backdrop-blur sm:bottom-3 sm:right-3 sm:px-2 sm:py-1 sm:text-xs"
+                >
+                  {rating.toFixed(1)}
+                  <Star className="h-2.5 w-2.5 fill-accent-gold text-accent-gold sm:h-3 sm:w-3" />
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-0.5 sm:gap-1">
+                <h3 className="truncate font-display text-sm text-ink-900 sm:text-lg">
+                  {item.productName}
+                </h3>
+                {product?.fabric && (
+                  <span className="text-[10px] uppercase tracking-wide text-ink-500 sm:text-xs">
+                    {product.fabric}
+                  </span>
+                )}
+                <div className="mt-0.5 flex items-center justify-between gap-2 sm:mt-1">
+                  <PriceTag priceInPaise={priceInPaise} mrpInPaise={mrpInPaise} size="sm" />
+                  {product && product.variants.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      {product.variants.slice(0, 4).map((v) => (
+                        <span
+                          key={v.sku}
+                          aria-label={v.colorName}
+                          title={v.colorName}
+                          className="h-2.5 w-2.5 rounded-full border border-ink-500/30 sm:h-3 sm:w-3"
+                          style={{ background: v.colorHex }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Link>
+
+            {/* Remove (trash) — top-right */}
+            <button
+              type="button"
               aria-label="Remove from wishlist"
-              onClick={() => removeItem(item.productId)}
+              onClick={() => setConfirmItem(item)}
               disabled={pending}
-              variant="solid"
+              className="absolute right-2 top-2 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-ink-900 text-bg-base shadow-md transition hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50 sm:right-3 sm:top-3 sm:h-9 sm:w-9"
             >
-              <Trash2 className="h-4 w-4" />
-            </IconButton>
+              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
           </div>
-        </div>
-      ))}
+        );
+      })}
+
+      {/* Shared delete confirmation (single instance, content swaps with target) */}
+      <ConfirmDialog
+        open={confirmItem !== null}
+        onClose={() => {
+          if (!pending) setConfirmItem(null);
+        }}
+        onConfirm={confirmRemove}
+        title="Remove from wishlist?"
+        description={
+          confirmItem
+            ? `"${confirmItem.productName}" will be removed from your saved sarees.`
+            : undefined
+        }
+        confirmLabel="Remove"
+        cancelLabel="Keep it"
+        tone="danger"
+        icon={Trash2}
+        pending={pending}
+      />
     </div>
   );
 }
