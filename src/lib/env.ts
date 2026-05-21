@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+const optionalString = z
+  .string()
+  .optional()
+  .transform((v) => (v === "" ? undefined : v));
+
+const optionalEmail = z
+  .string()
+  .optional()
+  .transform((v) => (v === "" ? undefined : v))
+  .pipe(z.email().optional());
+
+const optionalUrl = z
+  .string()
+  .optional()
+  .transform((v) => (v === "" ? undefined : v))
+  .pipe(z.url().optional());
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   NEXT_PUBLIC_SITE_URL: z.url(),
@@ -14,25 +31,25 @@ const schema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().min(1),
   DDB_TABLE_PREFIX: z.string().min(1),
 
-  S3_BUCKET: z.string().min(1),
+  S3_BUCKET: optionalString,
   S3_PUBLIC_PREFIX: z.string().default("public/"),
-  CDN_BASE_URL: z.url(),
+  CDN_BASE_URL: optionalUrl,
 
-  SES_SMTP_HOST: z.string().min(1),
+  SES_SMTP_HOST: optionalString,
   SES_SMTP_PORT: z.coerce.number().int().positive().default(587),
-  SES_SMTP_USER: z.string().min(1),
-  SES_SMTP_PASSWORD: z.string().min(1),
-  MAIL_FROM: z.string().min(1),
-  ADMIN_NOTIFY_EMAIL: z.email(),
+  SES_SMTP_USER: optionalString,
+  SES_SMTP_PASSWORD: optionalString,
+  MAIL_FROM: optionalString,
+  ADMIN_NOTIFY_EMAIL: optionalEmail,
 
-  RAZORPAY_KEY_ID: z.string().min(1),
-  RAZORPAY_KEY_SECRET: z.string().min(1),
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
-  NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().min(1),
+  RAZORPAY_KEY_ID: optionalString,
+  RAZORPAY_KEY_SECRET: optionalString,
+  RAZORPAY_WEBHOOK_SECRET: optionalString,
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: optionalString,
 
-  SHIPROCKET_EMAIL: z.email(),
-  SHIPROCKET_PASSWORD: z.string().min(1),
-  SHIPROCKET_WEBHOOK_SECRET: z.string().min(1),
+  SHIPROCKET_EMAIL: optionalEmail,
+  SHIPROCKET_PASSWORD: optionalString,
+  SHIPROCKET_WEBHOOK_SECRET: optionalString,
 
   RATE_LIMIT_SALT: z.string().min(1),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),

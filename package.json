@@ -15,8 +15,9 @@
     "test:ui": "vitest --ui",
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium",
-    "dynamo:setup": "tsx scripts/dynamo-setup.ts",
-    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
+    "dynamo:setup": "tsx --env-file=.env.local scripts/dynamo-setup.ts",
+    "dynamo:teardown": "tsx --env-file=.env.local scripts/dynamo-teardown.ts",
+    "admin:bootstrap": "tsx --env-file=.env.local scripts/bootstrap-admin.ts",
     "prepare": "husky"
   },
   "dependencies": {

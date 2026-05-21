@@ -11,25 +11,7 @@ describe("tableName", () => {
 
   it("exposes every entity from the spec", async () => {
     const { TABLES } = await import("./tables");
-    const expected = [
-      "Users",
-      "OtpCodes",
-      "Sessions",
-      "Categories",
-      "Products",
-      "Inventory",
-      "Carts",
-      "Addresses",
-      "Orders",
-      "Coupons",
-      "Banners",
-      "Reviews",
-      "BlogPosts",
-      "WebhookEvents",
-      "AdminAuditLog",
-      "Settings",
-      "RateLimits",
-    ];
+    const expected = ["Users", "Categories", "Products", "Carts", "Orders", "Ephemeral", "Content"];
     for (const name of expected) {
       expect(TABLES[name as keyof typeof TABLES]).toBe(name);
     }

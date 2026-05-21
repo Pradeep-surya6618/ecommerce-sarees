@@ -2,22 +2,12 @@ import { env } from "@/lib/env";
 
 export const TABLES = {
   Users: "Users",
-  OtpCodes: "OtpCodes",
-  Sessions: "Sessions",
   Categories: "Categories",
   Products: "Products",
-  Inventory: "Inventory",
   Carts: "Carts",
-  Addresses: "Addresses",
   Orders: "Orders",
-  Coupons: "Coupons",
-  Banners: "Banners",
-  Reviews: "Reviews",
-  BlogPosts: "BlogPosts",
-  WebhookEvents: "WebhookEvents",
-  AdminAuditLog: "AdminAuditLog",
-  Settings: "Settings",
-  RateLimits: "RateLimits",
+  Ephemeral: "Ephemeral",
+  Content: "Content",
 } as const;
 
 export type LogicalTable = (typeof TABLES)[keyof typeof TABLES];

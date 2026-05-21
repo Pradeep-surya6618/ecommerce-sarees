@@ -32,23 +32,23 @@ export interface TableSpec {
   ttlAttribute?: string;
 }
 
+// 7-table design.
+//
+//  - Users      → user profile + addresses[] + wishlist[] + preferences (all embedded as attributes)
+//  - Categories → admin-managed taxonomy
+//  - Products   → product catalog with inventory.stock embedded per variant
+//  - Carts      → guest + user carts (TTL'd)
+//  - Orders     → orders (must scale independently)
+//  - Ephemeral  → single-table for sessions / otp / rateLimits / webhookEvents
+//                 PK is type-prefixed, e.g. "SESSION#abc", "OTP#email", "RL#bucket", "WH#event"
+//                 SK varies: "META" / purposeOtpId
+//  - Content    → single-table for coupons / banners / reviews / blogPosts / adminAuditLog / settings
+//                 PK is type-prefixed, e.g. "COUPON#code", "REVIEW#productId", "POST#id"
 export const TABLE_SPECS: TableSpec[] = [
   {
     name: TABLES.Users,
     hashKey: "userId",
     gsis: [{ name: "EmailIndex", hashKey: "email" }],
-  },
-  {
-    name: TABLES.OtpCodes,
-    hashKey: "email",
-    rangeKey: "purposeOtpId",
-    ttlAttribute: "expiresAt",
-  },
-  {
-    name: TABLES.Sessions,
-    hashKey: "sessionId",
-    gsis: [{ name: "UserIndex", hashKey: "userId" }],
-    ttlAttribute: "expiresAt",
   },
   {
     name: TABLES.Categories,
@@ -63,7 +63,6 @@ export const TABLE_SPECS: TableSpec[] = [
       { name: "CategoryStatusIndex", hashKey: "categoryId", rangeKey: "statusCreatedAt" },
     ],
   },
-  { name: TABLES.Inventory, hashKey: "productId", rangeKey: "variantSku" },
   {
     name: TABLES.Carts,
     hashKey: "cartId",
@@ -73,7 +72,6 @@ export const TABLE_SPECS: TableSpec[] = [
     ],
     ttlAttribute: "expiresAt",
   },
-  { name: TABLES.Addresses, hashKey: "userId", rangeKey: "addressId" },
   {
     name: TABLES.Orders,
     hashKey: "orderId",
@@ -83,39 +81,21 @@ export const TABLE_SPECS: TableSpec[] = [
     ],
   },
   {
-    name: TABLES.Coupons,
-    hashKey: "code",
-    gsis: [{ name: "StatusIndex", hashKey: "status", rangeKey: "validTo" }],
+    name: TABLES.Ephemeral,
+    hashKey: "pk",
+    rangeKey: "sk",
+    gsis: [{ name: "UserIndex", hashKey: "userId", rangeKey: "pk" }],
+    ttlAttribute: "expiresAt",
   },
   {
-    name: TABLES.Banners,
-    hashKey: "bannerId",
+    name: TABLES.Content,
+    hashKey: "pk",
+    rangeKey: "sk",
     gsis: [
-      { name: "PlacementIndex", hashKey: "placement", rangeKey: "sortOrder", rangeKeyType: "N" },
-    ],
-  },
-  {
-    name: TABLES.Reviews,
-    hashKey: "productId",
-    rangeKey: "reviewId",
-    gsis: [{ name: "UserIndex", hashKey: "userId", rangeKey: "createdAt" }],
-  },
-  {
-    name: TABLES.BlogPosts,
-    hashKey: "postId",
-    gsis: [
+      { name: "GSI1", hashKey: "gsi1pk", rangeKey: "gsi1sk" },
       { name: "SlugIndex", hashKey: "slug" },
-      { name: "StatusPublishedIndex", hashKey: "status", rangeKey: "publishedAt" },
     ],
   },
-  { name: TABLES.WebhookEvents, hashKey: "eventKey", ttlAttribute: "expiresAt" },
-  {
-    name: TABLES.AdminAuditLog,
-    hashKey: "logId",
-    gsis: [{ name: "ActorIndex", hashKey: "actorId", rangeKey: "createdAt" }],
-  },
-  { name: TABLES.Settings, hashKey: "scope", rangeKey: "key" },
-  { name: TABLES.RateLimits, hashKey: "bucketKey", ttlAttribute: "expiresAt" },
 ];
 
 function attrDefs(spec: TableSpec): AttributeDefinition[] {
@@ -212,18 +192,25 @@ async function ensureTtl(spec: TableSpec): Promise<void> {
 }
 
 async function ensurePitr(physicalName: string): Promise<void> {
-  try {
-    await getDdbRaw().send(
-      new UpdateContinuousBackupsCommand({
-        TableName: physicalName,
-        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true },
-      }),
-    );
-    logger.info({ table: physicalName }, "PITR enabled");
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("Continuous backups are already enabled")) return;
-    throw err;
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    try {
+      await getDdbRaw().send(
+        new UpdateContinuousBackupsCommand({
+          TableName: physicalName,
+          PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true },
+        }),
+      );
+      logger.info({ table: physicalName }, "PITR enabled");
+      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("Continuous backups are already enabled")) return;
+      if (message.includes("Backups are being enabled") && attempt < 10) {
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
+      throw err;
+    }
   }
 }
 

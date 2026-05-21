@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import type { ProductImage } from "@/types/domain";
 
 export interface ProductImageEditorProps {
@@ -55,13 +56,16 @@ export function ProductImageEditor({ value, onChange }: ProductImageEditorProps)
             <label className="text-xs font-medium uppercase tracking-wide text-ink-700">
               Image URL <span className="text-danger">*</span>
             </label>
-            <input
-              type="url"
-              value={img.url}
-              onChange={(e) => update(i, { url: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-              className="h-10 w-full rounded-sm border border-ink-500/30 bg-bg-elevated px-3 text-sm text-ink-900 placeholder:text-ink-500 focus:border-accent-primary focus:outline-none"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                value={img.url}
+                onChange={(e) => update(i, { url: e.target.value })}
+                placeholder="Upload or paste a URL"
+                className="h-10 w-full rounded-sm border border-ink-500/30 bg-bg-elevated px-3 text-sm text-ink-900 placeholder:text-ink-500 focus:border-accent-primary focus:outline-none"
+              />
+              <ImageUploader folder="products" label="" onUploaded={(url) => update(i, { url })} />
+            </div>
           </div>
 
           {/* Alt */}
