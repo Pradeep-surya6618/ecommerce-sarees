@@ -129,7 +129,7 @@ export function ProductsListClient({ products }: Props) {
                           className="block"
                           aria-label={`Edit ${p.name}`}
                         >
-                          <div className="relative h-12 w-10 overflow-hidden rounded-md bg-ink-500/5">
+                          <div className="relative h-14 w-10 overflow-hidden rounded-md bg-ink-500/5">
                             {p.images[0] && (
                               <Image
                                 src={p.images[0].url}
@@ -172,38 +172,40 @@ export function ProductsListClient({ products }: Props) {
             </table>
           </div>
 
-          <ul className="flex flex-col gap-2.5 md:hidden">
+          <ul className="flex flex-col gap-2 md:hidden">
             {filtered.map((p) => {
               const stock = p.variants.reduce((n, v) => n + v.stock, 0);
               return (
                 <li key={p.id}>
                   <Link
                     href={`/admin/products/${p.id}`}
-                    className="flex items-center gap-3 rounded-2xl border border-ink-500/10 bg-bg-elevated p-3 shadow-card transition hover:-translate-y-0.5 hover:shadow-elev"
+                    className="flex items-center gap-2.5 rounded-xl border border-ink-500/10 bg-bg-elevated p-2 shadow-card transition hover:-translate-y-0.5 hover:shadow-elev"
                   >
-                    <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg bg-ink-500/5">
+                    <div className="relative h-14 w-11 shrink-0 overflow-hidden rounded-md bg-ink-500/5">
                       {p.images[0] && (
                         <Image
                           src={p.images[0].url}
                           alt={p.images[0].alt}
                           fill
-                          sizes="48px"
+                          sizes="44px"
                           className="object-cover"
                         />
                       )}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-sm font-medium text-ink-900">{p.name}</span>
-                      <span className="truncate text-[11px] text-ink-500">
+                      <span className="truncate text-[13px] font-medium leading-tight text-ink-900">
+                        {p.name}
+                      </span>
+                      <span className="truncate text-[10px] text-ink-500">
                         {p.categorySlug} · {p.fabric}
                       </span>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-sm font-semibold tabular-nums text-ink-900">
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className="text-[13px] font-semibold tabular-nums text-ink-900">
                           {formatRupees(p.priceInPaise)}
                         </span>
                         <span
                           className={clsx(
-                            "text-[10px] uppercase tracking-wider",
+                            "text-[9px] uppercase tracking-wider",
                             stock === 0
                               ? "text-danger"
                               : stock < 5
@@ -215,7 +217,12 @@ export function ProductsListClient({ products }: Props) {
                         </span>
                       </div>
                     </div>
-                    <Badge tone={statusTone(p.status)}>{p.status}</Badge>
+                    <Badge
+                      tone={statusTone(p.status)}
+                      className="!px-1.5 !py-0.5 !text-[9px] !tracking-wider"
+                    >
+                      {p.status}
+                    </Badge>
                   </Link>
                 </li>
               );

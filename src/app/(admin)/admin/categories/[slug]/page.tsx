@@ -30,17 +30,17 @@ export default async function EditCategoryPage({ params }: PageProps) {
         ]}
       />
       <header>
-        <h1 className="font-display text-3xl text-ink-900">Edit · {category.name}</h1>
+        <h1 className="font-display text-xl text-ink-900 sm:text-3xl">Edit · {category.name}</h1>
       </header>
 
       <CategoryForm allCategories={allCategories} editId={category.id} defaultCategory={category} />
 
-      <section className="rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="mb-3 font-display text-xl text-ink-900">
+      <section className="rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <h2 className="mb-3 font-display text-base text-ink-900 sm:text-lg md:text-xl">
           Products in this category ({productsInCategory.length})
         </h2>
         {productsInCategory.length === 0 ? (
-          <p className="text-sm text-ink-500">
+          <p className="text-[11px] text-ink-500 sm:text-sm">
             No products yet. Open a product and pick this category from the dropdown.
           </p>
         ) : (
@@ -49,11 +49,13 @@ export default async function EditCategoryPage({ params }: PageProps) {
               <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <Link
                   href={`/admin/products/${p.id}`}
-                  className="text-ink-900 hover:text-accent-primary"
+                  className="text-ink-900 transition hover:text-accent-primary"
                 >
                   {p.name}
                 </Link>
-                <span className="text-xs uppercase tracking-wide text-ink-500">{p.status}</span>
+                <span className="text-[10px] uppercase tracking-wider text-ink-500 sm:text-xs">
+                  {p.status}
+                </span>
               </li>
             ))}
           </ul>

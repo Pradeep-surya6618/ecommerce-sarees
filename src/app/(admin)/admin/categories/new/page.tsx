@@ -15,9 +15,9 @@ export default async function NewCategoryPage() {
           { label: "New" },
         ]}
       />
-      <header>
-        <h1 className="font-display text-3xl text-ink-900">New category</h1>
-        <p className="text-sm text-ink-700">
+      <header className="flex flex-col gap-1">
+        <h1 className="font-display text-xl text-ink-900 sm:text-3xl">New category</h1>
+        <p className="text-[11px] text-ink-700 sm:text-sm">
           Categories show on the home page tile grid and at /shop/&lt;slug&gt;.
         </p>
       </header>
