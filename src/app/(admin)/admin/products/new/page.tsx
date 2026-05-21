@@ -16,7 +16,7 @@ export default async function NewProductPage() {
         ]}
       />
       <header>
-        <h1 className="font-display text-3xl text-ink-900">New product</h1>
+        <h1 className="font-display text-xl text-ink-900 sm:text-3xl">New product</h1>
       </header>
       <ProductForm categories={categories} />
     </div>

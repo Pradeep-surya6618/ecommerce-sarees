@@ -1,16 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { forwardRef, useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  FileText,
+  FolderTree,
+  Hash,
+  IndianRupee,
+  Link2,
+  PartyPopper,
+  Sparkles,
+  Star,
+  Tag,
+  ToggleRight,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { paiseToRupees } from "@/lib/money";
+import { clsx } from "@/lib/utils/clsx";
 import { createProductAction, updateProductAction } from "@/server/actions/admin-products";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import {
+  FormSection,
+  PillField,
+  PillInput,
+  PillListbox,
+  PillSubmitButton,
+} from "@/components/account/AccountFields";
 import type { Category, Product, ProductDraft, ProductImage, ProductVariant } from "@/types/domain";
 import { ProductImageEditor } from "./ProductImageEditor";
 import { ProductVariantEditor } from "./ProductVariantEditor";
@@ -31,7 +49,6 @@ const productSchema = z.object({
   status: z.enum(["draft", "active", "archived"]).default("draft"),
 });
 
-// Output type (after Zod parses — defaults applied, transforms run)
 type ProductFormValues = z.output<typeof productSchema>;
 
 export interface ProductFormProps {
@@ -49,6 +66,50 @@ function slugify(text: string): string {
     .replace(/-+/g, "-");
 }
 
+interface PillTextareaProps extends Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "rows"
+> {
+  icon: LucideIcon;
+  invalid?: boolean;
+  rows?: number;
+}
+
+const PillTextarea = forwardRef<HTMLTextAreaElement, PillTextareaProps>(function PillTextarea(
+  { icon: Icon, invalid, rows = 4, className, ...rest },
+  ref,
+) {
+  return (
+    <div
+      className={clsx(
+        "flex gap-2 rounded-3xl border bg-bg-elevated p-2 transition sm:gap-3 sm:p-2.5",
+        invalid
+          ? "border-danger/60 focus-within:border-danger"
+          : "border-ink-500/20 focus-within:border-accent-primary",
+      )}
+    >
+      <span
+        className={clsx(
+          "pointer-events-none inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+          invalid ? "bg-danger/15 text-danger" : "bg-ink-900/[0.06] text-accent-primary",
+        )}
+      >
+        <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+      </span>
+      <textarea
+        ref={ref}
+        rows={rows}
+        aria-invalid={invalid ? "true" : undefined}
+        className={clsx(
+          "w-full resize-y bg-transparent py-1.5 pr-2 text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none sm:py-2 sm:text-base",
+          className,
+        )}
+        {...rest}
+      />
+    </div>
+  );
+});
+
 export function ProductForm({ categories, editId, defaultProduct }: ProductFormProps) {
   const [variants, setVariants] = useState<ProductVariant[]>(defaultProduct?.variants ?? []);
   const [images, setImages] = useState<ProductImage[]>(defaultProduct?.images ?? []);
@@ -59,8 +120,8 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { errors },
-    // Let TypeScript infer form types from the resolver (input = field values, output = validated)
   } = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -78,6 +139,7 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
     },
   });
 
+  const featured = watch("featured");
   const nameValue = watch("name");
 
   function handleNameBlur() {
@@ -117,7 +179,6 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
           toast.success("Product saved");
         } else {
           await createProductAction(draft);
-          // createProductAction redirects to edit page; toast happens before redirect throws
         }
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
@@ -126,197 +187,280 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
     });
   }
 
+  const categoryNames = categories.map((c) => c.name);
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
-      {/* Basic Info */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Basic information</h2>
-        <div className="grid gap-5 md:grid-cols-2">
-          <FormField
-            label="Name"
-            htmlFor="name"
-            required
-            error={errors.name?.message}
-            className="md:col-span-2"
-          >
-            <Input
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 sm:gap-7">
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Basic info" hint="What customers see first.">
+          <PillField label="Name" htmlFor="name" required error={errors.name?.message}>
+            <PillInput
               id="name"
+              icon={Tag}
+              placeholder="Amrita Kanjivaram"
               {...register("name")}
               onBlur={handleNameBlur}
               invalid={!!errors.name}
             />
-          </FormField>
+          </PillField>
 
-          <FormField
+          <PillField
             label="Slug"
             htmlFor="slug"
             required
-            hint="URL-friendly identifier (auto-filled from name)"
+            hint="URL-friendly identifier (auto-filled from name)."
             error={errors.slug?.message}
-            className="md:col-span-2"
           >
-            <Input id="slug" {...register("slug")} invalid={!!errors.slug} />
-          </FormField>
+            <PillInput
+              id="slug"
+              icon={Link2}
+              placeholder="amrita-kanjivaram"
+              {...register("slug")}
+              invalid={!!errors.slug}
+            />
+          </PillField>
 
-          <FormField
+          <PillField
             label="Description"
             htmlFor="description"
             required
             error={errors.description?.message}
-            className="md:col-span-2"
           >
-            <textarea
+            <PillTextarea
               id="description"
-              rows={4}
+              icon={FileText}
+              rows={5}
+              placeholder="A few sentences about the saree, its weave, palette and the moment it's made for…"
               {...register("description")}
-              aria-invalid={errors.description ? "true" : undefined}
-              className="w-full rounded-sm border border-ink-500/30 bg-bg-elevated px-3 py-2.5 text-base text-ink-900 transition placeholder:text-ink-500 focus:border-accent-primary focus:outline-none aria-[invalid=true]:border-danger"
+              invalid={!!errors.description}
             />
-            {errors.description && (
-              <span className="text-xs text-danger" role="alert">
-                {errors.description.message}
-              </span>
-            )}
-          </FormField>
-        </div>
+          </PillField>
+        </FormSection>
       </section>
 
-      {/* Pricing & Category */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Pricing &amp; category</h2>
-        <div className="grid gap-5 md:grid-cols-3">
-          <FormField
-            label="Price (₹)"
-            htmlFor="priceRupees"
-            required
-            error={errors.priceRupees?.message}
-          >
-            <Input
-              id="priceRupees"
-              type="number"
-              min={0}
-              {...register("priceRupees", { valueAsNumber: true })}
-              invalid={!!errors.priceRupees}
-            />
-          </FormField>
-
-          <FormField label="MRP (₹)" htmlFor="mrpRupees" required error={errors.mrpRupees?.message}>
-            <Input
-              id="mrpRupees"
-              type="number"
-              min={0}
-              {...register("mrpRupees", { valueAsNumber: true })}
-              invalid={!!errors.mrpRupees}
-            />
-          </FormField>
-
-          <FormField
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Pricing & category" hint="How it's priced and where it lives.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField
+              label="Price (₹)"
+              htmlFor="priceRupees"
+              required
+              error={errors.priceRupees?.message}
+            >
+              <PillInput
+                id="priceRupees"
+                icon={IndianRupee}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="32000"
+                {...register("priceRupees", { valueAsNumber: true })}
+                invalid={!!errors.priceRupees}
+              />
+            </PillField>
+            <PillField
+              label="MRP (₹)"
+              htmlFor="mrpRupees"
+              required
+              error={errors.mrpRupees?.message}
+            >
+              <PillInput
+                id="mrpRupees"
+                icon={IndianRupee}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="38000"
+                {...register("mrpRupees", { valueAsNumber: true })}
+                invalid={!!errors.mrpRupees}
+              />
+            </PillField>
+          </div>
+          <PillField
             label="Category"
             htmlFor="categorySlug"
             required
             error={errors.categorySlug?.message}
           >
-            <Select id="categorySlug" {...register("categorySlug")}>
-              <option value="">Select category</option>
-              {categories.map((cat) => (
-                <option key={cat.slug} value={cat.slug}>
-                  {cat.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
+            <Controller
+              name="categorySlug"
+              control={control}
+              render={({ field }) => {
+                const selectedName = categories.find((c) => c.slug === field.value)?.name ?? "";
+                return (
+                  <PillListbox
+                    id="categorySlug"
+                    icon={FolderTree}
+                    value={selectedName}
+                    onChange={(name) => {
+                      const cat = categories.find((c) => c.name === name);
+                      field.onChange(cat?.slug ?? "");
+                    }}
+                    onBlur={field.onBlur}
+                    options={categoryNames}
+                    placeholder="Select a category"
+                    invalid={!!errors.categorySlug}
+                  />
+                );
+              }}
+            />
+          </PillField>
+        </FormSection>
       </section>
 
-      {/* Details */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Details</h2>
-        <div className="grid gap-5 md:grid-cols-2">
-          <FormField label="Fabric" htmlFor="fabric" required error={errors.fabric?.message}>
-            <Input
-              id="fabric"
-              placeholder="e.g. Pure Silk"
-              {...register("fabric")}
-              invalid={!!errors.fabric}
-            />
-          </FormField>
-
-          <FormField
-            label="Tags"
-            htmlFor="tagsCsv"
-            hint="Comma-separated, e.g. bridal, wedding, festive"
-            error={errors.tagsCsv?.message}
-          >
-            <Input id="tagsCsv" placeholder="bridal, festive" {...register("tagsCsv")} />
-          </FormField>
-
-          <FormField
-            label="Occasion"
-            htmlFor="occasionCsv"
-            hint="Comma-separated, e.g. Wedding, Party, Casual"
-            error={errors.occasionCsv?.message}
-          >
-            <Input id="occasionCsv" placeholder="Wedding, Party" {...register("occasionCsv")} />
-          </FormField>
-
-          <FormField label="Status" htmlFor="status" required error={errors.status?.message}>
-            <Select id="status" {...register("status")}>
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </Select>
-          </FormField>
-
-          <div className="flex items-center gap-3 md:col-span-2">
-            <input
-              id="featured"
-              type="checkbox"
-              {...register("featured")}
-              className="h-4 w-4 rounded border-ink-500/30 accent-accent-primary"
-            />
-            <label htmlFor="featured" className="text-sm font-medium text-ink-700">
-              Featured product (shown in homepage collections)
-            </label>
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Details" hint="Tags, occasion, and visibility.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField label="Fabric" htmlFor="fabric" required error={errors.fabric?.message}>
+              <PillInput
+                id="fabric"
+                icon={Sparkles}
+                placeholder="Pure Silk"
+                {...register("fabric")}
+                invalid={!!errors.fabric}
+              />
+            </PillField>
+            <PillField
+              label="Tags"
+              htmlFor="tagsCsv"
+              hint="Comma-separated."
+              error={errors.tagsCsv?.message}
+            >
+              <PillInput
+                id="tagsCsv"
+                icon={Hash}
+                placeholder="bridal, festive"
+                {...register("tagsCsv")}
+              />
+            </PillField>
+            <PillField
+              label="Occasion"
+              htmlFor="occasionCsv"
+              hint="Comma-separated."
+              error={errors.occasionCsv?.message}
+            >
+              <PillInput
+                id="occasionCsv"
+                icon={PartyPopper}
+                placeholder="Wedding, Party"
+                {...register("occasionCsv")}
+              />
+            </PillField>
+            <PillField label="Status" htmlFor="status" required error={errors.status?.message}>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <PillListbox
+                    id="status"
+                    icon={ToggleRight}
+                    value={
+                      field.value === "active"
+                        ? "Active"
+                        : field.value === "archived"
+                          ? "Archived"
+                          : "Draft"
+                    }
+                    onChange={(label) =>
+                      field.onChange(
+                        label === "Active" ? "active" : label === "Archived" ? "archived" : "draft",
+                      )
+                    }
+                    onBlur={field.onBlur}
+                    options={["Draft", "Active", "Archived"]}
+                    placeholder="Select status"
+                    invalid={!!errors.status}
+                  />
+                )}
+              />
+            </PillField>
           </div>
-        </div>
+
+          <label
+            htmlFor="featured"
+            className={clsx(
+              "flex cursor-pointer items-center gap-3 rounded-2xl border bg-bg-elevated p-3 transition sm:p-4",
+              featured ? "border-accent-primary/40 bg-accent-primary/[0.04]" : "border-ink-500/15",
+            )}
+          >
+            <input id="featured" type="checkbox" {...register("featured")} className="sr-only" />
+            <span
+              className={clsx(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+                featured ? "bg-accent-primary text-white" : "bg-ink-900/[0.06] text-accent-primary",
+              )}
+            >
+              <Star className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-medium text-ink-900">Featured product</span>
+              <span className="text-[11px] text-ink-500 sm:text-xs">
+                Show in homepage collections.
+              </span>
+            </span>
+            <span
+              role="switch"
+              aria-checked={featured}
+              className={clsx(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition",
+                featured ? "bg-accent-primary" : "bg-ink-500/25",
+              )}
+            >
+              <span
+                className={clsx(
+                  "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+                  featured ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </span>
+          </label>
+        </FormSection>
       </section>
 
-      {/* Variants */}
-      <section className="flex flex-col gap-4 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Variants</h2>
-        <p className="text-sm text-ink-500">
-          Each variant represents a colour/size combination with its own stock.
-        </p>
-        <ProductVariantEditor value={variants} onChange={setVariants} />
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Variants" hint="Each variant is a colour/size with its own stock.">
+          <ProductVariantEditor value={variants} onChange={setVariants} />
+        </FormSection>
       </section>
 
-      {/* Images */}
-      <section className="flex flex-col gap-4 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Images</h2>
-        <p className="text-sm text-ink-500">
-          Enter image URLs. The first image is used as the cover. Real uploads come in a later
-          phase.
-        </p>
-        <ProductImageEditor value={images} onChange={setImages} />
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Images" hint="The first image is used as the cover.">
+          <ProductImageEditor value={images} onChange={setImages} />
+        </FormSection>
       </section>
 
-      {/* Submit */}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-sm bg-accent-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Saving…" : editId ? "Save changes" : "Create product"}
-        </button>
+      <div className="flex items-center justify-end gap-2 sm:gap-3">
         {editId && (
           <Link
             href="/admin/products"
-            className="text-sm text-ink-500 transition hover:text-ink-700"
+            className="cursor-pointer text-[10px] font-medium uppercase tracking-[0.18em] text-ink-500 transition hover:text-ink-900 sm:text-xs sm:tracking-[0.2em] md:text-sm"
           >
             Cancel
           </Link>
         )}
+        <PillSubmitButton pending={isPending} pendingLabel="Saving…">
+          {editId ? "Save changes" : "Create product"}
+        </PillSubmitButton>
       </div>
     </form>
   );

@@ -31,7 +31,7 @@ type NavSection = { heading: string; items: NavItem[] };
 const SECTIONS: NavSection[] = [
   {
     heading: "Overview",
-    items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }],
+    items: [{ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     heading: "Catalog",
@@ -175,10 +175,7 @@ export function AdminSidebar({
               </div>
               <ul className="flex flex-col gap-0.5">
                 {section.items.map((item) => {
-                  const active =
-                    item.href === "/admin"
-                      ? pathname === "/admin"
-                      : pathname?.startsWith(item.href);
+                  const active = pathname?.startsWith(item.href);
                   const Icon = item.icon;
                   const link = (
                     <Link

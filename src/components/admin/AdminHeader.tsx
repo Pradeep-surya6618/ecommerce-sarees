@@ -19,6 +19,7 @@ import { Tooltip } from "@/components/admin/Tooltip";
 
 const LABELS: Record<string, string> = {
   admin: "Admin",
+  dashboard: "Dashboard",
   products: "Products",
   categories: "Categories",
   orders: "Orders",

@@ -27,7 +27,7 @@ describe("adminLoginAction", () => {
     redirectMock.mockClear();
   });
 
-  it("success: admin user is authenticated and redirected to /admin", async () => {
+  it("success: admin user is authenticated and redirected to /admin/dashboard", async () => {
     const user = await usersRepo.create({
       email: "admin@example.com",
       fullName: "Demo Admin",
@@ -40,7 +40,7 @@ describe("adminLoginAction", () => {
       adminLoginAction({ email: "admin@example.com", password: "AdminDemo!23" }),
     ).rejects.toThrow(/NEXT_REDIRECT/);
 
-    expect(redirectMock).toHaveBeenCalledWith("/admin");
+    expect(redirectMock).toHaveBeenCalledWith("/admin/dashboard");
   });
 
   it("wrong password: throws 'Email or password is incorrect'", async () => {

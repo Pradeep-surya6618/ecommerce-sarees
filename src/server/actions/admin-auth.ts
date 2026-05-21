@@ -28,5 +28,5 @@ export async function adminLoginAction(input: AdminLoginInput): Promise<void> {
   const session = await sessionsRepo.create(user.id);
   await setSessionCookie(session.id);
   revalidatePath("/", "layout");
-  redirect("/admin");
+  redirect("/admin/dashboard");
 }

@@ -100,8 +100,17 @@ export function ProductVariantEditor({ value, onChange }: ProductVariantEditorPr
             <input
               type="number"
               min={0}
-              value={v.stock}
-              onChange={(e) => update(i, { stock: Number(e.target.value) || 0 })}
+              value={v.stock === 0 ? "" : v.stock}
+              placeholder="0"
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") {
+                  update(i, { stock: 0 });
+                  return;
+                }
+                const n = Number(raw);
+                update(i, { stock: Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0 });
+              }}
               className="h-10 w-full rounded-sm border border-ink-500/30 bg-bg-elevated px-3 text-sm text-ink-900 focus:border-accent-primary focus:outline-none"
             />
           </div>
@@ -112,7 +121,7 @@ export function ProductVariantEditor({ value, onChange }: ProductVariantEditorPr
               type="button"
               onClick={() => remove(i)}
               aria-label="Remove variant"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-danger/30 text-danger transition hover:bg-danger/5"
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-sm border border-danger/30 text-danger transition hover:bg-danger/5"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -123,7 +132,7 @@ export function ProductVariantEditor({ value, onChange }: ProductVariantEditorPr
       <button
         type="button"
         onClick={addRow}
-        className="self-start rounded-sm border border-dashed border-ink-500/30 px-4 py-2 text-sm text-ink-700 transition hover:border-accent-primary hover:text-accent-primary"
+        className="self-start cursor-pointer rounded-sm border border-dashed border-ink-500/30 px-4 py-2 text-sm text-ink-700 transition hover:border-accent-primary hover:text-accent-primary"
       >
         + Add variant
       </button>

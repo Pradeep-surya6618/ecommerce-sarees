@@ -6,7 +6,7 @@ import { Banknote, LayoutDashboard, Package, Settings, UsersRound } from "lucide
 import { clsx } from "@/lib/utils/clsx";
 
 const ITEMS = [
-  { href: "/admin", label: "Home", icon: LayoutDashboard },
+  { href: "/admin/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: Banknote },
   { href: "/admin/customers", label: "Customers", icon: UsersRound },
@@ -22,8 +22,7 @@ export function AdminBottomNav() {
       className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-white/5 bg-ink-900/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
       {ITEMS.map((item) => {
-        const active =
-          item.href === "/admin" ? pathname === "/admin" : pathname?.startsWith(item.href);
+        const active = pathname?.startsWith(item.href);
         const Icon = item.icon;
         return (
           <Link
