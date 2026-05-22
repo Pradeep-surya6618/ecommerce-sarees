@@ -31,9 +31,14 @@ function deriveSpecs(product: Product): SpecEntry[] {
   const secondary = product.variants[1];
   const occasions = product.occasion.map(titleCase).join(", ") || "Everyday Wear";
   const tags = new Set(product.tags.map((t) => t.toLowerCase()));
+  const stored = product.specifications;
 
   const hasZari = tags.has("zari") || /silk|kanjivaram|banarasi|paithani/i.test(product.fabric);
   const isCotton = /cotton|linen/i.test(product.fabric);
+
+  // Prefer the admin-set value; fall back to the derived default when empty.
+  const pick = (stored: string | undefined, derived: string): string =>
+    stored && stored.trim().length > 0 ? stored : derived;
 
   return [
     {
@@ -48,35 +53,50 @@ function deriveSpecs(product: Product): SpecEntry[] {
       icon: Hash,
       swatch: secondary?.colorHex,
     },
-    { label: "Zari Type", value: hasZari ? "Gold" : "None", icon: Sparkles },
-    { label: "Zari Color", value: hasZari ? "Gold" : "—", icon: Sparkles },
+    {
+      label: "Zari Type",
+      value: pick(stored?.zariType, hasZari ? "Gold" : "None"),
+      icon: Sparkles,
+    },
+    {
+      label: "Zari Color",
+      value: pick(stored?.zariColor, hasZari ? "Gold" : "—"),
+      icon: Sparkles,
+    },
     { label: "Material", value: product.fabric, icon: Layers },
     {
       label: "Pattern",
-      value: tags.has("ikat")
-        ? "Ikat"
-        : tags.has("jamdani")
-          ? "Jamdani Motifs"
-          : tags.has("handblock") || tags.has("bagru")
-            ? "Hand-Block"
-            : "Floral Patterns",
+      value: pick(
+        stored?.pattern,
+        tags.has("ikat")
+          ? "Ikat"
+          : tags.has("jamdani")
+            ? "Jamdani Motifs"
+            : tags.has("handblock") || tags.has("bagru")
+              ? "Hand-Block"
+              : "Floral Patterns",
+      ),
       icon: Square,
     },
-    { label: "Border Type", value: "Contrast", icon: ListChecks },
+    { label: "Border Type", value: pick(stored?.borderType, "Contrast"), icon: ListChecks },
     {
       label: "Ornamentation",
-      value: hasZari ? "Zari Work" : "Hand-Block",
+      value: pick(stored?.ornamentation, hasZari ? "Zari Work" : "Hand-Block"),
       icon: Diamond,
     },
-    { label: "Blouse Type", value: "With Blouse", icon: Shirt },
+    { label: "Blouse Type", value: pick(stored?.blouseType, "With Blouse"), icon: Shirt },
     { label: "Occasion", value: occasions, icon: Calendar },
     {
       label: "Wash Type",
-      value: isCotton ? "Gentle Hand Wash" : "Dry Wash Only",
+      value: pick(stored?.washType, isCotton ? "Gentle Hand Wash" : "Dry Wash Only"),
       icon: WashingMachine,
     },
-    { label: "Delivery Time", value: "4 to 5 working days", icon: Truck },
-    { label: "Weight", value: "0.80 Kg", icon: Weight },
+    {
+      label: "Delivery Time",
+      value: pick(stored?.deliveryTime, "4 to 5 working days"),
+      icon: Truck,
+    },
+    { label: "Weight", value: pick(stored?.weight, "0.80 Kg"), icon: Weight },
   ];
 }
 

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Pencil, Plus, Search } from "lucide-react";
+import { Tooltip } from "@/components/admin/Tooltip";
 import { Badge } from "@/components/ui/Badge";
 import type { Category } from "@/types/domain";
 
@@ -116,6 +117,7 @@ export function CategoriesListClient({ rows }: Props) {
                   >
                     Products
                   </th>
+                  <th scope="col" className="w-[60px] px-4 py-3" aria-label="Actions" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-500/10">
@@ -167,6 +169,17 @@ export function CategoriesListClient({ rows }: Props) {
                         {c.productCount}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      <Tooltip label="Edit category" side="left" hideOnMobile>
+                        <Link
+                          href={`/admin/categories/${c.slug}`}
+                          aria-label={`Edit ${c.name}`}
+                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 transition hover:border-accent-primary hover:bg-accent-primary/5 hover:text-accent-primary"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
+                      </Tooltip>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -203,9 +216,17 @@ export function CategoriesListClient({ rows }: Props) {
                       )}
                     </div>
                   </div>
-                  <span className="font-mono text-[11px] tabular-nums text-ink-500">
-                    #{c.sortOrder}
-                  </span>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="font-mono text-[11px] tabular-nums text-ink-500">
+                      #{c.sortOrder}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-ink-500/15 text-ink-700"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}

@@ -30,6 +30,9 @@ export interface ConfirmDialogProps {
   tone?: "default" | "danger";
   icon?: LucideIcon;
   pending?: boolean;
+  /** "confirm" (default) shows confirm + cancel buttons.
+   *  "info" shows a single button (defaults to "Got it") that calls onConfirm. */
+  mode?: "confirm" | "info";
 }
 
 /**
@@ -47,12 +50,15 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel,
   cancelLabel = "Cancel",
   tone = "default",
   icon,
   pending = false,
+  mode = "confirm",
 }: ConfirmDialogProps) {
+  const isInfo = mode === "info";
+  const resolvedConfirmLabel = confirmLabel ?? (isInfo ? "Got it" : "Confirm");
   // Lock page scroll while open + close on Escape. Locks BOTH html and body
   // (html is the viewport scroll container; body holds layout), and pads each
   // by the scrollbar width so removing the scrollbar doesn't cause a sideways
@@ -178,14 +184,16 @@ export function ConfirmDialog({
 
         {/* Actions */}
         <div className="mt-6 flex items-center justify-end gap-2 border-t border-ink-500/10 bg-bg-elevated px-4 py-3 sm:mt-8 sm:px-5 sm:py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={pending}
-            className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-ink-500/20 px-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-700 transition hover:border-ink-700 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:px-5 sm:text-xs"
-          >
-            {cancelLabel}
-          </button>
+          {!isInfo && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={pending}
+              className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-ink-500/20 px-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-700 transition hover:border-ink-700 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:px-5 sm:text-xs"
+            >
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={onConfirm}
@@ -203,7 +211,7 @@ export function ConfirmDialog({
                 Deleting…
               </>
             ) : (
-              confirmLabel
+              resolvedConfirmLabel
             )}
           </button>
         </div>

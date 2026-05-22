@@ -30,10 +30,17 @@ export default async function EditCategoryPage({ params }: PageProps) {
         ]}
       />
       <header>
-        <h1 className="font-display text-xl text-ink-900 sm:text-3xl">Edit · {category.name}</h1>
+        <h1 className="font-display text-lg text-ink-900 sm:text-xl md:text-2xl">
+          Edit · {category.name}
+        </h1>
       </header>
 
-      <CategoryForm allCategories={allCategories} editId={category.id} defaultCategory={category} />
+      <CategoryForm
+        allCategories={allCategories}
+        editId={category.id}
+        defaultCategory={category}
+        productCount={productsInCategory.length}
+      />
 
       <section className="rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
         <h2 className="mb-3 font-display text-base text-ink-900 sm:text-lg md:text-xl">

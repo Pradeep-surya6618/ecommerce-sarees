@@ -25,7 +25,9 @@ export default async function EditProductPage({ params }: PageProps) {
         ]}
       />
       <header>
-        <h1 className="font-display text-3xl text-ink-900">Edit · {product.name}</h1>
+        <h1 className="font-display text-lg text-ink-900 sm:text-xl md:text-2xl">
+          Edit · {product.name}
+        </h1>
       </header>
       <ProductForm categories={categories} editId={product.id} defaultProduct={product} />
     </div>

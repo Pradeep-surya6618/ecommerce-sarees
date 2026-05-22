@@ -5,16 +5,23 @@ import { forwardRef, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  Diamond,
   FileText,
   FolderTree,
   Hash,
   IndianRupee,
   Link2,
+  ListChecks,
   PartyPopper,
+  Shirt,
   Sparkles,
+  Square,
   Star,
   Tag,
   ToggleRight,
+  Truck,
+  WashingMachine,
+  Weight as WeightIcon,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +54,17 @@ const productSchema = z.object({
   occasionCsv: z.string().optional(),
   featured: z.boolean().default(false),
   status: z.enum(["draft", "active", "archived"]).default("draft"),
+  // Saree-specific specifications — all optional. Empty values are stripped
+  // before save so the storefront falls back to derived defaults.
+  zariType: z.string().optional(),
+  zariColor: z.string().optional(),
+  pattern: z.string().optional(),
+  borderType: z.string().optional(),
+  ornamentation: z.string().optional(),
+  blouseType: z.string().optional(),
+  washType: z.string().optional(),
+  deliveryTime: z.string().optional(),
+  weight: z.string().optional(),
 });
 
 type ProductFormValues = z.output<typeof productSchema>;
@@ -136,6 +154,15 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
       occasionCsv: defaultProduct?.occasion.join(", ") ?? "",
       featured: defaultProduct?.featured ?? false,
       status: defaultProduct?.status ?? "draft",
+      zariType: defaultProduct?.specifications?.zariType ?? "",
+      zariColor: defaultProduct?.specifications?.zariColor ?? "",
+      pattern: defaultProduct?.specifications?.pattern ?? "",
+      borderType: defaultProduct?.specifications?.borderType ?? "",
+      ornamentation: defaultProduct?.specifications?.ornamentation ?? "",
+      blouseType: defaultProduct?.specifications?.blouseType ?? "",
+      washType: defaultProduct?.specifications?.washType ?? "",
+      deliveryTime: defaultProduct?.specifications?.deliveryTime ?? "",
+      weight: defaultProduct?.specifications?.weight ?? "",
     },
   });
 
@@ -150,6 +177,19 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
   }
 
   async function onSubmit(values: ProductFormValues) {
+    const specEntries = {
+      zariType: values.zariType?.trim() || undefined,
+      zariColor: values.zariColor?.trim() || undefined,
+      pattern: values.pattern?.trim() || undefined,
+      borderType: values.borderType?.trim() || undefined,
+      ornamentation: values.ornamentation?.trim() || undefined,
+      blouseType: values.blouseType?.trim() || undefined,
+      washType: values.washType?.trim() || undefined,
+      deliveryTime: values.deliveryTime?.trim() || undefined,
+      weight: values.weight?.trim() || undefined,
+    };
+    const hasAnySpec = Object.values(specEntries).some((v) => v !== undefined);
+
     const draft: ProductDraft = {
       name: values.name,
       slug: values.slug,
@@ -170,6 +210,7 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
       status: values.status,
       variants,
       images,
+      ...(hasAnySpec ? { specifications: specEntries } : {}),
     };
 
     startTransition(async () => {
@@ -426,6 +467,100 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
               />
             </span>
           </label>
+        </FormSection>
+      </section>
+
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection
+          title="Specifications"
+          hint="Saree-specific details shown on the product page. All optional — leave blank to use sensible defaults."
+        >
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField label="Zari type" htmlFor="zariType" error={errors.zariType?.message}>
+              <PillInput
+                id="zariType"
+                icon={Sparkles}
+                placeholder="Gold / Silver / None"
+                {...register("zariType")}
+              />
+            </PillField>
+            <PillField label="Zari color" htmlFor="zariColor" error={errors.zariColor?.message}>
+              <PillInput
+                id="zariColor"
+                icon={Sparkles}
+                placeholder="Gold / Rose Gold / Copper"
+                {...register("zariColor")}
+              />
+            </PillField>
+            <PillField label="Pattern" htmlFor="pattern" error={errors.pattern?.message}>
+              <PillInput
+                id="pattern"
+                icon={Square}
+                placeholder="Floral / Ikat / Jamdani Motifs"
+                {...register("pattern")}
+              />
+            </PillField>
+            <PillField label="Border type" htmlFor="borderType" error={errors.borderType?.message}>
+              <PillInput
+                id="borderType"
+                icon={ListChecks}
+                placeholder="Contrast / Self-color / Pallu"
+                {...register("borderType")}
+              />
+            </PillField>
+            <PillField
+              label="Ornamentation"
+              htmlFor="ornamentation"
+              error={errors.ornamentation?.message}
+            >
+              <PillInput
+                id="ornamentation"
+                icon={Diamond}
+                placeholder="Zari Work / Hand-Block / Embroidery"
+                {...register("ornamentation")}
+              />
+            </PillField>
+            <PillField label="Blouse type" htmlFor="blouseType" error={errors.blouseType?.message}>
+              <PillInput
+                id="blouseType"
+                icon={Shirt}
+                placeholder="With Blouse / Without Blouse"
+                {...register("blouseType")}
+              />
+            </PillField>
+            <PillField label="Wash type" htmlFor="washType" error={errors.washType?.message}>
+              <PillInput
+                id="washType"
+                icon={WashingMachine}
+                placeholder="Dry Wash Only / Gentle Hand Wash"
+                {...register("washType")}
+              />
+            </PillField>
+            <PillField
+              label="Delivery time"
+              htmlFor="deliveryTime"
+              error={errors.deliveryTime?.message}
+            >
+              <PillInput
+                id="deliveryTime"
+                icon={Truck}
+                placeholder="4 to 5 working days"
+                {...register("deliveryTime")}
+              />
+            </PillField>
+            <PillField label="Weight" htmlFor="weight" error={errors.weight?.message}>
+              <PillInput
+                id="weight"
+                icon={WeightIcon}
+                placeholder="0.80 Kg"
+                {...register("weight")}
+              />
+            </PillField>
+          </div>
         </FormSection>
       </section>
 

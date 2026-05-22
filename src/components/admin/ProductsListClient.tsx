@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Pencil, Plus, Search } from "lucide-react";
 import { formatRupees } from "@/lib/money";
 import { clsx } from "@/lib/utils/clsx";
+import { Tooltip } from "@/components/admin/Tooltip";
 import { Badge } from "@/components/ui/Badge";
 import type { Product } from "@/types/domain";
 
@@ -116,6 +117,7 @@ export function ProductsListClient({ products }: Props) {
                   >
                     Status
                   </th>
+                  <th scope="col" className="w-[60px] px-4 py-3" aria-label="Actions" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-500/10">
@@ -164,6 +166,17 @@ export function ProductsListClient({ products }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <Badge tone={statusTone(p.status)}>{p.status}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Tooltip label="Edit product" side="left" hideOnMobile>
+                          <Link
+                            href={`/admin/products/${p.id}`}
+                            aria-label={`Edit ${p.name}`}
+                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 transition hover:border-accent-primary hover:bg-accent-primary/5 hover:text-accent-primary"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Link>
+                        </Tooltip>
                       </td>
                     </tr>
                   );
@@ -217,12 +230,20 @@ export function ProductsListClient({ products }: Props) {
                         </span>
                       </div>
                     </div>
-                    <Badge
-                      tone={statusTone(p.status)}
-                      className="!px-1.5 !py-0.5 !text-[9px] !tracking-wider"
-                    >
-                      {p.status}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <Badge
+                        tone={statusTone(p.status)}
+                        className="!px-1.5 !py-0.5 !text-[9px] !tracking-wider"
+                      >
+                        {p.status}
+                      </Badge>
+                      <span
+                        aria-hidden
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-ink-500/15 text-ink-700"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </span>
+                    </div>
                   </Link>
                 </li>
               );

@@ -13,6 +13,21 @@ export interface ProductImage {
   alt: string;
 }
 
+/** Saree-specific specifications shown on the product detail page.
+ *  All optional — when a field is empty, the storefront falls back to a
+ *  value derived from variants/tags/fabric. */
+export interface ProductSpecifications {
+  zariType?: string;
+  zariColor?: string;
+  pattern?: string;
+  borderType?: string;
+  ornamentation?: string;
+  blouseType?: string;
+  washType?: string;
+  deliveryTime?: string;
+  weight?: string;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -28,6 +43,7 @@ export interface Product {
   occasion: string[];
   status: ProductStatus;
   featured: boolean;
+  specifications?: ProductSpecifications;
   createdAt: string;
 }
 
@@ -182,6 +198,7 @@ export interface ProductDraft {
   occasion: string[];
   featured: boolean;
   status: ProductStatus;
+  specifications?: ProductSpecifications;
 }
 
 export interface Session {

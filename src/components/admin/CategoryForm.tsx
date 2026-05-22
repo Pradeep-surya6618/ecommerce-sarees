@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AlertCircle,
   FileText,
   FolderTree,
   ImageIcon,
@@ -29,6 +30,7 @@ import {
   PillSubmitButton,
 } from "@/components/account/AccountFields";
 import { ImageUploader } from "@/components/admin/ImageUploader";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Category } from "@/types/domain";
 
 const schema = z.object({
@@ -49,6 +51,8 @@ export interface CategoryFormProps {
   allCategories: Category[];
   editId?: string;
   defaultCategory?: Category;
+  /** Number of products currently in this category. Used to block deletion when > 0. */
+  productCount?: number;
 }
 
 function slugify(input: string): string {
@@ -100,9 +104,16 @@ function PillTextarea({ icon: Icon, invalid, rows = 4, className, ...rest }: Pil
   );
 }
 
-export function CategoryForm({ allCategories, editId, defaultCategory }: CategoryFormProps) {
+export function CategoryForm({
+  allCategories,
+  editId,
+  defaultCategory,
+  productCount = 0,
+}: CategoryFormProps) {
   const [pending, startTransition] = useTransition();
   const [deleting, startDeleting] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
 
   const {
     register,
@@ -157,14 +168,27 @@ export function CategoryForm({ allCategories, editId, defaultCategory }: Categor
     });
   }
 
-  function onDelete() {
+  function handleDeleteClick() {
     if (!editId) return;
-    if (!confirm("Delete this category? Products in this category will be orphaned.")) return;
+    if (productCount > 0) {
+      setBlockedOpen(true);
+      return;
+    }
+    setConfirmOpen(true);
+  }
+
+  function confirmDelete() {
+    if (!editId) return;
     startDeleting(async () => {
       try {
         await deleteCategoryAction(editId);
+        toast.success("Category deleted", {
+          description: `"${defaultCategory?.name ?? "Category"}" has been removed.`,
+        });
+        setConfirmOpen(false);
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setConfirmOpen(false);
         toast.error(err instanceof Error ? err.message : "Couldn't delete.");
       }
     });
@@ -352,7 +376,7 @@ export function CategoryForm({ allCategories, editId, defaultCategory }: Categor
         {editId ? (
           <button
             type="button"
-            onClick={onDelete}
+            onClick={handleDeleteClick}
             disabled={deleting}
             className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 self-start rounded-full border border-danger/30 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-danger transition hover:bg-danger/5 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:text-xs sm:tracking-[0.2em] md:h-12 md:text-sm"
           >
@@ -370,6 +394,30 @@ export function CategoryForm({ allCategories, editId, defaultCategory }: Categor
           {editId ? "Save changes" : "Create category"}
         </PillSubmitButton>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete this category?"
+        description={`"${defaultCategory?.name ?? "This category"}" will be permanently removed. This can't be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        icon={Trash2}
+        pending={deleting}
+      />
+
+      <ConfirmDialog
+        open={blockedOpen}
+        onClose={() => setBlockedOpen(false)}
+        onConfirm={() => setBlockedOpen(false)}
+        title="Can't delete this category"
+        description={`This category still has ${productCount} ${productCount === 1 ? "product" : "products"} linked to it. Move or archive them first, then try again.`}
+        tone="default"
+        icon={AlertCircle}
+        mode="info"
+      />
     </form>
   );
 }
