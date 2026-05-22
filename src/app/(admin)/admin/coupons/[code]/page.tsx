@@ -22,7 +22,9 @@ export default async function EditCouponPage({ params }: PageProps) {
         ]}
       />
       <header>
-        <h1 className="font-display text-3xl text-ink-900">Edit · {coupon.code}</h1>
+        <h1 className="font-display text-lg text-ink-900 sm:text-xl md:text-2xl">
+          Edit · {coupon.code}
+        </h1>
       </header>
       <CouponForm editCode={coupon.code} defaultCoupon={coupon} />
     </div>

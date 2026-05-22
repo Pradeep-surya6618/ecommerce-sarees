@@ -14,7 +14,7 @@ export default function NewCouponPage() {
         ]}
       />
       <header>
-        <h1 className="font-display text-3xl text-ink-900">New coupon</h1>
+        <h1 className="font-display text-lg text-ink-900 sm:text-xl md:text-2xl">New coupon</h1>
       </header>
       <CouponForm />
     </div>

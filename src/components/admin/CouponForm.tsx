@@ -1,22 +1,39 @@
 "use client";
 
-import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  BadgePercent,
+  Calendar,
+  FileText,
+  Hash,
+  IndianRupee,
+  Percent,
+  Sparkles,
+  Tag,
+  ToggleRight,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { paiseToRupees } from "@/lib/money";
+import { clsx } from "@/lib/utils/clsx";
 import {
   createCouponAction,
   deleteCouponAction,
   updateCouponAction,
 } from "@/server/actions/admin-coupons";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import {
+  FormSection,
+  PillField,
+  PillInput,
+  PillListbox,
+  PillSubmitButton,
+} from "@/components/account/AccountFields";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Coupon } from "@/types/domain";
 
-// Helper: coerce NaN (from empty number inputs) to undefined so optional() passes
 const optionalNumber = z.preprocess(
   (v) => (typeof v === "number" && isNaN(v) ? undefined : v),
   z.number().nonnegative("Must be 0 or more").optional(),
@@ -48,17 +65,31 @@ export interface CouponFormProps {
 }
 
 function toDateInputValue(isoString: string): string {
-  // ISO string -> YYYY-MM-DD for <input type="date">
   return isoString.slice(0, 10);
+}
+
+/** Random readable code: "SAREE-" prefix + 6 chars. Ambiguous letters (I, O)
+ *  and digits (0, 1) are excluded so users don't mistype when reading it back. */
+function generateCouponCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let suffix = "";
+  for (let i = 0; i < 6; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `SAREE-${suffix}`;
 }
 
 export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [deleting, startDeleting] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
+    control,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(couponSchema),
@@ -85,11 +116,9 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
   const couponType = watch("type");
 
   async function onSubmit(values: CouponFormValues) {
-    // Convert date inputs to ISO datetime strings
     const validFromIso = `${values.validFrom}T00:00:00.000Z`;
     const validToIso = `${values.validTo}T23:59:59.999Z`;
 
-    // Convert rupee fields to paise
     const minOrderPaise =
       values.minOrderRupees != null && !isNaN(values.minOrderRupees)
         ? Math.round(values.minOrderRupees * 100)
@@ -99,8 +128,6 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
         ? Math.round(values.maxDiscountRupees * 100)
         : undefined;
 
-    // For flat coupons, value is in rupees (needs conversion to paise)
-    // For percent, value is a percentage (0–100), no conversion
     const valueStored = values.type === "flat" ? Math.round(values.value * 100) : values.value;
 
     const input = {
@@ -123,7 +150,6 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
           toast.success("Coupon saved");
         } else {
           await createCouponAction(input);
-          // createCouponAction redirects; toast fires before NEXT_REDIRECT throws
         }
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
@@ -132,193 +158,306 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
     });
   }
 
-  function handleDelete() {
+  function confirmDelete() {
     if (!editCode) return;
-    if (!confirm(`Delete coupon "${editCode}"? This cannot be undone.`)) return;
-    startTransition(async () => {
+    startDeleting(async () => {
       try {
         await deleteCouponAction(editCode);
+        toast.success("Coupon deleted", {
+          description: `"${editCode}" has been removed.`,
+        });
+        setConfirmOpen(false);
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setConfirmOpen(false);
         toast.error(err instanceof Error ? err.message : "Could not delete coupon.");
       }
     });
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
-      {/* Code & Description */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Coupon details</h2>
-        <div className="grid gap-5 md:grid-cols-2">
-          <FormField label="Code" htmlFor="code" required error={errors.code?.message}>
-            <Input
-              id="code"
-              placeholder="e.g. SUMMER20"
-              {...register("code", {
-                onChange: (e) => {
-                  e.target.value = e.target.value.toUpperCase();
-                },
-              })}
-              style={{ textTransform: "uppercase" }}
-              invalid={!!errors.code}
-              disabled={!!editCode}
-            />
-          </FormField>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 sm:gap-7">
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Coupon details" hint="What customers will type at checkout.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField
+              label="Code"
+              htmlFor="code"
+              required
+              hint={editCode ? undefined : "Type your own or tap Generate for a random one."}
+              error={errors.code?.message}
+            >
+              <div
+                className={clsx(
+                  "flex items-center gap-2 rounded-full border bg-bg-elevated pl-1 pr-1 transition sm:gap-3",
+                  editCode && "opacity-60",
+                  errors.code
+                    ? "border-danger/60 focus-within:border-danger"
+                    : "border-ink-500/20 focus-within:border-accent-primary",
+                )}
+              >
+                <span
+                  className={clsx(
+                    "pointer-events-none inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+                    errors.code
+                      ? "bg-danger/15 text-danger"
+                      : "bg-ink-900/[0.06] text-accent-primary",
+                  )}
+                >
+                  <Tag className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                </span>
+                <input
+                  id="code"
+                  placeholder="SUMMER20"
+                  aria-invalid={errors.code ? "true" : undefined}
+                  disabled={!!editCode}
+                  {...register("code", {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.toUpperCase();
+                    },
+                  })}
+                  style={{ textTransform: "uppercase" }}
+                  className="autofill-on-light h-11 w-full bg-transparent text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none disabled:cursor-not-allowed sm:h-12 sm:text-base"
+                />
+                {!editCode && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue("code", generateCouponCode(), {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    aria-label="Generate random coupon code"
+                    className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-accent-primary/30 bg-accent-primary/[0.06] px-3 text-[10px] font-semibold uppercase tracking-wider text-accent-primary transition hover:border-accent-primary hover:bg-accent-primary/10 sm:h-10 sm:px-3.5 sm:text-[11px]"
+                  >
+                    <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    Generate
+                  </button>
+                )}
+              </div>
+            </PillField>
 
-          <FormField
-            label="Description"
-            htmlFor="description"
-            hint="Optional internal note"
-            error={errors.description?.message}
-          >
-            <Input
-              id="description"
-              placeholder="e.g. 20% off for summer sale"
-              {...register("description")}
-            />
-          </FormField>
-        </div>
+            <PillField
+              label="Description"
+              htmlFor="description"
+              hint="Optional internal note."
+              error={errors.description?.message}
+            >
+              <PillInput
+                id="description"
+                icon={FileText}
+                placeholder="20% off for summer sale"
+                {...register("description")}
+              />
+            </PillField>
+          </div>
+        </FormSection>
       </section>
 
-      {/* Discount */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Discount</h2>
-        <div className="grid gap-5 md:grid-cols-3">
-          <FormField label="Type" htmlFor="type" required error={errors.type?.message}>
-            <Select id="type" {...register("type")}>
-              <option value="percent">Percent (%)</option>
-              <option value="flat">Flat (₹)</option>
-            </Select>
-          </FormField>
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Discount" hint="How much customers save.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField label="Type" htmlFor="type" required error={errors.type?.message}>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <PillListbox
+                    id="type"
+                    icon={BadgePercent}
+                    value={field.value === "percent" ? "Percent (%)" : "Flat (₹)"}
+                    onChange={(label) =>
+                      field.onChange(label === "Percent (%)" ? "percent" : "flat")
+                    }
+                    onBlur={field.onBlur}
+                    options={["Percent (%)", "Flat (₹)"]}
+                    placeholder="Select type"
+                    invalid={!!errors.type}
+                  />
+                )}
+              />
+            </PillField>
 
-          <FormField
-            label={couponType === "percent" ? "Value (%)" : "Value (₹)"}
-            htmlFor="value"
-            required
-            error={errors.value?.message}
-          >
-            <Input
-              id="value"
-              type="number"
-              min={0}
-              step={couponType === "percent" ? "1" : "0.01"}
-              max={couponType === "percent" ? 100 : undefined}
-              {...register("value", { valueAsNumber: true })}
-              invalid={!!errors.value}
-            />
-          </FormField>
-
-          <FormField
-            label="Min order (₹)"
-            htmlFor="minOrderRupees"
-            hint="Leave blank for no minimum"
-            error={errors.minOrderRupees?.message}
-          >
-            <Input
-              id="minOrderRupees"
-              type="number"
-              min={0}
-              step="0.01"
-              {...register("minOrderRupees", { valueAsNumber: true })}
-              invalid={!!errors.minOrderRupees}
-            />
-          </FormField>
-
-          {couponType === "percent" && (
-            <FormField
-              label="Max discount (₹)"
-              htmlFor="maxDiscountRupees"
-              hint="Cap on discount amount; leave blank for no cap"
-              error={errors.maxDiscountRupees?.message}
+            <PillField
+              label={couponType === "percent" ? "Value (%)" : "Value (₹)"}
+              htmlFor="value"
+              required
+              error={errors.value?.message}
             >
-              <Input
-                id="maxDiscountRupees"
+              <PillInput
+                id="value"
+                icon={couponType === "percent" ? Percent : IndianRupee}
                 type="number"
                 min={0}
-                step="0.01"
-                {...register("maxDiscountRupees", { valueAsNumber: true })}
-                invalid={!!errors.maxDiscountRupees}
+                step={couponType === "percent" ? 1 : 0.01}
+                max={couponType === "percent" ? 100 : undefined}
+                inputMode="decimal"
+                placeholder={couponType === "percent" ? "20" : "500"}
+                {...register("value", { valueAsNumber: true })}
+                invalid={!!errors.value}
               />
-            </FormField>
-          )}
+            </PillField>
 
-          <FormField
-            label="Max uses"
-            htmlFor="maxUses"
-            hint="Leave blank for unlimited"
-            error={errors.maxUses?.message}
-          >
-            <Input
-              id="maxUses"
-              type="number"
-              min={0}
-              step="1"
-              {...register("maxUses", { valueAsNumber: true })}
-              invalid={!!errors.maxUses}
-            />
-          </FormField>
-        </div>
+            <PillField
+              label="Min order (₹)"
+              htmlFor="minOrderRupees"
+              hint="Leave blank for no minimum."
+              error={errors.minOrderRupees?.message}
+            >
+              <PillInput
+                id="minOrderRupees"
+                icon={IndianRupee}
+                type="number"
+                min={0}
+                step={0.01}
+                inputMode="decimal"
+                placeholder="2500"
+                {...register("minOrderRupees", { valueAsNumber: true })}
+                invalid={!!errors.minOrderRupees}
+              />
+            </PillField>
+
+            {couponType === "percent" && (
+              <PillField
+                label="Max discount (₹)"
+                htmlFor="maxDiscountRupees"
+                hint="Cap on discount amount; leave blank for no cap."
+                error={errors.maxDiscountRupees?.message}
+              >
+                <PillInput
+                  id="maxDiscountRupees"
+                  icon={IndianRupee}
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  inputMode="decimal"
+                  placeholder="1000"
+                  {...register("maxDiscountRupees", { valueAsNumber: true })}
+                  invalid={!!errors.maxDiscountRupees}
+                />
+              </PillField>
+            )}
+
+            <PillField
+              label="Max uses"
+              htmlFor="maxUses"
+              hint="Leave blank for unlimited."
+              error={errors.maxUses?.message}
+            >
+              <PillInput
+                id="maxUses"
+                icon={Hash}
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                placeholder="100"
+                {...register("maxUses", { valueAsNumber: true })}
+                invalid={!!errors.maxUses}
+              />
+            </PillField>
+          </div>
+        </FormSection>
       </section>
 
-      {/* Validity & Status */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Validity &amp; status</h2>
-        <div className="grid gap-5 md:grid-cols-3">
-          <FormField
-            label="Valid from"
-            htmlFor="validFrom"
-            required
-            error={errors.validFrom?.message}
-          >
-            <Input
-              id="validFrom"
-              type="date"
-              {...register("validFrom")}
-              invalid={!!errors.validFrom}
-            />
-          </FormField>
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Validity & status" hint="When this coupon works.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+            <PillField
+              label="Valid from"
+              htmlFor="validFrom"
+              required
+              error={errors.validFrom?.message}
+            >
+              <PillInput
+                id="validFrom"
+                icon={Calendar}
+                type="date"
+                {...register("validFrom")}
+                invalid={!!errors.validFrom}
+              />
+            </PillField>
 
-          <FormField label="Valid to" htmlFor="validTo" required error={errors.validTo?.message}>
-            <Input id="validTo" type="date" {...register("validTo")} invalid={!!errors.validTo} />
-          </FormField>
+            <PillField label="Valid to" htmlFor="validTo" required error={errors.validTo?.message}>
+              <PillInput
+                id="validTo"
+                icon={Calendar}
+                type="date"
+                {...register("validTo")}
+                invalid={!!errors.validTo}
+              />
+            </PillField>
 
-          <FormField label="Status" htmlFor="status" required error={errors.status?.message}>
-            <Select id="status" {...register("status")}>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-            </Select>
-          </FormField>
-        </div>
+            <PillField label="Status" htmlFor="status" required error={errors.status?.message}>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <PillListbox
+                    id="status"
+                    icon={ToggleRight}
+                    value={field.value === "active" ? "Active" : "Paused"}
+                    onChange={(label) => field.onChange(label === "Active" ? "active" : "paused")}
+                    onBlur={field.onBlur}
+                    options={["Active", "Paused"]}
+                    placeholder="Select status"
+                    invalid={!!errors.status}
+                  />
+                )}
+              />
+            </PillField>
+          </div>
+        </FormSection>
       </section>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-sm bg-accent-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Saving…" : editCode ? "Save changes" : "Create coupon"}
-        </button>
-      </div>
-
-      {editCode && (
-        <div className="rounded-md border border-danger/30 bg-danger/5 p-5">
-          <h3 className="mb-1 font-display text-base text-ink-900">Danger zone</h3>
-          <p className="mb-3 text-sm text-ink-500">
-            Deleting a coupon is permanent and cannot be undone.
-          </p>
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+        {editCode ? (
           <button
             type="button"
-            onClick={handleDelete}
-            disabled={isPending}
-            className="rounded-sm border border-danger px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger hover:text-white disabled:opacity-50"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting || isPending}
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 self-start rounded-full border border-danger/30 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-danger transition hover:bg-danger/5 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:text-xs sm:tracking-[0.2em] md:h-12 md:text-sm"
           >
-            Delete coupon
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            {deleting ? "Deleting…" : "Delete coupon"}
           </button>
-        </div>
-      )}
+        ) : (
+          <span />
+        )}
+        <PillSubmitButton
+          pending={isPending}
+          pendingLabel="Saving…"
+          className="self-stretch sm:self-auto"
+        >
+          {editCode ? "Save changes" : "Create coupon"}
+        </PillSubmitButton>
+      </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete this coupon?"
+        description={`"${editCode ?? "Coupon"}" will be permanently removed. This can't be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        icon={Trash2}
+        pending={deleting}
+      />
     </form>
   );
 }

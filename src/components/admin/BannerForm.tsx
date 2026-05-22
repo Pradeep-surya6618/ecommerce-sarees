@@ -1,19 +1,38 @@
 "use client";
 
-import Image from "next/image";
-import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Eye,
+  ImageIcon,
+  Layers,
+  Layout,
+  Link as LinkIcon,
+  MousePointerClick,
+  Sparkles,
+  Tag,
+  Trash2,
+  Type,
+} from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { BANNER_LIMITS } from "@/lib/admin/banner-limits";
+import { clsx } from "@/lib/utils/clsx";
 import {
   createBannerAction,
   deleteBannerAction,
   updateBannerAction,
 } from "@/server/actions/admin-banners";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import {
+  FormSection,
+  PillField,
+  PillInput,
+  PillListbox,
+  PillSubmitButton,
+} from "@/components/account/AccountFields";
+import { ImageUploader } from "@/components/admin/ImageUploader";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Banner } from "@/types/domain";
 
 const bannerSchema = z.object({
@@ -33,24 +52,34 @@ type BannerFormValues = z.output<typeof bannerSchema>;
 export interface BannerFormProps {
   editId?: string;
   defaultBanner?: Banner;
+  /** Current banner count per placement, used to filter out full placements
+   *  from the listbox. The banner being edited is allowed to keep its own
+   *  placement even if at limit. */
+  placementCounts?: Record<Banner["placement"], number>;
 }
 
-function isValidHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
+const PLACEMENT_LABELS: Record<Banner["placement"], string> = {
+  "home-hero": "Home hero",
+  "home-strip": "Home strip",
+  "shop-strip": "Shop strip",
+};
+
+function placementFromLabel(label: string): Banner["placement"] {
+  const entry = Object.entries(PLACEMENT_LABELS).find(([, l]) => l === label);
+  return (entry?.[0] as Banner["placement"]) ?? "home-hero";
 }
 
-export function BannerForm({ editId, defaultBanner }: BannerFormProps) {
+export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [deleting, startDeleting] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
+    control,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(bannerSchema),
@@ -68,7 +97,24 @@ export function BannerForm({ editId, defaultBanner }: BannerFormProps) {
   });
 
   const imageUrl = watch("imageUrl");
-  const showPreview = isValidHttpUrl(imageUrl);
+  const imageAlt = watch("imageAlt");
+  const active = watch("active");
+  const hasImage = Boolean(imageUrl && /^https?:\/\//.test(imageUrl));
+
+  /** Placements available in the listbox. A placement is included when:
+   *  - placementCounts wasn't provided (legacy callers), OR
+   *  - it has room (count < limit), OR
+   *  - it's the placement of the banner currently being edited (so the user
+   *    doesn't accidentally lose their slot by opening edit on a full one). */
+  const availablePlacements: Banner["placement"][] = (
+    Object.keys(PLACEMENT_LABELS) as Banner["placement"][]
+  ).filter((p) => {
+    if (!placementCounts) return true;
+    if (defaultBanner?.placement === p) return true;
+    return placementCounts[p] < BANNER_LIMITS[p];
+  });
+
+  const placementOptions = availablePlacements.map((p) => PLACEMENT_LABELS[p]);
 
   async function onSubmit(values: BannerFormValues) {
     const input = {
@@ -90,7 +136,6 @@ export function BannerForm({ editId, defaultBanner }: BannerFormProps) {
           toast.success("Banner saved");
         } else {
           await createBannerAction(input);
-          // createBannerAction redirects; toast fires before NEXT_REDIRECT throws
         }
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
@@ -99,203 +144,286 @@ export function BannerForm({ editId, defaultBanner }: BannerFormProps) {
     });
   }
 
-  function handleDelete() {
+  function confirmDelete() {
     if (!editId) return;
-    if (!confirm("Delete this banner? This cannot be undone.")) return;
-    startTransition(async () => {
+    startDeleting(async () => {
       try {
         await deleteBannerAction(editId);
+        toast.success("Banner deleted", {
+          description: `"${defaultBanner?.title ?? "Banner"}" has been removed.`,
+        });
+        setConfirmOpen(false);
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setConfirmOpen(false);
         toast.error(err instanceof Error ? err.message : "Could not delete banner.");
       }
     });
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
-      {/* Placement & Status */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Placement &amp; status</h2>
-        <div className="grid gap-5 md:grid-cols-3">
-          <FormField
-            label="Placement"
-            htmlFor="placement"
-            required
-            error={errors.placement?.message}
-          >
-            <Select id="placement" {...register("placement")}>
-              <option value="home-hero">Home hero</option>
-              <option value="home-strip">Home strip</option>
-              <option value="shop-strip">Shop strip</option>
-            </Select>
-          </FormField>
-
-          <FormField
-            label="Sort order"
-            htmlFor="sortOrder"
-            required
-            hint="Lower numbers appear first"
-            error={errors.sortOrder?.message}
-          >
-            <Input
-              id="sortOrder"
-              type="number"
-              step="1"
-              {...register("sortOrder", { valueAsNumber: true })}
-              invalid={!!errors.sortOrder}
-            />
-          </FormField>
-
-          <div className="flex flex-col gap-1.5 justify-end pb-1">
-            <div className="flex items-center gap-3">
-              <input
-                id="active"
-                type="checkbox"
-                {...register("active")}
-                className="h-4 w-4 rounded border-ink-500/30 accent-accent-primary"
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 sm:gap-7">
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Placement & status" hint="Where the banner appears.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField
+              label="Placement"
+              htmlFor="placement"
+              required
+              error={errors.placement?.message}
+            >
+              <Controller
+                name="placement"
+                control={control}
+                render={({ field }) => (
+                  <PillListbox
+                    id="placement"
+                    icon={Layout}
+                    value={PLACEMENT_LABELS[field.value]}
+                    onChange={(label) => field.onChange(placementFromLabel(label))}
+                    onBlur={field.onBlur}
+                    options={placementOptions}
+                    placeholder="Select placement"
+                    invalid={!!errors.placement}
+                  />
+                )}
               />
-              <label htmlFor="active" className="text-sm font-medium text-ink-700">
-                Active (visible to shoppers)
-              </label>
-            </div>
+            </PillField>
+            <PillField
+              label="Sort order"
+              htmlFor="sortOrder"
+              required
+              hint="Lower numbers appear first."
+              error={errors.sortOrder?.message}
+            >
+              <PillInput
+                id="sortOrder"
+                icon={Layers}
+                type="number"
+                step={1}
+                inputMode="numeric"
+                placeholder="0"
+                {...register("sortOrder", { valueAsNumber: true })}
+                invalid={!!errors.sortOrder}
+              />
+            </PillField>
           </div>
-        </div>
+
+          <label
+            htmlFor="active"
+            className={clsx(
+              "flex cursor-pointer items-center gap-3 rounded-2xl border bg-bg-elevated p-3 transition sm:p-4",
+              active ? "border-accent-primary/40 bg-accent-primary/[0.04]" : "border-ink-500/15",
+            )}
+          >
+            <input id="active" type="checkbox" {...register("active")} className="sr-only" />
+            <span
+              className={clsx(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+                active ? "bg-accent-primary text-white" : "bg-ink-900/[0.06] text-accent-primary",
+              )}
+            >
+              <Eye className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-medium text-ink-900">Active</span>
+              <span className="text-[11px] text-ink-500 sm:text-xs">
+                Visible to shoppers on the storefront.
+              </span>
+            </span>
+            <span
+              role="switch"
+              aria-checked={active}
+              className={clsx(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition",
+                active ? "bg-accent-primary" : "bg-ink-500/25",
+              )}
+            >
+              <span
+                className={clsx(
+                  "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+                  active ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </span>
+          </label>
+        </FormSection>
       </section>
 
-      {/* Image */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Image</h2>
-        <div className="grid gap-5 md:grid-cols-2">
-          <FormField
-            label="Image URL"
-            htmlFor="imageUrl"
-            required
-            error={errors.imageUrl?.message}
-            className="md:col-span-2"
-          >
-            <Input
-              id="imageUrl"
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              {...register("imageUrl")}
-              invalid={!!errors.imageUrl}
-            />
-          </FormField>
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection
+          title="Image"
+          hint="Recommended: 2400 × 1200 px (2:1) · max 10 MB. The hero stretches edge-to-edge with object-cover, so center your subject — mobile screens crop to a portrait of the middle."
+        >
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-[260px_1fr]">
+            {hasImage ? (
+              <div className="relative h-40 w-full overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-base shadow-card md:h-44 md:w-[260px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl}
+                  alt={imageAlt || "Banner preview"}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="md:w-[260px]">
+                <ImageUploader
+                  folder="banners"
+                  variant="dropzone"
+                  label="Drop banner image"
+                  hint="2400 × 1200 px · PNG, JPG, WEBP · up to 10 MB"
+                  onUploaded={(url) =>
+                    setValue("imageUrl", url, { shouldValidate: true, shouldDirty: true })
+                  }
+                />
+              </div>
+            )}
 
-          <FormField
-            label="Image alt text"
-            htmlFor="imageAlt"
-            required
-            hint="Describe the image for accessibility"
-            error={errors.imageAlt?.message}
-            className="md:col-span-2"
-          >
-            <Input
-              id="imageAlt"
-              placeholder="e.g. Woman wearing a red Banarasi saree"
-              {...register("imageAlt")}
-              invalid={!!errors.imageAlt}
-            />
-          </FormField>
-        </div>
-
-        {showPreview && (
-          <div className="mt-2">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-500">Preview</p>
-            <div className="relative h-48 w-full overflow-hidden rounded-md border border-ink-500/10 bg-ink-500/5">
-              <Image
-                src={imageUrl}
-                alt={watch("imageAlt") || "Banner preview"}
-                fill
-                sizes="(max-width: 768px) 100vw, 600px"
-                className="object-cover"
-              />
+            <div className="flex flex-col gap-3">
+              <PillField
+                label="Image URL"
+                htmlFor="imageUrl"
+                required
+                error={errors.imageUrl?.message}
+              >
+                <PillInput
+                  id="imageUrl"
+                  icon={ImageIcon}
+                  type="url"
+                  placeholder="Paste a URL or upload above"
+                  {...register("imageUrl")}
+                  invalid={!!errors.imageUrl}
+                />
+              </PillField>
+              <PillField
+                label="Alt text"
+                htmlFor="imageAlt"
+                required
+                hint="Describe the image for accessibility."
+                error={errors.imageAlt?.message}
+              >
+                <PillInput
+                  id="imageAlt"
+                  icon={Sparkles}
+                  placeholder="Woman wearing a red Banarasi saree"
+                  {...register("imageAlt")}
+                  invalid={!!errors.imageAlt}
+                />
+              </PillField>
+              {hasImage && (
+                <ImageUploader
+                  folder="banners"
+                  label="Replace image"
+                  className="self-start"
+                  onUploaded={(url) =>
+                    setValue("imageUrl", url, { shouldValidate: true, shouldDirty: true })
+                  }
+                />
+              )}
             </div>
           </div>
-        )}
+        </FormSection>
       </section>
 
-      {/* Content */}
-      <section className="flex flex-col gap-5 rounded-md border border-ink-500/10 bg-bg-elevated p-6">
-        <h2 className="font-display text-lg text-ink-900">Content</h2>
-        <div className="grid gap-5 md:grid-cols-2">
-          <FormField
-            label="Title"
-            htmlFor="title"
-            required
-            error={errors.title?.message}
-            className="md:col-span-2"
-          >
-            <Input
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Content" hint="Headline, supporting copy and CTA.">
+          <PillField label="Title" htmlFor="title" required error={errors.title?.message}>
+            <PillInput
               id="title"
-              placeholder="e.g. Summer Sale — Up to 40% Off"
+              icon={Type}
+              placeholder="Summer Sale — Up to 40% Off"
               {...register("title")}
               invalid={!!errors.title}
             />
-          </FormField>
-
-          <FormField
+          </PillField>
+          <PillField
             label="Subtitle"
             htmlFor="subtitle"
-            hint="Optional supporting text"
+            hint="Optional supporting text."
             error={errors.subtitle?.message}
-            className="md:col-span-2"
           >
-            <Input
+            <PillInput
               id="subtitle"
-              placeholder="e.g. Shop the finest handwoven collection"
+              icon={Tag}
+              placeholder="Shop the finest handwoven collection"
               {...register("subtitle")}
             />
-          </FormField>
-
-          <FormField label="CTA label" htmlFor="ctaLabel" required error={errors.ctaLabel?.message}>
-            <Input
-              id="ctaLabel"
-              placeholder="e.g. Shop now"
-              {...register("ctaLabel")}
-              invalid={!!errors.ctaLabel}
-            />
-          </FormField>
-
-          <FormField label="CTA URL" htmlFor="ctaHref" required error={errors.ctaHref?.message}>
-            <Input
-              id="ctaHref"
-              placeholder="e.g. /shop?sale=1"
-              {...register("ctaHref")}
-              invalid={!!errors.ctaHref}
-            />
-          </FormField>
-        </div>
+          </PillField>
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField
+              label="CTA label"
+              htmlFor="ctaLabel"
+              required
+              error={errors.ctaLabel?.message}
+            >
+              <PillInput
+                id="ctaLabel"
+                icon={MousePointerClick}
+                placeholder="Shop now"
+                {...register("ctaLabel")}
+                invalid={!!errors.ctaLabel}
+              />
+            </PillField>
+            <PillField label="CTA URL" htmlFor="ctaHref" required error={errors.ctaHref?.message}>
+              <PillInput
+                id="ctaHref"
+                icon={LinkIcon}
+                placeholder="/shop?sale=1"
+                {...register("ctaHref")}
+                invalid={!!errors.ctaHref}
+              />
+            </PillField>
+          </div>
+        </FormSection>
       </section>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-sm bg-accent-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Saving…" : editId ? "Save changes" : "Create banner"}
-        </button>
-      </div>
-
-      {editId && (
-        <div className="rounded-md border border-danger/30 bg-danger/5 p-5">
-          <h3 className="mb-1 font-display text-base text-ink-900">Danger zone</h3>
-          <p className="mb-3 text-sm text-ink-500">
-            Deleting a banner is permanent and cannot be undone.
-          </p>
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+        {editId ? (
           <button
             type="button"
-            onClick={handleDelete}
-            disabled={isPending}
-            className="rounded-sm border border-danger px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger hover:text-white disabled:opacity-50"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting || isPending}
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 self-start rounded-full border border-danger/30 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-danger transition hover:bg-danger/5 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:text-xs sm:tracking-[0.2em] md:h-12 md:text-sm"
           >
-            Delete banner
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            {deleting ? "Deleting…" : "Delete banner"}
           </button>
-        </div>
-      )}
+        ) : (
+          <span />
+        )}
+        <PillSubmitButton
+          pending={isPending}
+          pendingLabel="Saving…"
+          className="self-stretch sm:self-auto"
+        >
+          {editId ? "Save changes" : "Create banner"}
+        </PillSubmitButton>
+      </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete this banner?"
+        description={`"${defaultBanner?.title ?? "Banner"}" will be permanently removed. This can't be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        icon={Trash2}
+        pending={deleting}
+      />
     </form>
   );
 }

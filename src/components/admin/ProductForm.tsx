@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { forwardRef, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +20,7 @@ import {
   Star,
   Tag,
   ToggleRight,
+  Trash2,
   Truck,
   WashingMachine,
   Weight as WeightIcon,
@@ -28,7 +30,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { paiseToRupees } from "@/lib/money";
 import { clsx } from "@/lib/utils/clsx";
-import { createProductAction, updateProductAction } from "@/server/actions/admin-products";
+import {
+  archiveProductAction,
+  createProductAction,
+  updateProductAction,
+} from "@/server/actions/admin-products";
 import {
   FormSection,
   PillField,
@@ -36,6 +42,7 @@ import {
   PillListbox,
   PillSubmitButton,
 } from "@/components/account/AccountFields";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Category, Product, ProductDraft, ProductImage, ProductVariant } from "@/types/domain";
 import { ProductImageEditor } from "./ProductImageEditor";
 import { ProductVariantEditor } from "./ProductVariantEditor";
@@ -129,9 +136,12 @@ const PillTextarea = forwardRef<HTMLTextAreaElement, PillTextareaProps>(function
 });
 
 export function ProductForm({ categories, editId, defaultProduct }: ProductFormProps) {
+  const router = useRouter();
   const [variants, setVariants] = useState<ProductVariant[]>(defaultProduct?.variants ?? []);
   const [images, setImages] = useState<ProductImage[]>(defaultProduct?.images ?? []);
   const [isPending, startTransition] = useTransition();
+  const [deleting, startDeleting] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const {
     register,
@@ -224,6 +234,25 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
         toast.error(err instanceof Error ? err.message : "Couldn't save product.");
+      }
+    });
+  }
+
+  function confirmDelete() {
+    if (!editId) return;
+    startDeleting(async () => {
+      try {
+        await archiveProductAction(editId);
+        toast.success("Product deleted", {
+          description: `"${defaultProduct?.name ?? "Product"}" has been archived.`,
+        });
+        setConfirmOpen(false);
+        router.push("/admin/products");
+        router.refresh();
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setConfirmOpen(false);
+        toast.error(err instanceof Error ? err.message : "Couldn't delete product.");
       }
     });
   }
@@ -584,19 +613,47 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
         </FormSection>
       </section>
 
-      <div className="flex items-center justify-end gap-2 sm:gap-3">
-        {editId && (
-          <Link
-            href="/admin/products"
-            className="cursor-pointer text-[10px] font-medium uppercase tracking-[0.18em] text-ink-500 transition hover:text-ink-900 sm:text-xs sm:tracking-[0.2em] md:text-sm"
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+        {editId ? (
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting || isPending}
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 self-start rounded-full border border-danger/30 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-danger transition hover:bg-danger/5 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:text-xs sm:tracking-[0.2em] md:h-12 md:text-sm"
           >
-            Cancel
-          </Link>
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            {deleting ? "Deleting…" : "Delete product"}
+          </button>
+        ) : (
+          <span />
         )}
-        <PillSubmitButton pending={isPending} pendingLabel="Saving…">
-          {editId ? "Save changes" : "Create product"}
-        </PillSubmitButton>
+        <div className="flex items-center justify-end gap-2 sm:gap-3">
+          {editId && (
+            <Link
+              href="/admin/products"
+              className="cursor-pointer text-[10px] font-medium uppercase tracking-[0.18em] text-ink-500 transition hover:text-ink-900 sm:text-xs sm:tracking-[0.2em] md:text-sm"
+            >
+              Cancel
+            </Link>
+          )}
+          <PillSubmitButton pending={isPending} pendingLabel="Saving…">
+            {editId ? "Save changes" : "Create product"}
+          </PillSubmitButton>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete this product?"
+        description={`"${defaultProduct?.name ?? "Product"}" will be archived and hidden from the storefront. Past orders that reference it keep their snapshot intact.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        icon={Trash2}
+        pending={deleting}
+      />
     </form>
   );
 }

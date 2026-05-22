@@ -59,39 +59,18 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const isInfo = mode === "info";
   const resolvedConfirmLabel = confirmLabel ?? (isInfo ? "Got it" : "Confirm");
-  // Lock page scroll while open + close on Escape. Locks BOTH html and body
-  // (html is the viewport scroll container; body holds layout), and pads each
-  // by the scrollbar width so removing the scrollbar doesn't cause a sideways
-  // jump. Compatible with `overflow-x: clip` set globally on html/body.
+  // Close on Escape. We intentionally do NOT lock document scroll here —
+  // setting `overflow: hidden` on <html> would strip the scrolling context
+  // that admin sticky elements (sidebar, header) anchor to, causing them to
+  // revert to static positioning and disappear above the current scrollY.
+  // The dialog itself is fixed/inset-0 so it stays visible regardless.
   useEffect(() => {
     if (!open) return;
-    const html = document.documentElement;
-    const body = document.body;
-    const scrollbarWidth = window.innerWidth - html.clientWidth;
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      htmlPaddingRight: html.style.paddingRight,
-      bodyOverflow: body.style.overflow,
-      bodyPaddingRight: body.style.paddingRight,
-    };
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    // Reserve the scrollbar's width on the viewport (html) only — padding
-    // both would double-shift the content.
-    if (scrollbarWidth > 0) {
-      html.style.paddingRight = `${scrollbarWidth}px`;
-    }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     document.addEventListener("keydown", onKey);
-    return () => {
-      html.style.overflow = prev.htmlOverflow;
-      html.style.paddingRight = prev.htmlPaddingRight;
-      body.style.overflow = prev.bodyOverflow;
-      body.style.paddingRight = prev.bodyPaddingRight;
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   const isClient = useIsClient();
