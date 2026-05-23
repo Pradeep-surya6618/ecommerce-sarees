@@ -1,13 +1,21 @@
+import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { getDdbDoc } from "@/lib/db/client";
+import { tableName, TABLES } from "@/lib/db/tables";
 import type {
   AboutPageContent,
   AnnouncementSettings,
   InstagramSettings,
   SiteSettings,
+  SocialLinks,
+  VisitSettings,
 } from "@/types/domain";
 
-// Initial values are empty. The admin populates these via /admin/settings,
-// /admin/about, /admin/instagram, etc. When the Content table migration lands,
-// this seed will move to the database.
+// Site settings is a singleton in the Content table.
+//   PK = "SETTINGS#GLOBAL"
+//   SK = "META"
+// The admin populates this via /admin/settings, /admin/about, /admin/instagram.
+const SETTINGS_PK = "SETTINGS#GLOBAL";
+
 const EMPTY_ABOUT: AboutPageContent = {
   title: "Our story",
   description: "",
@@ -27,13 +35,27 @@ const EMPTY_INSTAGRAM: InstagramSettings = {
   tiles: [],
 };
 
+const EMPTY_SOCIAL: SocialLinks = {
+  instagram: "",
+  facebook: "",
+  pinterest: "",
+  youtube: "",
+  whatsapp: "",
+};
+
+const EMPTY_VISIT: VisitSettings = {
+  addressLine1: "",
+  addressLine2: "",
+  hours: "",
+  href: "",
+};
+
 const DEFAULT_SETTINGS: SiteSettings = {
-  announcement: {
-    message: "",
-    enabled: false,
-  },
+  announcement: { message: "", enabled: false },
   about: EMPTY_ABOUT,
   instagram: EMPTY_INSTAGRAM,
+  social: EMPTY_SOCIAL,
+  visit: EMPTY_VISIT,
 };
 
 export interface SiteSettingsRepo {
@@ -41,69 +63,101 @@ export interface SiteSettingsRepo {
   updateAnnouncement(input: AnnouncementSettings): Promise<SiteSettings>;
   updateAbout(input: AboutPageContent): Promise<SiteSettings>;
   updateInstagram(input: InstagramSettings): Promise<SiteSettings>;
+  updateSocial(input: SocialLinks): Promise<SiteSettings>;
+  updateVisit(input: VisitSettings): Promise<SiteSettings>;
 }
 
-declare global {
-  var __mockSiteSettings: SiteSettings | undefined;
+function table(): string {
+  return tableName(TABLES.Content);
 }
 
-function getStore(): SiteSettings {
-  if (globalThis.__mockSiteSettings) {
-    if (!globalThis.__mockSiteSettings.about) {
-      globalThis.__mockSiteSettings.about = { ...EMPTY_ABOUT };
-    }
-    if (!globalThis.__mockSiteSettings.instagram) {
-      globalThis.__mockSiteSettings.instagram = {
-        ...EMPTY_INSTAGRAM,
-        tiles: [],
-      };
-    }
-    return globalThis.__mockSiteSettings;
-  }
-  const seed: SiteSettings = {
-    announcement: { ...DEFAULT_SETTINGS.announcement },
-    about: { ...DEFAULT_SETTINGS.about },
-    instagram: {
-      ...DEFAULT_SETTINGS.instagram,
-      tiles: [],
-    },
+interface SettingsItem extends SiteSettings {
+  pk: string;
+  sk: string;
+  entity: "settings";
+}
+
+function toItem(settings: SiteSettings): SettingsItem {
+  return { ...settings, pk: SETTINGS_PK, sk: "META", entity: "settings" };
+}
+
+function fromItem(item: Record<string, unknown> | undefined): SiteSettings | null {
+  if (!item) return null;
+  if ((item as { entity?: string }).entity !== "settings") return null;
+  const { pk: _pk, sk: _sk, entity: _e, ...rest } = item as SettingsItem;
+  // Backfill missing top-level fields when reading older items.
+  return {
+    announcement: rest.announcement ?? DEFAULT_SETTINGS.announcement,
+    about: rest.about ?? DEFAULT_SETTINGS.about,
+    instagram: rest.instagram ?? DEFAULT_SETTINGS.instagram,
+    social: rest.social ?? DEFAULT_SETTINGS.social,
+    visit: rest.visit ?? DEFAULT_SETTINGS.visit,
   };
-  globalThis.__mockSiteSettings = seed;
-  return seed;
+}
+
+async function load(): Promise<SiteSettings> {
+  const res = await getDdbDoc().send(
+    new GetCommand({
+      TableName: table(),
+      Key: { pk: SETTINGS_PK, sk: "META" },
+    }),
+  );
+  return fromItem(res.Item) ?? { ...DEFAULT_SETTINGS };
+}
+
+async function save(settings: SiteSettings): Promise<SiteSettings> {
+  await getDdbDoc().send(
+    new PutCommand({
+      TableName: table(),
+      Item: toItem(settings),
+    }),
+  );
+  return settings;
 }
 
 export const siteSettingsRepo: SiteSettingsRepo = {
   async get() {
-    return getStore();
+    return load();
   },
 
   async updateAnnouncement(input) {
-    const store = getStore();
-    store.announcement = {
-      message: input.message,
-      enabled: input.enabled,
+    const current = await load();
+    const next: SiteSettings = {
+      ...current,
+      announcement: { message: input.message, enabled: input.enabled },
     };
-    return store;
+    return save(next);
   },
 
   async updateAbout(input) {
-    const store = getStore();
-    store.about = { ...input };
-    return store;
+    const current = await load();
+    const next: SiteSettings = { ...current, about: { ...input } };
+    return save(next);
   },
 
   async updateInstagram(input) {
-    const store = getStore();
-    store.instagram = {
-      handle: input.handle,
-      ctaHref: input.ctaHref,
-      enabled: input.enabled,
-      tiles: input.tiles.map((t) => ({ ...t })),
+    const current = await load();
+    const next: SiteSettings = {
+      ...current,
+      instagram: {
+        handle: input.handle,
+        ctaHref: input.ctaHref,
+        enabled: input.enabled,
+        tiles: input.tiles.map((t) => ({ ...t })),
+      },
     };
-    return store;
+    return save(next);
+  },
+
+  async updateSocial(input) {
+    const current = await load();
+    const next: SiteSettings = { ...current, social: { ...input } };
+    return save(next);
+  },
+
+  async updateVisit(input) {
+    const current = await load();
+    const next: SiteSettings = { ...current, visit: { ...input } };
+    return save(next);
   },
 };
-
-export function __resetSiteSettingsRepo(): void {
-  globalThis.__mockSiteSettings = undefined;
-}

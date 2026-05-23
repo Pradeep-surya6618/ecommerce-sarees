@@ -1,17 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { couponsRepo } from "@/lib/db/repos/coupons";
 import type { CouponStatus, CouponType } from "@/types/domain";
 
-async function requireAdmin() {
+export type CouponActionResult = { ok: true; code?: string } | { ok: false; error: string };
+
+async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await getCurrentUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
-    throw new Error("Admin access required.");
+    return { ok: false, error: "Admin access required." };
   }
-  return user;
+  return { ok: true };
 }
 
 export interface CreateCouponInput {
@@ -27,11 +28,17 @@ export interface CreateCouponInput {
   status: CouponStatus;
 }
 
-export async function createCouponAction(input: CreateCouponInput): Promise<void> {
-  await requireAdmin();
-  const coupon = await couponsRepo.create(input);
-  revalidatePath("/admin/coupons");
-  redirect(`/admin/coupons/${coupon.code}`);
+export async function createCouponAction(input: CreateCouponInput): Promise<CouponActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    const coupon = await couponsRepo.create(input);
+    revalidatePath("/admin/coupons");
+    return { ok: true, code: coupon.code };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to create coupon.";
+    return { ok: false, error: message };
+  }
 }
 
 export async function updateCouponAction(
@@ -47,16 +54,30 @@ export async function updateCouponAction(
     validTo: string;
     status: CouponStatus;
   }>,
-): Promise<void> {
-  await requireAdmin();
-  await couponsRepo.update(code, input);
-  revalidatePath(`/admin/coupons/${code.toUpperCase()}`);
-  revalidatePath("/admin/coupons");
+): Promise<CouponActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    const updated = await couponsRepo.update(code, input);
+    if (!updated) return { ok: false, error: "Coupon not found." };
+    revalidatePath(`/admin/coupons/${updated.code}`);
+    revalidatePath("/admin/coupons");
+    return { ok: true, code: updated.code };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update coupon.";
+    return { ok: false, error: message };
+  }
 }
 
-export async function deleteCouponAction(code: string): Promise<void> {
-  await requireAdmin();
-  await couponsRepo.delete(code);
-  revalidatePath("/admin/coupons");
-  redirect("/admin/coupons");
+export async function deleteCouponAction(code: string): Promise<CouponActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    await couponsRepo.delete(code);
+    revalidatePath("/admin/coupons");
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to delete coupon.";
+    return { ok: false, error: message };
+  }
 }

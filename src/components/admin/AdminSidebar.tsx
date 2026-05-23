@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   ListTree,
   LogOut,
+  MapPin,
   Package,
   Settings,
   Tag,
@@ -48,6 +49,7 @@ const SECTIONS: NavSection[] = [
     heading: "Content",
     items: [
       { href: "/admin/banners", label: "Banners", icon: ImageIcon },
+      { href: "/admin/regions", label: "Regions", icon: MapPin },
       { href: "/admin/navigation", label: "Navigation", icon: ListTree },
       { href: "/admin/pages", label: "Pages", icon: FileText },
       { href: "/admin/about", label: "About page", icon: BookOpen },

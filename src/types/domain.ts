@@ -288,6 +288,25 @@ export interface BannerInput {
   active: boolean;
 }
 
+export interface Region {
+  id: string;
+  state: string;
+  craft: string;
+  href: string;
+  imageUrl: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+export interface RegionInput {
+  state: string;
+  craft: string;
+  href: string;
+  imageUrl: string;
+  sortOrder: number;
+  active: boolean;
+}
+
 export type NavMenuItemKind = "category" | "custom-link";
 
 export interface NavMenuItem {
@@ -342,10 +361,27 @@ export interface AboutPageContent {
   teamBody: string;
 }
 
+export interface SocialLinks {
+  instagram: string;
+  facebook: string;
+  pinterest: string;
+  youtube: string;
+  whatsapp: string;
+}
+
+export interface VisitSettings {
+  addressLine1: string;
+  addressLine2: string;
+  hours: string;
+  href: string;
+}
+
 export interface SiteSettings {
   announcement: AnnouncementSettings;
   about: AboutPageContent;
   instagram: InstagramSettings;
+  social: SocialLinks;
+  visit: VisitSettings;
 }
 
 export type ContentPageGroup = "help" | "company" | "none";

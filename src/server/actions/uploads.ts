@@ -3,7 +3,14 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { createPresignedUpload } from "@/lib/storage/s3";
 
-const ALLOWED_FOLDERS = new Set(["products", "categories", "banners", "blog", "reviews"]);
+const ALLOWED_FOLDERS = new Set([
+  "products",
+  "categories",
+  "banners",
+  "blog",
+  "reviews",
+  "regions",
+]);
 
 export type RequestUploadResult =
   | { ok: true; uploadUrl: string; publicUrl: string; key: string; expiresIn: number }

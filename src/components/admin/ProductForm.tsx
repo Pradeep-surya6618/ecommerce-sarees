@@ -239,7 +239,7 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
           router.refresh();
         } else {
           toast.success("Product created", { description: `"${values.name}" is now live.` });
-          if (result.id) router.push(`/admin/products/${result.id}`);
+          router.push("/admin/products");
         }
       } catch {
         toast.error("Couldn't save product", {

@@ -11,12 +11,15 @@ import {
   Phone,
   Plug,
   Receipt,
+  Share2,
   Tag,
   Truck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import { AnnouncementBarEditor } from "@/components/admin/AnnouncementBarEditor";
+import { SocialLinksEditor } from "@/components/admin/SocialLinksEditor";
+import { VisitEditor } from "@/components/admin/VisitEditor";
 import { Badge } from "@/components/ui/Badge";
 
 export const metadata = { title: "Settings · Admin" };
@@ -124,6 +127,22 @@ export default async function AdminSettingsPage() {
         icon={Megaphone}
       >
         <AnnouncementBarEditor initial={settings.announcement} />
+      </Section>
+
+      <Section
+        title="Social links"
+        hint="Icons shown in the footer. Empty fields are hidden — clear them all to remove the row."
+        icon={Share2}
+      >
+        <SocialLinksEditor initial={settings.social} />
+      </Section>
+
+      <Section
+        title="Visit"
+        hint="The address + hours block shown in the footer “Visit” column."
+        icon={MapPin}
+      >
+        <VisitEditor initial={settings.visit} />
       </Section>
 
       <Section title="Store profile" hint="Legal identifiers and contact details." icon={Building2}>

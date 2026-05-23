@@ -1,4 +1,13 @@
+import {
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  ScanCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { nanoid } from "nanoid";
+import { getDdbDoc } from "@/lib/db/client";
+import { tableName, TABLES } from "@/lib/db/tables";
 import type {
   Address,
   AdminOrderNote,
@@ -29,6 +38,7 @@ export interface OrdersRepo {
   listByGuestSession(guestSessionId: string): Promise<Order[]>;
   listByUser(userId: string): Promise<Order[]>;
   listAll(): Promise<Order[]>;
+  listByStatus(status: OrderStatus): Promise<Order[]>;
   updateStatus(orderId: string, status: OrderStatus): Promise<Order | null>;
   addInternalNote(
     orderId: string,
@@ -36,14 +46,43 @@ export interface OrdersRepo {
   ): Promise<Order | null>;
 }
 
-declare global {
-  var __mockOrders: Map<string, Order> | undefined;
-}
+// DynamoDB Orders table:
+//   PK = orderId
+//   GSI UserCreatedIndex(userId, createdAt)     → "my orders" + admin user view
+//   GSI StatusCreatedIndex(status, createdAt)   → admin filter by status
 
-const orders: Map<string, Order> = globalThis.__mockOrders ?? (globalThis.__mockOrders = new Map());
+function table(): string {
+  return tableName(TABLES.Orders);
+}
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function toItem(order: Order): Record<string, unknown> {
+  return { ...order, orderId: order.id };
+}
+
+function fromItem(item: Record<string, unknown> | undefined): Order | null {
+  if (!item) return null;
+  const { orderId, ...rest } = item as Order & { orderId: string };
+  return { ...(rest as Order), id: orderId };
+}
+
+async function scanAll(): Promise<Order[]> {
+  const out: Order[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const res = await getDdbDoc().send(
+      new ScanCommand({ TableName: table(), ExclusiveStartKey: lastKey }),
+    );
+    for (const item of res.Items ?? []) {
+      const order = fromItem(item);
+      if (order) out.push(order);
+    }
+    lastKey = res.LastEvaluatedKey;
+  } while (lastKey);
+  return out;
 }
 
 export const ordersRepo: OrdersRepo = {
@@ -68,41 +107,106 @@ export const ordersRepo: OrdersRepo = {
       createdAt: now,
       updatedAt: now,
     };
-    orders.set(order.id, order);
+    await getDdbDoc().send(
+      new PutCommand({
+        TableName: table(),
+        Item: toItem(order),
+        ConditionExpression: "attribute_not_exists(orderId)",
+      }),
+    );
     return order;
   },
 
   async getById(id) {
-    return orders.get(id) ?? null;
+    const res = await getDdbDoc().send(
+      new GetCommand({ TableName: table(), Key: { orderId: id } }),
+    );
+    return fromItem(res.Item);
   },
 
   async listByGuestSession(guestSessionId) {
-    return [...orders.values()]
+    // Guest orders don't have a GSI — admin queries them by userId=null path
+    // which is rare. Scan + filter is acceptable until we add a GuestSessionIndex.
+    const all = await scanAll();
+    return all
       .filter((o) => o.guestSessionId === guestSessionId)
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   },
 
   async listByUser(userId) {
-    return [...orders.values()]
-      .filter((o) => o.userId === userId)
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    const out: Order[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+    do {
+      const res = await getDdbDoc().send(
+        new QueryCommand({
+          TableName: table(),
+          IndexName: "UserCreatedIndex",
+          KeyConditionExpression: "userId = :u",
+          ExpressionAttributeValues: { ":u": userId },
+          ScanIndexForward: false, // newest first
+          ExclusiveStartKey: lastKey,
+        }),
+      );
+      for (const item of res.Items ?? []) {
+        const order = fromItem(item);
+        if (order) out.push(order);
+      }
+      lastKey = res.LastEvaluatedKey;
+    } while (lastKey);
+    return out;
   },
 
   async listAll() {
-    return [...orders.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    const all = await scanAll();
+    return all.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  },
+
+  async listByStatus(status) {
+    const out: Order[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+    do {
+      const res = await getDdbDoc().send(
+        new QueryCommand({
+          TableName: table(),
+          IndexName: "StatusCreatedIndex",
+          KeyConditionExpression: "#s = :s",
+          ExpressionAttributeNames: { "#s": "status" },
+          ExpressionAttributeValues: { ":s": status },
+          ScanIndexForward: false,
+          ExclusiveStartKey: lastKey,
+        }),
+      );
+      for (const item of res.Items ?? []) {
+        const order = fromItem(item);
+        if (order) out.push(order);
+      }
+      lastKey = res.LastEvaluatedKey;
+    } while (lastKey);
+    return out;
   },
 
   async updateStatus(orderId, status) {
-    const order = orders.get(orderId);
-    if (!order) return null;
-    order.status = status;
-    order.updatedAt = nowIso();
-    return order;
+    try {
+      const res = await getDdbDoc().send(
+        new UpdateCommand({
+          TableName: table(),
+          Key: { orderId },
+          UpdateExpression: "SET #s = :s, updatedAt = :u",
+          ExpressionAttributeNames: { "#s": "status" },
+          ExpressionAttributeValues: { ":s": status, ":u": nowIso() },
+          ConditionExpression: "attribute_exists(orderId)",
+          ReturnValues: "ALL_NEW",
+        }),
+      );
+      return fromItem(res.Attributes);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("ConditionalCheckFailed")) return null;
+      throw err;
+    }
   },
 
   async addInternalNote(orderId, note) {
-    const order = orders.get(orderId);
-    if (!order) return null;
     const newNote: AdminOrderNote = {
       id: `note_${nanoid(10)}`,
       authorId: note.authorId,
@@ -110,12 +214,27 @@ export const ordersRepo: OrdersRepo = {
       body: note.body,
       createdAt: nowIso(),
     };
-    order.internalNotes.push(newNote);
-    order.updatedAt = nowIso();
-    return order;
+    try {
+      const res = await getDdbDoc().send(
+        new UpdateCommand({
+          TableName: table(),
+          Key: { orderId },
+          UpdateExpression:
+            "SET internalNotes = list_append(if_not_exists(internalNotes, :empty), :note), updatedAt = :u",
+          ExpressionAttributeValues: {
+            ":note": [newNote],
+            ":empty": [],
+            ":u": nowIso(),
+          },
+          ConditionExpression: "attribute_exists(orderId)",
+          ReturnValues: "ALL_NEW",
+        }),
+      );
+      return fromItem(res.Attributes);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("ConditionalCheckFailed")) return null;
+      throw err;
+    }
   },
 };
-
-export function __resetOrdersRepo(): void {
-  orders.clear();
-}

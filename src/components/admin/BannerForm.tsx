@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,17 +36,30 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Banner } from "@/types/domain";
 
-const bannerSchema = z.object({
-  placement: z.enum(["home-hero", "home-strip", "shop-strip"]),
-  imageUrl: z.string().min(1, "Image URL is required"),
-  imageAlt: z.string().min(1, "Image alt text is required"),
-  title: z.string().min(1, "Title is required"),
-  subtitle: z.string().optional(),
-  ctaLabel: z.string().min(1, "CTA label is required"),
-  ctaHref: z.string().min(1, "CTA URL is required"),
-  sortOrder: z.number().int("Must be a whole number"),
-  active: z.boolean(),
-});
+const bannerSchema = z
+  .object({
+    placement: z.enum(["home-hero", "home-strip", "shop-strip"]),
+    imageUrl: z.string().min(1, "Image URL is required"),
+    imageAlt: z.string().min(1, "Image alt text is required"),
+    // Title / subtitle / CTA are all optional — admins can ship an
+    // image-only banner where the artwork itself carries the message.
+    title: z.string().optional().default(""),
+    subtitle: z.string().optional().default(""),
+    ctaLabel: z.string().optional().default(""),
+    ctaHref: z.string().optional().default(""),
+    sortOrder: z.number().int("Must be a whole number"),
+    active: z.boolean(),
+  })
+  // If you give it a CTA URL you need a label (and vice versa) — otherwise the
+  // button has no text or no target.
+  .refine((v) => !v.ctaHref || v.ctaLabel, {
+    path: ["ctaLabel"],
+    message: "Add a label for the CTA URL.",
+  })
+  .refine((v) => !v.ctaLabel || v.ctaHref, {
+    path: ["ctaHref"],
+    message: "Add a URL for the CTA label.",
+  });
 
 type BannerFormValues = z.output<typeof bannerSchema>;
 
@@ -70,6 +84,7 @@ function placementFromLabel(label: string): Banner["placement"] {
 }
 
 export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [deleting, startDeleting] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -131,15 +146,24 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
 
     startTransition(async () => {
       try {
-        if (editId) {
-          await updateBannerAction(editId, input);
-          toast.success("Banner saved");
-        } else {
-          await createBannerAction(input);
+        const result = editId
+          ? await updateBannerAction(editId, input)
+          : await createBannerAction(input);
+        if (!result.ok) {
+          toast.error("Couldn't save banner", { description: result.error });
+          return;
         }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error(err instanceof Error ? err.message : "Could not save banner.");
+        if (editId) {
+          toast.success("Banner saved");
+          router.push("/admin/banners");
+        } else {
+          toast.success("Banner created", {
+            description: input.title ? `"${input.title}" is now live.` : "New banner is now live.",
+          });
+          router.push("/admin/banners");
+        }
+      } catch {
+        toast.error("Couldn't save banner", { description: "Please try again." });
       }
     });
   }
@@ -148,15 +172,19 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
     if (!editId) return;
     startDeleting(async () => {
       try {
-        await deleteBannerAction(editId);
+        const result = await deleteBannerAction(editId);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't delete banner", { description: result.error });
+          return;
+        }
         toast.success("Banner deleted", {
           description: `"${defaultBanner?.title ?? "Banner"}" has been removed.`,
         });
+        router.push("/admin/banners");
+      } catch {
         setConfirmOpen(false);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        setConfirmOpen(false);
-        toast.error(err instanceof Error ? err.message : "Could not delete banner.");
+        toast.error("Couldn't delete banner", { description: "Please try again." });
       }
     });
   }
@@ -261,11 +289,14 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
         />
         <FormSection
           title="Image"
-          hint="Recommended: 2400 × 1200 px (2:1) · max 10 MB. The hero stretches edge-to-edge with object-cover, so center your subject — mobile screens crop to a portrait of the middle."
+          hint="After you pick a file, a crop window opens so you can fit the banner frame (21:9 cinematic — fills the hero edge-to-edge). Max 10 MB."
         >
           <div className="grid gap-3 sm:gap-4 md:grid-cols-[260px_1fr]">
             {hasImage ? (
-              <div className="relative h-40 w-full overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-base shadow-card md:h-44 md:w-[260px]">
+              <div
+                className="relative w-full overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-base shadow-card md:w-[260px]"
+                style={{ aspectRatio: "21 / 9" }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imageUrl}
@@ -279,7 +310,8 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
                   folder="banners"
                   variant="dropzone"
                   label="Drop banner image"
-                  hint="2400 × 1200 px · PNG, JPG, WEBP · up to 10 MB"
+                  hint="Crop to 21:9 in the next step · PNG, JPG, WEBP · up to 10 MB"
+                  aspectRatio={21 / 9}
                   onUploaded={(url) =>
                     setValue("imageUrl", url, { shouldValidate: true, shouldDirty: true })
                   }
@@ -323,6 +355,7 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
                   folder="banners"
                   label="Replace image"
                   className="self-start"
+                  aspectRatio={21 / 9}
                   onUploaded={(url) =>
                     setValue("imageUrl", url, { shouldValidate: true, shouldDirty: true })
                   }
@@ -338,8 +371,16 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
         />
-        <FormSection title="Content" hint="Headline, supporting copy and CTA.">
-          <PillField label="Title" htmlFor="title" required error={errors.title?.message}>
+        <FormSection
+          title="Content"
+          hint="All fields below are optional — leave blank for an image-only banner."
+        >
+          <PillField
+            label="Title"
+            htmlFor="title"
+            hint="Headline overlay. Leave empty if the image speaks for itself."
+            error={errors.title?.message}
+          >
             <PillInput
               id="title"
               icon={Type}
@@ -365,7 +406,7 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
             <PillField
               label="CTA label"
               htmlFor="ctaLabel"
-              required
+              hint="Button text — leave blank to hide the button."
               error={errors.ctaLabel?.message}
             >
               <PillInput
@@ -376,7 +417,12 @@ export function BannerForm({ editId, defaultBanner, placementCounts }: BannerFor
                 invalid={!!errors.ctaLabel}
               />
             </PillField>
-            <PillField label="CTA URL" htmlFor="ctaHref" required error={errors.ctaHref?.message}>
+            <PillField
+              label="CTA URL"
+              htmlFor="ctaHref"
+              hint="Where the button links — required if you set a label."
+              error={errors.ctaHref?.message}
+            >
               <PillInput
                 id="ctaHref"
                 icon={LinkIcon}

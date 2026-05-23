@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,6 +81,7 @@ function generateCouponCode(): string {
 }
 
 export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [deleting, startDeleting] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -145,15 +147,22 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
 
     startTransition(async () => {
       try {
-        if (editCode) {
-          await updateCouponAction(editCode, input);
-          toast.success("Coupon saved");
-        } else {
-          await createCouponAction(input);
+        const result = editCode
+          ? await updateCouponAction(editCode, input)
+          : await createCouponAction(input);
+        if (!result.ok) {
+          toast.error("Couldn't save coupon", { description: result.error });
+          return;
         }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error(err instanceof Error ? err.message : "Could not save coupon.");
+        if (editCode) {
+          toast.success("Coupon saved");
+          router.refresh();
+        } else {
+          toast.success("Coupon created", { description: `"${input.code}" is now live.` });
+          if (result.code) router.push(`/admin/coupons/${result.code}`);
+        }
+      } catch {
+        toast.error("Couldn't save coupon", { description: "Please try again." });
       }
     });
   }
@@ -162,15 +171,19 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
     if (!editCode) return;
     startDeleting(async () => {
       try {
-        await deleteCouponAction(editCode);
+        const result = await deleteCouponAction(editCode);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't delete coupon", { description: result.error });
+          return;
+        }
         toast.success("Coupon deleted", {
           description: `"${editCode}" has been removed.`,
         });
+        router.push("/admin/coupons");
+      } catch {
         setConfirmOpen(false);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        setConfirmOpen(false);
-        toast.error(err instanceof Error ? err.message : "Could not delete coupon.");
+        toast.error("Couldn't delete coupon", { description: "Please try again." });
       }
     });
   }

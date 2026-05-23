@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { categoriesRepo } from "@/lib/db/repos/categories";
 import { contentPagesRepo } from "@/lib/db/repos/content-pages";
+import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import {
   FacebookGlyph,
   InstagramGlyph,
@@ -9,26 +11,31 @@ import {
   YoutubeGlyph,
 } from "@/components/shared/icons";
 import { Container } from "@/components/ui/Container";
-import type { ContentPage } from "@/types/domain";
+import type { Category, ContentPage, SocialLinks, VisitSettings } from "@/types/domain";
 
 interface FooterLink {
   label: string;
   href: string;
 }
 
-const SHOP_LINKS: FooterLink[] = [
-  { label: "All sarees", href: "/shop" },
-  { label: "Silk", href: "/shop/silk" },
-  { label: "Cotton", href: "/shop/cotton" },
-  { label: "Linen", href: "/shop/linen" },
-  { label: "Designer", href: "/shop/designer" },
-];
+const ALL_SAREES_LINK: FooterLink = { label: "All sarees", href: "/shop" };
 
-const VISIT_LINKS: FooterLink[] = [
-  { label: "27 Lavelle Road", href: "/p/contact" },
-  { label: "Bengaluru 560001", href: "/p/contact" },
-  { label: "Mon – Sat · 11am – 8pm", href: "/p/contact" },
-];
+function categoriesToFooterLinks(categories: Category[]): FooterLink[] {
+  // "All sarees" always first; then up to 4 top-level categories by sortOrder
+  // so the column stays compact even as the admin adds more.
+  const fromAdmin = categories.slice(0, 4).map((c) => ({ label: c.name, href: `/shop/${c.slug}` }));
+  return [ALL_SAREES_LINK, ...fromAdmin];
+}
+
+function visitToFooterLinks(visit: VisitSettings): FooterLink[] {
+  // Default to /p/contact when the admin hasn't set a href but has filled in
+  // any visit info — the column is otherwise hidden entirely (see Footer).
+  const href = visit.href || "/p/contact";
+  const lines = [visit.addressLine1, visit.addressLine2, visit.hours].filter(
+    (s) => s.trim().length > 0,
+  );
+  return lines.map((label) => ({ label, href }));
+}
 
 function pageHref(p: ContentPage): string {
   return p.externalHref ?? `/p/${p.slug}`;
@@ -38,51 +45,71 @@ function toFooterLinks(pages: ContentPage[]): FooterLink[] {
   return pages.map((p) => ({ label: p.footerLabel || p.title, href: pageHref(p) }));
 }
 
-const SOCIAL_LINKS = [
+interface SocialEntry {
+  Icon: typeof InstagramGlyph;
+  label: string;
+  key: keyof SocialLinks;
+  hoverClass: string;
+}
+
+const SOCIAL_ENTRIES: SocialEntry[] = [
   {
     Icon: InstagramGlyph,
     label: "Instagram",
-    href: "https://instagram.com",
+    key: "instagram",
     hoverClass: "hover:border-[#E1306C] hover:bg-[#E1306C] hover:text-white",
   },
   {
     Icon: FacebookGlyph,
     label: "Facebook",
-    href: "https://facebook.com",
+    key: "facebook",
     hoverClass: "hover:border-[#1877F2] hover:bg-[#1877F2] hover:text-white",
   },
   {
     Icon: PinterestGlyph,
     label: "Pinterest",
-    href: "https://pinterest.com",
+    key: "pinterest",
     hoverClass: "hover:border-[#E60023] hover:bg-[#E60023] hover:text-white",
   },
   {
     Icon: YoutubeGlyph,
     label: "YouTube",
-    href: "https://youtube.com",
+    key: "youtube",
     hoverClass: "hover:border-[#FF0000] hover:bg-[#FF0000] hover:text-white",
   },
   {
     Icon: WhatsAppGlyph,
     label: "WhatsApp",
-    href: "https://wa.me/",
+    key: "whatsapp",
     hoverClass: "hover:border-[#25D366] hover:bg-[#25D366] hover:text-white",
   },
 ];
 
 export async function Footer() {
-  const [helpPages, companyPages] = await Promise.all([
+  const [topCategories, helpPages, companyPages, settings] = await Promise.all([
+    categoriesRepo.listTopLevel(),
     contentPagesRepo.listByGroup("help"),
     contentPagesRepo.listByGroup("company"),
+    siteSettingsRepo.get(),
   ]);
 
+  const visitLinks = visitToFooterLinks(settings.visit);
+
   const footerGroups: { heading: string; links: FooterLink[] }[] = [
-    { heading: "Shop", links: SHOP_LINKS },
+    { heading: "Shop", links: categoriesToFooterLinks(topCategories) },
     { heading: "Help", links: toFooterLinks(helpPages) },
     { heading: "Company", links: toFooterLinks(companyPages) },
-    { heading: "Visit", links: VISIT_LINKS },
+    // Visit column is hidden completely when the admin hasn't filled in any
+    // of the address/hours fields.
+    ...(visitLinks.length > 0 ? [{ heading: "Visit", links: visitLinks }] : []),
   ];
+
+  // Only render icons for platforms with a saved URL. If none are set the
+  // whole "Follow our looms" block disappears (rendered conditionally below).
+  const visibleSocial = SOCIAL_ENTRIES.flatMap((entry) => {
+    const href = settings.social[entry.key]?.trim();
+    return href ? [{ ...entry, href }] : [];
+  });
   return (
     <footer className="relative overflow-hidden bg-ink-900 text-bg-base">
       {/* Full-bleed saree photograph as ambient backdrop */}
@@ -181,30 +208,32 @@ export async function Footer() {
           ))}
         </div>
 
-        {/* ── Social row + ornaments ── */}
-        <div className="flex flex-col items-center gap-4 border-t border-bg-base/10 pt-6 pb-6 sm:gap-5 sm:pt-10 sm:pb-8">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
-            <span className="text-[9px] uppercase tracking-[0.3em] text-accent-gold sm:text-[10px] sm:tracking-[0.35em]">
-              Follow our looms
-            </span>
-            <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
+        {/* ── Social row + ornaments — hidden until the admin sets at least one link ── */}
+        {visibleSocial.length > 0 && (
+          <div className="flex flex-col items-center gap-4 border-t border-bg-base/10 pt-6 pb-6 sm:gap-5 sm:pt-10 sm:pb-8">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
+              <span className="text-[9px] uppercase tracking-[0.3em] text-accent-gold sm:text-[10px] sm:tracking-[0.35em]">
+                Follow our looms
+              </span>
+              <span aria-hidden className="h-px w-6 bg-accent-gold/50 sm:w-10" />
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {visibleSocial.map(({ Icon, label, href, hoverClass }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={label}
+                  className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-bg-base/20 bg-white/[0.04] text-bg-base/80 transition sm:h-10 sm:w-10 ${hoverClass}`}
+                >
+                  <Icon className="h-[14px] w-[14px] sm:h-[16px] sm:w-[16px]" />
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            {SOCIAL_LINKS.map(({ Icon, label, href, hoverClass }) => (
-              <Link
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label={label}
-                className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-bg-base/20 bg-white/[0.04] text-bg-base/80 transition sm:h-10 sm:w-10 ${hoverClass}`}
-              >
-                <Icon className="h-[14px] w-[14px] sm:h-[16px] sm:w-[16px]" />
-              </Link>
-            ))}
-          </div>
-        </div>
+        )}
       </Container>
 
       {/* Bottom brass hairline */}

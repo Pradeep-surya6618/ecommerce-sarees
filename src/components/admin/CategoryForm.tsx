@@ -171,7 +171,7 @@ export function CategoryForm({
           router.refresh();
         } else {
           toast.success("Category created", { description: `"${values.name}" is now live.` });
-          if (result.slug) router.push(`/admin/categories/${result.slug}`);
+          router.push("/admin/categories");
         }
       } catch {
         toast.error("Couldn't save the category", {

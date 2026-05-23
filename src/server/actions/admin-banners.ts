@@ -1,39 +1,63 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { bannersRepo } from "@/lib/db/repos/banners";
 import type { BannerInput } from "@/types/domain";
 
-async function requireAdmin() {
+export type BannerActionResult = { ok: true; id?: string } | { ok: false; error: string };
+
+async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await getCurrentUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
-    throw new Error("Admin access required.");
+    return { ok: false, error: "Admin access required." };
   }
-  return user;
+  return { ok: true };
 }
 
-export async function createBannerAction(input: BannerInput): Promise<void> {
-  await requireAdmin();
-  const banner = await bannersRepo.create(input);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/banners");
-  redirect(`/admin/banners/${banner.id}`);
+export async function createBannerAction(input: BannerInput): Promise<BannerActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    const banner = await bannersRepo.create(input);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/banners");
+    return { ok: true, id: banner.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to create banner.";
+    return { ok: false, error: message };
+  }
 }
 
-export async function updateBannerAction(id: string, input: Partial<BannerInput>): Promise<void> {
-  await requireAdmin();
-  await bannersRepo.update(id, input);
-  revalidatePath("/", "layout");
-  revalidatePath(`/admin/banners/${id}`);
-  revalidatePath("/admin/banners");
+export async function updateBannerAction(
+  id: string,
+  input: Partial<BannerInput>,
+): Promise<BannerActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    const updated = await bannersRepo.update(id, input);
+    if (!updated) return { ok: false, error: "Banner not found." };
+    revalidatePath("/", "layout");
+    revalidatePath(`/admin/banners/${id}`);
+    revalidatePath("/admin/banners");
+    return { ok: true, id: updated.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update banner.";
+    return { ok: false, error: message };
+  }
 }
 
-export async function deleteBannerAction(id: string): Promise<void> {
-  await requireAdmin();
-  await bannersRepo.delete(id);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/banners");
-  redirect("/admin/banners");
+export async function deleteBannerAction(id: string): Promise<BannerActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    await bannersRepo.delete(id);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/banners");
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to delete banner.";
+    return { ok: false, error: message };
+  }
 }

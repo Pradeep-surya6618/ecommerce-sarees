@@ -14,11 +14,15 @@ export function InternalNotes({ orderId, notes }: { orderId: string; notes: Admi
     if (!trimmed) return;
     startTransition(async () => {
       try {
-        await addOrderNoteAction(orderId, trimmed);
+        const result = await addOrderNoteAction(orderId, trimmed);
+        if (!result.ok) {
+          toast.error("Couldn't add note", { description: result.error });
+          return;
+        }
         setBody("");
         toast.success("Note added");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed");
+      } catch {
+        toast.error("Couldn't add note", { description: "Please try again." });
       }
     });
   }

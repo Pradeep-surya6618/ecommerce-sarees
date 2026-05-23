@@ -11,10 +11,14 @@ export function OrderStatusActions({ orderId, status }: { orderId: string; statu
   function set(next: OrderStatus) {
     startTransition(async () => {
       try {
-        await updateOrderStatusAction(orderId, next);
+        const result = await updateOrderStatusAction(orderId, next);
+        if (!result.ok) {
+          toast.error("Couldn't update status", { description: result.error });
+          return;
+        }
         toast.success(`Marked as ${next}`);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed");
+      } catch {
+        toast.error("Couldn't update status", { description: "Please try again." });
       }
     });
   }
@@ -22,10 +26,14 @@ export function OrderStatusActions({ orderId, status }: { orderId: string; statu
   function refund() {
     startTransition(async () => {
       try {
-        await refundOrderAction(orderId);
-        toast.success("Refund initiated (mock)");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed");
+        const result = await refundOrderAction(orderId);
+        if (!result.ok) {
+          toast.error("Couldn't cancel order", { description: result.error });
+          return;
+        }
+        toast.success("Order cancelled");
+      } catch {
+        toast.error("Couldn't cancel order", { description: "Please try again." });
       }
     });
   }

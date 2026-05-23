@@ -28,9 +28,12 @@ export function BannerHero({ banners }: BannerHeroProps) {
   if (banners.length === 0) return null;
 
   return (
-    <section className="relative h-[60vh] min-h-[420px] w-full overflow-hidden md:h-[72vh]">
+    <section className="relative h-[60vh] min-h-[420px] w-full overflow-hidden bg-ink-900 md:h-[72vh]">
       {banners.map((banner, idx) => {
         const isActive = idx === activeIdx;
+        const hasTitle = !!banner.title?.trim();
+        const hasCta = !!banner.ctaLabel?.trim() && !!banner.ctaHref?.trim();
+        const hasAnyText = hasTitle || !!banner.subtitle?.trim() || hasCta;
         return (
           <div
             key={banner.id}
@@ -48,7 +51,14 @@ export function BannerHero({ banners }: BannerHeroProps) {
                 fill
                 priority={idx === 0}
                 sizes="100vw"
-                className={clsx("object-cover", isActive ? "banner-ken-burns" : "scale-100")}
+                className={clsx(
+                  // Admins crop to 21:9, which matches the desktop hero aspect
+                  // (~2.47:1), so object-cover fills the section without losing
+                  // anything visible. Mobile (portrait viewport) center-crops
+                  // the wide image to fit — acceptable for a responsive hero.
+                  "object-cover",
+                  isActive ? "banner-ken-burns" : "scale-100",
+                )}
                 style={isActive ? { animationDuration: `${SLIDE_DURATION_MS}ms` } : undefined}
               />
               {isActive && (
@@ -60,42 +70,50 @@ export function BannerHero({ banners }: BannerHeroProps) {
                 />
               )}
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-ink-900/55 via-ink-900/20 to-transparent" />
-            <Container size="xl" className="relative flex h-full items-center">
-              <div className="max-w-xl text-white">
-                {/* Eyebrow with brass hairlines + ornament */}
-                <div className="inline-flex items-center gap-2 sm:gap-3">
-                  <span aria-hidden className="h-px w-6 bg-accent-gold sm:w-8" />
-                  <span className="text-[10px] uppercase tracking-[0.3em] text-accent-gold sm:text-xs sm:tracking-[0.35em]">
-                    The Edit
-                  </span>
-                  <span aria-hidden className="text-accent-gold/80">
-                    ✦
-                  </span>
+            {/* Left-edge gradient only when there's text to read on top of it. */}
+            {hasAnyText && (
+              <div className="absolute inset-0 bg-gradient-to-r from-ink-900/55 via-ink-900/20 to-transparent" />
+            )}
+            {hasAnyText && (
+              <Container size="xl" className="relative flex h-full items-center">
+                <div className="max-w-xl text-white">
+                  {/* Eyebrow with brass hairlines + ornament */}
+                  <div className="inline-flex items-center gap-2 sm:gap-3">
+                    <span aria-hidden className="h-px w-6 bg-accent-gold sm:w-8" />
+                    <span className="text-[10px] uppercase tracking-[0.3em] text-accent-gold sm:text-xs sm:tracking-[0.35em]">
+                      The Edit
+                    </span>
+                    <span aria-hidden className="text-accent-gold/80">
+                      ✦
+                    </span>
+                  </div>
+
+                  {hasTitle && (
+                    <h1 className="relative mt-3 font-display text-3xl italic leading-[1.05] sm:mt-4 sm:text-5xl md:text-[68px]">
+                      {banner.title}
+                      <LeafFlourish
+                        aria-hidden
+                        className="ml-2 inline-block h-5 w-5 -translate-y-1 text-accent-gold sm:h-7 sm:w-7 md:h-9 md:w-9"
+                      />
+                    </h1>
+                  )}
+
+                  {banner.subtitle && (
+                    <p className="mt-3 max-w-md text-sm font-light leading-relaxed opacity-90 sm:mt-5 sm:text-base md:text-lg">
+                      {banner.subtitle}
+                    </p>
+                  )}
+                  {hasCta && (
+                    <Link
+                      href={banner.ctaHref}
+                      className="mt-5 inline-flex items-center gap-2 rounded-sm bg-accent-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-accent-primary-hover sm:mt-8 sm:px-6 sm:py-3 sm:text-sm"
+                    >
+                      {banner.ctaLabel}
+                    </Link>
+                  )}
                 </div>
-
-                {/* Title — editorial italic Cormorant with a brass leaf flourish */}
-                <h1 className="relative mt-3 font-display text-3xl italic leading-[1.05] sm:mt-4 sm:text-5xl md:text-[68px]">
-                  {banner.title}
-                  <LeafFlourish
-                    aria-hidden
-                    className="ml-2 inline-block h-5 w-5 -translate-y-1 text-accent-gold sm:h-7 sm:w-7 md:h-9 md:w-9"
-                  />
-                </h1>
-
-                {banner.subtitle && (
-                  <p className="mt-3 max-w-md text-sm font-light leading-relaxed opacity-90 sm:mt-5 sm:text-base md:text-lg">
-                    {banner.subtitle}
-                  </p>
-                )}
-                <Link
-                  href={banner.ctaHref}
-                  className="mt-5 inline-flex items-center gap-2 rounded-sm bg-accent-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-accent-primary-hover sm:mt-8 sm:px-6 sm:py-3 sm:text-sm"
-                >
-                  {banner.ctaLabel}
-                </Link>
-              </div>
-            </Container>
+              </Container>
+            )}
           </div>
         );
       })}

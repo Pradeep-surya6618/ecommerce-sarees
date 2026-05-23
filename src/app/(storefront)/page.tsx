@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { bannersRepo } from "@/lib/db/repos/banners";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { productsRepo } from "@/lib/db/repos/products";
+import { regionsRepo } from "@/lib/db/repos/regions";
 import { reviewsRepo } from "@/lib/db/repos/reviews";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
@@ -22,10 +23,11 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [heroBanners, categories, featured, newest, reviews, settings, wishlistItems] =
+  const [heroBanners, categories, regions, featured, newest, reviews, settings, wishlistItems] =
     await Promise.all([
       bannersRepo.listByPlacement("home-hero"),
       categoriesRepo.listTopLevel(),
+      regionsRepo.listActive(),
       productsRepo.listFeatured({ limit: 8 }),
       productsRepo.list({ limit: 8 }),
       reviewsRepo.listFeatured({ limit: 6 }),
@@ -61,18 +63,20 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* Shop by Roots */}
-      <section className="bg-bg-elevated py-20">
-        <Container size="xl">
-          <SectionHeading
-            eyebrow="Shop by roots"
-            title="Crafts by region"
-            description="Each weave belongs to a place. Browse by where it's made."
-            className="mb-10"
-          />
-          <RegionTiles />
-        </Container>
-      </section>
+      {/* Shop by Roots — hidden until the admin adds at least one active region. */}
+      {regions.length > 0 && (
+        <section className="bg-bg-elevated py-20">
+          <Container size="xl">
+            <SectionHeading
+              eyebrow="Shop by roots"
+              title="Crafts by region"
+              description="Each weave belongs to a place. Browse by where it's made."
+              className="mb-10"
+            />
+            <RegionTiles regions={regions} />
+          </Container>
+        </section>
+      )}
 
       <CollectionRail
         eyebrow="Just in"
@@ -105,7 +109,7 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      <StorytellerSection />
+      <StorytellerSection about={settings.about} />
 
       <EditorsPicks products={featured} />
 

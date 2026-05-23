@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { ProductVariant } from "@/types/domain";
 
@@ -10,6 +11,56 @@ export interface ProductVariantEditorProps {
 
 function emptyVariant(): ProductVariant {
   return { sku: "", colorName: "", colorHex: "#000000", size: "", stock: 0 };
+}
+
+// Lets the user type a hex code OR use the colour picker.
+// Accepts 3-digit shorthand (#fff) and expands it. Only commits when the
+// draft parses as a valid #RRGGBB; otherwise reverts on blur so the parent
+// state never holds garbage.
+function HexInput({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const [parentValue, setParentValue] = useState(value);
+
+  // Re-sync the draft when the parent value changes (e.g. user clicked the picker).
+  if (value !== parentValue) {
+    setParentValue(value);
+    setDraft(value);
+  }
+
+  function tryCommit(text: string): boolean {
+    let next = text.trim();
+    if (!next.startsWith("#")) next = `#${next}`;
+    if (/^#[0-9a-fA-F]{3}$/.test(next)) {
+      next = `#${next[1]!.repeat(2)}${next[2]!.repeat(2)}${next[3]!.repeat(2)}`;
+    }
+    if (/^#[0-9a-fA-F]{6}$/.test(next)) {
+      onChange(next.toLowerCase());
+      return true;
+    }
+    return false;
+  }
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        tryCommit(e.target.value);
+      }}
+      onBlur={() => {
+        if (!tryCommit(draft)) setDraft(value);
+      }}
+      onFocus={(e) => e.currentTarget.select()}
+      placeholder="#000000"
+      maxLength={7}
+      spellCheck={false}
+      autoCapitalize="off"
+      autoCorrect="off"
+      aria-label="Hex colour code"
+      className="h-10 w-24 rounded-sm border border-ink-500/30 bg-bg-elevated px-2 font-mono text-xs uppercase text-ink-900 placeholder:text-ink-500 focus:border-accent-primary focus:outline-none"
+    />
+  );
 }
 
 export function ProductVariantEditor({ value, onChange }: ProductVariantEditorProps) {
@@ -64,7 +115,7 @@ export function ProductVariantEditor({ value, onChange }: ProductVariantEditorPr
             />
           </div>
 
-          {/* Colour hex */}
+          {/* Colour hex — picker + typeable text */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium uppercase tracking-wide text-ink-700">Hex</label>
             <div className="flex items-center gap-2">
@@ -72,9 +123,10 @@ export function ProductVariantEditor({ value, onChange }: ProductVariantEditorPr
                 type="color"
                 value={v.colorHex}
                 onChange={(e) => update(i, { colorHex: e.target.value })}
+                aria-label="Pick colour"
                 className="h-10 w-10 cursor-pointer rounded-sm border border-ink-500/30 bg-bg-elevated p-0.5"
               />
-              <span className="font-mono text-xs text-ink-500">{v.colorHex}</span>
+              <HexInput value={v.colorHex} onChange={(next) => update(i, { colorHex: next })} />
             </div>
           </div>
 

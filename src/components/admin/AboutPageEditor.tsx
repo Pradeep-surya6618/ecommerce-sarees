@@ -98,10 +98,14 @@ export function AboutPageEditor({ initial }: AboutPageEditorProps) {
     e.preventDefault();
     startTransition(async () => {
       try {
-        await updateAboutAction(form);
+        const result = await updateAboutAction(form);
+        if (!result.ok) {
+          toast.error("Couldn't save About page", { description: result.error });
+          return;
+        }
         toast.success("About page updated");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't save changes.");
+      } catch {
+        toast.error("Couldn't save About page", { description: "Please try again." });
       }
     });
   }
@@ -161,10 +165,13 @@ export function AboutPageEditor({ initial }: AboutPageEditorProps) {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
         />
-        <FormSection title="Hero image" hint="Recommended: square or 16:9 photo. PNG, JPG or WEBP.">
+        <FormSection
+          title="Hero image"
+          hint="After you pick a file, a crop window opens so you can fit the hero frame (16:9). PNG, JPG, WEBP up to 10 MB."
+        >
           <div className="grid gap-3 sm:gap-4 md:grid-cols-[260px_1fr]">
             {hasImage ? (
-              <div className="relative h-40 w-full overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-base shadow-card md:h-44 md:w-[260px]">
+              <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-base shadow-card md:w-[260px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.imageUrl}
@@ -178,7 +185,8 @@ export function AboutPageEditor({ initial }: AboutPageEditorProps) {
                   folder="banners"
                   variant="dropzone"
                   label="Drop hero image"
-                  hint="or click to browse · PNG, JPG, WEBP"
+                  hint="Crop to 16:9 in the next step · PNG, JPG, WEBP"
+                  aspectRatio={16 / 9}
                   onUploaded={(url) => update("imageUrl", url)}
                 />
               </div>
@@ -212,6 +220,7 @@ export function AboutPageEditor({ initial }: AboutPageEditorProps) {
                   folder="banners"
                   label="Replace image"
                   className="self-start"
+                  aspectRatio={16 / 9}
                   onUploaded={(url) => update("imageUrl", url)}
                 />
               )}

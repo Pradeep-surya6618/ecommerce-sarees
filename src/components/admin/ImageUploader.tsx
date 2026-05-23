@@ -5,17 +5,22 @@ import { ImagePlus, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { clsx } from "@/lib/utils/clsx";
 import { requestUploadUrlAction } from "@/server/actions/uploads";
+import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/avif";
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export interface ImageUploaderProps {
-  folder: "products" | "categories" | "banners" | "blog" | "reviews";
+  folder: "products" | "categories" | "banners" | "blog" | "reviews" | "regions";
   onUploaded: (publicUrl: string) => void;
   label?: string;
   className?: string;
   variant?: "button" | "dropzone";
   hint?: string;
+  /** When set, opens a crop dialog after the admin picks a file and locks the
+   *  crop selection to this width/height ratio (e.g. 16/9 for hero banners).
+   *  Leave unset to upload the original image as-is. */
+  aspectRatio?: number;
 }
 
 export function ImageUploader({
@@ -25,12 +30,14 @@ export function ImageUploader({
   className = "",
   variant = "button",
   hint,
+  aspectRatio,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
 
-  async function handleFile(file: File) {
+  async function validateAndProceed(file: File) {
     if (!file.type.startsWith("image/")) {
       toast.error("Only image files are allowed.");
       return;
@@ -39,6 +46,14 @@ export function ImageUploader({
       toast.error("File too large", { description: "Max size is 10MB." });
       return;
     }
+    if (aspectRatio) {
+      setPendingCropFile(file);
+      return;
+    }
+    await uploadFile(file);
+  }
+
+  async function uploadFile(file: File) {
     setBusy(true);
     try {
       const presign = await requestUploadUrlAction({
@@ -80,15 +95,33 @@ export function ImageUploader({
       className="hidden"
       onChange={(e) => {
         const file = e.target.files?.[0];
-        if (file) void handleFile(file);
+        if (file) void validateAndProceed(file);
       }}
     />
   );
+
+  const cropDialog = aspectRatio ? (
+    <ImageCropDialog
+      open={pendingCropFile !== null}
+      file={pendingCropFile}
+      aspectRatio={aspectRatio}
+      onCancel={() => {
+        if (busy) return;
+        setPendingCropFile(null);
+        if (inputRef.current) inputRef.current.value = "";
+      }}
+      onConfirm={async (croppedFile) => {
+        setPendingCropFile(null);
+        await uploadFile(croppedFile);
+      }}
+    />
+  ) : null;
 
   if (variant === "dropzone") {
     return (
       <>
         {fileInput}
+        {cropDialog}
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -101,7 +134,7 @@ export function ImageUploader({
             e.preventDefault();
             setDragging(false);
             const file = e.dataTransfer.files?.[0];
-            if (file) void handleFile(file);
+            if (file) void validateAndProceed(file);
           }}
           disabled={busy}
           aria-label="Upload image"
@@ -149,6 +182,7 @@ export function ImageUploader({
   return (
     <>
       {fileInput}
+      {cropDialog}
       <button
         type="button"
         onClick={() => inputRef.current?.click()}

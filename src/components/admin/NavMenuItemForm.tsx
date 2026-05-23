@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,6 +57,7 @@ export function NavMenuItemForm({
   editId,
   defaultItem,
 }: NavMenuItemFormProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [deleting, startDeleting] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -93,26 +95,33 @@ export function NavMenuItemForm({
   const categoryOptions = categoryDisplay.map((c) => c.label);
 
   function onSubmit(values: Values) {
+    const payload = {
+      label: values.label,
+      kind: values.kind,
+      categorySlug: values.kind === "category" ? (values.categorySlug ?? "") : null,
+      href: values.kind === "custom-link" ? (values.href ?? "") : null,
+      parentId: values.parentId ? values.parentId : null,
+      sortOrder: values.sortOrder,
+      visible: values.visible,
+    };
     startTransition(async () => {
       try {
-        const payload = {
-          label: values.label,
-          kind: values.kind,
-          categorySlug: values.kind === "category" ? (values.categorySlug ?? "") : null,
-          href: values.kind === "custom-link" ? (values.href ?? "") : null,
-          parentId: values.parentId ? values.parentId : null,
-          sortOrder: values.sortOrder,
-          visible: values.visible,
-        };
-        if (editId) {
-          await updateNavMenuItemAction(editId, payload);
-          toast.success("Menu item saved");
-        } else {
-          await createNavMenuItemAction(payload);
+        const result = editId
+          ? await updateNavMenuItemAction(editId, payload)
+          : await createNavMenuItemAction(payload);
+        if (!result.ok) {
+          toast.error("Couldn't save menu item", { description: result.error });
+          return;
         }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error(err instanceof Error ? err.message : "Couldn't save the item.");
+        if (editId) {
+          toast.success("Menu item saved");
+          router.refresh();
+        } else {
+          toast.success("Menu item created", { description: `"${payload.label}" is now live.` });
+          if (result.id) router.push(`/admin/navigation/${result.id}`);
+        }
+      } catch {
+        toast.error("Couldn't save menu item", { description: "Please try again." });
       }
     });
   }
@@ -121,15 +130,19 @@ export function NavMenuItemForm({
     if (!editId) return;
     startDeleting(async () => {
       try {
-        await deleteNavMenuItemAction(editId);
+        const result = await deleteNavMenuItemAction(editId);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't delete menu item", { description: result.error });
+          return;
+        }
         toast.success("Menu item deleted", {
           description: `"${defaultItem?.label ?? "Item"}" was removed.`,
         });
+        router.push("/admin/navigation");
+      } catch {
         setConfirmOpen(false);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        setConfirmOpen(false);
-        toast.error(err instanceof Error ? err.message : "Couldn't delete.");
+        toast.error("Couldn't delete menu item", { description: "Please try again." });
       }
     });
   }

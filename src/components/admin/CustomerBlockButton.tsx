@@ -9,15 +9,16 @@ export function CustomerBlockButton({ userId, blocked }: { userId: string; block
   function toggle() {
     startTransition(async () => {
       try {
-        if (blocked) {
-          await unblockCustomerAction(userId);
-          toast.success("Customer unblocked");
-        } else {
-          await blockCustomerAction(userId);
-          toast.success("Customer blocked");
+        const result = blocked
+          ? await unblockCustomerAction(userId)
+          : await blockCustomerAction(userId);
+        if (!result.ok) {
+          toast.error("Couldn't update customer", { description: result.error });
+          return;
         }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed");
+        toast.success(blocked ? "Customer unblocked" : "Customer blocked");
+      } catch {
+        toast.error("Couldn't update customer", { description: "Please try again." });
       }
     });
   }
