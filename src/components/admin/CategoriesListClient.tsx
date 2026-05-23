@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Pencil, Plus, Search } from "lucide-react";
+import { clsx } from "@/lib/utils/clsx";
 import { Tooltip } from "@/components/admin/Tooltip";
 import { Badge } from "@/components/ui/Badge";
 import type { Category } from "@/types/domain";
@@ -15,19 +16,42 @@ interface Props {
   rows: CategoryRow[];
 }
 
+type LevelFilter = "" | "top" | "sub" | "empty";
+
+const LEVEL_PILLS: { value: LevelFilter; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "top", label: "Top-level" },
+  { value: "sub", label: "Sub-category" },
+  { value: "empty", label: "Empty" },
+];
+
 export function CategoriesListClient({ rows }: Props) {
   const [query, setQuery] = useState("");
+  const [level, setLevel] = useState<LevelFilter>("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (c) =>
+    return rows.filter((c) => {
+      if (level === "top" && c.parentSlug !== null) return false;
+      if (level === "sub" && c.parentSlug === null) return false;
+      if (level === "empty" && c.productCount > 0) return false;
+      if (!q) return true;
+      return (
         c.name.toLowerCase().includes(q) ||
         c.slug.toLowerCase().includes(q) ||
-        (c.parentSlug ?? "").toLowerCase().includes(q),
-    );
-  }, [rows, query]);
+        (c.parentSlug ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, query, level]);
+
+  const hasActiveFilters = Boolean(query) || Boolean(level);
+
+  function countFor(value: LevelFilter): number {
+    if (value === "") return rows.length;
+    if (value === "top") return rows.filter((r) => r.parentSlug === null).length;
+    if (value === "sub") return rows.filter((r) => r.parentSlug !== null).length;
+    return rows.filter((r) => r.productCount === 0).length;
+  }
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
@@ -36,7 +60,9 @@ export function CategoriesListClient({ rows }: Props) {
           <div className="min-w-0">
             <h1 className="font-display text-xl text-ink-900 sm:text-3xl">Categories</h1>
             <p className="text-[11px] text-ink-700 sm:text-sm">
-              {rows.length} categor{rows.length === 1 ? "y" : "ies"} in store
+              {hasActiveFilters
+                ? `${filtered.length} of ${rows.length} categor${rows.length === 1 ? "y" : "ies"}`
+                : `${rows.length} categor${rows.length === 1 ? "y" : "ies"} in store`}
             </p>
           </div>
           <Link
@@ -60,6 +86,36 @@ export function CategoriesListClient({ rows }: Props) {
           />
         </div>
 
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-hide sm:flex-wrap sm:overflow-visible">
+          {LEVEL_PILLS.map((pill) => {
+            const active = level === pill.value;
+            const count = countFor(pill.value);
+            return (
+              <button
+                key={pill.value || "all"}
+                type="button"
+                onClick={() => setLevel(pill.value)}
+                className={clsx(
+                  "inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[11px] font-medium transition sm:h-8 sm:text-xs",
+                  active
+                    ? "border-accent-primary bg-accent-primary text-white shadow-[0_6px_18px_-10px_rgba(91,58,138,0.7)]"
+                    : "border-ink-500/15 bg-bg-elevated text-ink-700 hover:border-accent-primary hover:text-accent-primary",
+                )}
+              >
+                {pill.label}
+                <span
+                  className={clsx(
+                    "font-mono text-[9px] tabular-nums",
+                    active ? "text-white/80" : "text-ink-500",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <p className="rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] px-3 py-2 text-[11px] text-ink-700 sm:px-4 sm:py-3 sm:text-xs">
           Products are linked to a category by its slug. After creating a category, edit a product
           and pick this category from the dropdown.
@@ -69,9 +125,20 @@ export function CategoriesListClient({ rows }: Props) {
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-ink-500/10 bg-bg-elevated px-6 py-12 text-center">
           <p className="text-sm text-ink-500">
-            {query ? `No categories match "${query}".` : "No categories yet."}
+            {hasActiveFilters ? "No categories match these filters." : "No categories yet."}
           </p>
-          {!query && (
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setLevel("");
+              }}
+              className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-ink-500/20 px-4 py-2 text-xs font-medium text-ink-700 transition hover:border-accent-primary hover:text-accent-primary"
+            >
+              Clear filters
+            </button>
+          ) : (
             <Link
               href="/admin/categories/new"
               className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-primary-hover"

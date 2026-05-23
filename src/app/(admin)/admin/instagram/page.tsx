@@ -6,10 +6,10 @@ export const metadata = { title: "Instagram · Admin" };
 export default async function AdminInstagramPage() {
   const settings = await siteSettingsRepo.get();
   return (
-    <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="font-display text-3xl text-ink-900">Instagram</h1>
-        <p className="text-sm text-ink-700">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="font-display text-xl text-ink-900 sm:text-3xl">Instagram</h1>
+        <p className="text-[11px] text-ink-700 sm:text-sm">
           Edit the &ldquo;From the gram&rdquo; section &mdash; handle, follow link, and the grid
           tiles on the home page.
         </p>

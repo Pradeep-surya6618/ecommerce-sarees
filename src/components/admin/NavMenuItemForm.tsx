@@ -1,19 +1,25 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, FolderTree, Layers, Link as LinkIcon, ListTree, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { clsx } from "@/lib/utils/clsx";
 import {
   createNavMenuItemAction,
   deleteNavMenuItemAction,
   updateNavMenuItemAction,
 } from "@/server/actions/admin-nav-menu";
-import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import {
+  FormSection,
+  PillField,
+  PillInput,
+  PillListbox,
+  PillSubmitButton,
+} from "@/components/account/AccountFields";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Category, NavMenuItem, NavMenuItemKind } from "@/types/domain";
 
 const schema = z.object({
@@ -35,6 +41,15 @@ export interface NavMenuItemFormProps {
   defaultItem?: NavMenuItem;
 }
 
+const KIND_LABEL: Record<NavMenuItemKind, string> = {
+  category: "Category",
+  "custom-link": "Custom link",
+};
+
+function kindFromLabel(label: string): NavMenuItemKind {
+  return label === "Custom link" ? "custom-link" : "category";
+}
+
 export function NavMenuItemForm({
   categories,
   topLevelItems,
@@ -43,10 +58,13 @@ export function NavMenuItemForm({
 }: NavMenuItemFormProps) {
   const [pending, startTransition] = useTransition();
   const [deleting, startDeleting] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
+    control,
+    watch,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema) as Resolver<Values>,
@@ -61,10 +79,18 @@ export function NavMenuItemForm({
     },
   });
 
-  const [kind, setKind] = useState<NavMenuItemKind>(defaultItem?.kind ?? "category");
+  const kind = watch("kind");
+  const visible = watch("visible");
 
-  // Parent dropdown excludes the item being edited (a node can't be its own parent).
   const parentChoices = topLevelItems.filter((i) => i.id !== editId);
+  const parentNames = ["None (top-level)", ...parentChoices.map((p) => p.label)];
+
+  // Category options shown to the user (display label) — children are prefixed.
+  const categoryDisplay = categories.map((c) => ({
+    slug: c.slug,
+    label: c.parentSlug ? `↳ ${c.name}` : c.name,
+  }));
+  const categoryOptions = categoryDisplay.map((c) => c.label);
 
   function onSubmit(values: Values) {
     startTransition(async () => {
@@ -91,156 +117,254 @@ export function NavMenuItemForm({
     });
   }
 
-  function onDelete() {
+  function confirmDelete() {
     if (!editId) return;
-    if (
-      !confirm(
-        "Delete this menu item? Any child items under it will also be removed from the navigation.",
-      )
-    )
-      return;
     startDeleting(async () => {
       try {
         await deleteNavMenuItemAction(editId);
+        toast.success("Menu item deleted", {
+          description: `"${defaultItem?.label ?? "Item"}" was removed.`,
+        });
+        setConfirmOpen(false);
       } catch (err) {
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setConfirmOpen(false);
         toast.error(err instanceof Error ? err.message : "Couldn't delete.");
       }
     });
   }
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-6 rounded-md border border-ink-500/10 bg-bg-elevated p-6"
-    >
-      <div className="grid gap-5 md:grid-cols-2">
-        <FormField label="Label" htmlFor="label" required error={errors.label?.message}>
-          <Input
-            id="label"
-            placeholder="e.g. Silk Sarees"
-            {...register("label")}
-            invalid={!!errors.label}
-          />
-        </FormField>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 sm:gap-7">
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Basics" hint="What customers see and what it links to.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField label="Label" htmlFor="label" required error={errors.label?.message}>
+              <PillInput
+                id="label"
+                icon={Tag}
+                placeholder="Silk Sarees"
+                {...register("label")}
+                invalid={!!errors.label}
+              />
+            </PillField>
+            <PillField label="Kind" htmlFor="kind" required>
+              <Controller
+                name="kind"
+                control={control}
+                render={({ field }) => (
+                  <PillListbox
+                    id="kind"
+                    icon={ListTree}
+                    value={KIND_LABEL[field.value]}
+                    onChange={(label) => field.onChange(kindFromLabel(label))}
+                    onBlur={field.onBlur}
+                    options={Object.values(KIND_LABEL)}
+                    placeholder="Select kind"
+                  />
+                )}
+              />
+            </PillField>
+          </div>
 
-        <FormField label="Kind" htmlFor="kind" required>
-          <Select
-            id="kind"
-            {...register("kind", {
-              onChange: (e) => setKind(e.target.value as NavMenuItemKind),
-            })}
-          >
-            <option value="category">Category</option>
-            <option value="custom-link">Custom link</option>
-          </Select>
-        </FormField>
+          {kind === "category" && (
+            <PillField
+              label="Category"
+              htmlFor="categorySlug"
+              required
+              hint="Links to /shop/<slug>."
+              error={errors.categorySlug?.message}
+            >
+              <Controller
+                name="categorySlug"
+                control={control}
+                render={({ field }) => {
+                  const selected = categoryDisplay.find((c) => c.slug === field.value);
+                  return (
+                    <PillListbox
+                      id="categorySlug"
+                      icon={FolderTree}
+                      value={selected?.label ?? ""}
+                      onChange={(label) => {
+                        const match = categoryDisplay.find((c) => c.label === label);
+                        field.onChange(match?.slug ?? "");
+                      }}
+                      onBlur={field.onBlur}
+                      options={categoryOptions}
+                      placeholder="Select a category"
+                      invalid={!!errors.categorySlug}
+                    />
+                  );
+                }}
+              />
+            </PillField>
+          )}
 
-        {kind === "category" && (
-          <FormField
-            label="Category"
-            htmlFor="categorySlug"
-            required
-            hint="Links to /shop/<slug>"
-            className="md:col-span-2"
-            error={errors.categorySlug?.message}
-          >
-            <Select id="categorySlug" {...register("categorySlug")}>
-              <option value="">Select a category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  {c.parentSlug ? `↳ ${c.name}` : c.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        )}
+          {kind === "custom-link" && (
+            <PillField
+              label="URL"
+              htmlFor="href"
+              required
+              hint="Relative (/offers) or absolute (https://…)."
+              error={errors.href?.message}
+            >
+              <PillInput
+                id="href"
+                icon={LinkIcon}
+                placeholder="/offers/buy-1-get-1"
+                {...register("href")}
+                invalid={!!errors.href}
+              />
+            </PillField>
+          )}
+        </FormSection>
+      </section>
 
-        {kind === "custom-link" && (
-          <FormField
-            label="URL"
-            htmlFor="href"
-            required
-            hint="Any URL — relative (/offers) or absolute (https://…)"
-            className="md:col-span-2"
-            error={errors.href?.message}
-          >
-            <Input id="href" placeholder="/offers/buy-1-get-1" {...register("href")} />
-          </FormField>
-        )}
-
-        <FormField
-          label="Parent"
-          htmlFor="parentId"
-          hint="Leave blank for a top-level item"
-          error={errors.parentId?.message}
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection
+          title="Placement & visibility"
+          hint="Hierarchy, order and whether shoppers see it."
         >
-          <Select id="parentId" {...register("parentId")}>
-            <option value="">None (top-level)</option>
-            {parentChoices.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </Select>
-        </FormField>
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField
+              label="Parent"
+              htmlFor="parentId"
+              hint="Leave as None for a top-level item."
+              error={errors.parentId?.message}
+            >
+              <Controller
+                name="parentId"
+                control={control}
+                render={({ field }) => {
+                  const selectedName =
+                    field.value && field.value.length > 0
+                      ? (parentChoices.find((p) => p.id === field.value)?.label ?? "")
+                      : "None (top-level)";
+                  return (
+                    <PillListbox
+                      id="parentId"
+                      icon={ListTree}
+                      value={selectedName}
+                      onChange={(label) => {
+                        if (label === "None (top-level)") {
+                          field.onChange("");
+                          return;
+                        }
+                        const match = parentChoices.find((p) => p.label === label);
+                        field.onChange(match?.id ?? "");
+                      }}
+                      onBlur={field.onBlur}
+                      options={parentNames}
+                      placeholder="Select parent"
+                    />
+                  );
+                }}
+              />
+            </PillField>
+            <PillField
+              label="Sort order"
+              htmlFor="sortOrder"
+              required
+              hint="Lower numbers appear first."
+              error={errors.sortOrder?.message}
+            >
+              <PillInput
+                id="sortOrder"
+                icon={Layers}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                {...register("sortOrder", { valueAsNumber: true })}
+                invalid={!!errors.sortOrder}
+              />
+            </PillField>
+          </div>
 
-        <FormField
-          label="Sort order"
-          htmlFor="sortOrder"
-          required
-          hint="Lower numbers appear first"
-          error={errors.sortOrder?.message}
-        >
-          <Input
-            id="sortOrder"
-            type="number"
-            min={0}
-            {...register("sortOrder", { valueAsNumber: true })}
-            invalid={!!errors.sortOrder}
-          />
-        </FormField>
-
-        <div className="flex items-center gap-3 md:col-span-2">
-          <input
-            id="visible"
-            type="checkbox"
-            {...register("visible")}
-            className="h-4 w-4 rounded border-ink-500/30 accent-accent-primary"
-          />
-          <label htmlFor="visible" className="text-sm font-medium text-ink-700">
-            Visible on storefront
+          <label
+            htmlFor="visible"
+            className={clsx(
+              "flex cursor-pointer items-center gap-3 rounded-2xl border bg-bg-elevated p-3 transition sm:p-4",
+              visible ? "border-accent-primary/40 bg-accent-primary/[0.04]" : "border-ink-500/15",
+            )}
+          >
+            <input id="visible" type="checkbox" {...register("visible")} className="sr-only" />
+            <span
+              className={clsx(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+                visible ? "bg-accent-primary text-white" : "bg-ink-900/[0.06] text-accent-primary",
+              )}
+            >
+              <Eye className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-medium text-ink-900">Visible on storefront</span>
+              <span className="text-[11px] text-ink-500 sm:text-xs">
+                Show this item in the header menu and mobile drawer.
+              </span>
+            </span>
+            <span
+              role="switch"
+              aria-checked={visible}
+              className={clsx(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition",
+                visible ? "bg-accent-primary" : "bg-ink-500/25",
+              )}
+            >
+              <span
+                className={clsx(
+                  "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+                  visible ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </span>
           </label>
-        </div>
-      </div>
+        </FormSection>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-sm bg-accent-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {pending ? "Saving…" : editId ? "Save changes" : "Create item"}
-          </button>
-          <Link
-            href="/admin/navigation"
-            className="text-sm text-ink-500 transition hover:text-ink-700"
-          >
-            Cancel
-          </Link>
-        </div>
-        {editId && (
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+        {editId ? (
           <button
             type="button"
-            onClick={onDelete}
-            disabled={deleting}
-            className="text-sm font-medium text-danger transition hover:underline disabled:opacity-50"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting || pending}
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 self-start rounded-full border border-danger/30 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-danger transition hover:bg-danger/5 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:text-xs sm:tracking-[0.2em] md:h-12 md:text-sm"
           >
-            {deleting ? "Deleting…" : "Delete"}
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            {deleting ? "Deleting…" : "Delete item"}
           </button>
+        ) : (
+          <span />
         )}
+        <PillSubmitButton
+          pending={pending}
+          pendingLabel="Saving…"
+          className="self-stretch sm:self-auto"
+        >
+          {editId ? "Save changes" : "Create item"}
+        </PillSubmitButton>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete this menu item?"
+        description={`"${defaultItem?.label ?? "Item"}" and any child items under it will be removed from the navigation. This can't be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        icon={Trash2}
+        pending={deleting}
+      />
     </form>
   );
 }

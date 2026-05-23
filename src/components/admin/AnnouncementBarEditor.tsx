@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Eye, Megaphone } from "lucide-react";
 import { toast } from "sonner";
+import { clsx } from "@/lib/utils/clsx";
 import { updateAnnouncementAction } from "@/server/actions/admin-site-settings";
-import { Input } from "@/components/ui/Input";
+import { PillField, PillInput, PillSubmitButton } from "@/components/account/AccountFields";
 import type { AnnouncementSettings } from "@/types/domain";
 
 export interface AnnouncementBarEditorProps {
@@ -18,7 +20,8 @@ export function AnnouncementBarEditor({ initial }: AnnouncementBarEditorProps) {
   const [pending, startTransition] = useTransition();
 
   const trimmed = message.trim();
-  const disabled = pending || (enabled && trimmed.length === 0) || message.length > MAX_LEN;
+  const tooLong = message.length > MAX_LEN;
+  const disabled = pending || (enabled && trimmed.length === 0) || tooLong;
   const dirty = message !== initial.message || enabled !== initial.enabled;
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -34,61 +37,101 @@ export function AnnouncementBarEditor({ initial }: AnnouncementBarEditorProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <label
-          htmlFor="announcementMessage"
-          className="text-xs font-semibold uppercase tracking-wide text-ink-700"
-        >
-          Message
-        </label>
-        <Input
+    <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:gap-4">
+      <PillField
+        label="Message"
+        htmlFor="announcementMessage"
+        hint="Shown across all storefront pages."
+        error={tooLong ? `Trim to ${MAX_LEN} characters or fewer.` : undefined}
+      >
+        <PillInput
           id="announcementMessage"
+          icon={Megaphone}
           value={message}
-          maxLength={MAX_LEN}
+          maxLength={MAX_LEN + 20}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="e.g. Free shipping on orders over ₹2,000"
+          placeholder="Free shipping on orders over ₹2,000"
+          invalid={tooLong}
         />
-        <div className="flex items-center justify-between text-xs text-ink-500">
-          <span>Shown across all storefront pages.</span>
-          <span className={message.length > MAX_LEN ? "text-danger" : undefined}>
-            {message.length}/{MAX_LEN}
-          </span>
-        </div>
+      </PillField>
+      <div className="ml-3 flex items-center justify-end text-[10px] text-ink-500 sm:text-xs">
+        <span className={tooLong ? "text-danger" : undefined}>
+          {message.length} / {MAX_LEN}
+        </span>
       </div>
 
-      <label className="inline-flex items-center gap-3 text-sm text-ink-700">
+      <label
+        htmlFor="announcementEnabled"
+        className={clsx(
+          "flex cursor-pointer items-center gap-3 rounded-2xl border bg-bg-elevated p-3 transition sm:p-4",
+          enabled ? "border-accent-primary/40 bg-accent-primary/[0.04]" : "border-ink-500/15",
+        )}
+      >
         <input
+          id="announcementEnabled"
           type="checkbox"
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
-          className="h-4 w-4 rounded border-ink-500/30 accent-accent-primary"
+          className="sr-only"
         />
-        Show announcement bar on storefront
+        <span
+          className={clsx(
+            "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+            enabled ? "bg-accent-primary text-white" : "bg-ink-900/[0.06] text-accent-primary",
+          )}
+        >
+          <Eye className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-sm font-medium text-ink-900">Show on storefront</span>
+          <span className="text-[11px] text-ink-500 sm:text-xs">
+            The announcement bar appears at the top of every page.
+          </span>
+        </span>
+        <span
+          role="switch"
+          aria-checked={enabled}
+          className={clsx(
+            "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition",
+            enabled ? "bg-accent-primary" : "bg-ink-500/25",
+          )}
+        >
+          <span
+            className={clsx(
+              "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+              enabled ? "translate-x-5" : "translate-x-0.5",
+            )}
+          />
+        </span>
       </label>
 
-      <div className="flex flex-col gap-3 rounded-sm border border-dashed border-ink-500/20 bg-bg-base p-4">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">
+      <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-ink-500/25 bg-bg-base p-3 sm:p-4">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-gold sm:text-[10px]">
           Preview
         </span>
         {enabled && trimmed ? (
-          <div className="bg-ink-900 py-2 text-center text-xs uppercase tracking-[0.2em] text-bg-base">
+          <div className="rounded-lg bg-ink-900 py-2 text-center text-[10px] uppercase tracking-[0.2em] text-bg-base sm:py-2.5 sm:text-xs">
             {trimmed}
           </div>
         ) : (
-          <span className="text-xs italic text-ink-500">Bar hidden on storefront.</span>
+          <span className="text-[11px] italic text-ink-500 sm:text-xs">
+            Bar hidden on storefront.
+          </span>
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
+      <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+        {!dirty && !pending && (
+          <span className="text-[10px] text-ink-500 sm:text-xs">No changes</span>
+        )}
+        <PillSubmitButton
+          pending={pending}
+          pendingLabel="Saving…"
           disabled={disabled || !dirty}
-          className="inline-flex items-center gap-2 rounded-sm bg-accent-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="self-stretch sm:self-auto"
         >
-          {pending ? "Saving…" : "Save announcement"}
-        </button>
-        {!dirty && <span className="text-xs text-ink-500">No changes</span>}
+          Save announcement
+        </PillSubmitButton>
       </div>
     </form>
   );

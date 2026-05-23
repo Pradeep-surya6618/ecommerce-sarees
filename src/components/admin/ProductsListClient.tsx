@@ -20,19 +20,31 @@ function statusTone(s: Product["status"]): "success" | "neutral" | "warning" {
   return "warning";
 }
 
+const STATUS_PILLS: { value: "" | Product["status"]; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "draft", label: "Draft" },
+  { value: "archived", label: "Archived" },
+];
+
 export function ProductsListClient({ products }: Props) {
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"" | Product["status"]>("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
+    return products.filter((p) => {
+      if (status && p.status !== status) return false;
+      if (!q) return true;
+      return (
         p.name.toLowerCase().includes(q) ||
         p.categorySlug.toLowerCase().includes(q) ||
-        p.fabric.toLowerCase().includes(q),
-    );
-  }, [products, query]);
+        p.fabric.toLowerCase().includes(q)
+      );
+    });
+  }, [products, query, status]);
+
+  const hasActiveFilters = Boolean(query) || Boolean(status);
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
@@ -41,7 +53,9 @@ export function ProductsListClient({ products }: Props) {
           <div className="min-w-0">
             <h1 className="font-display text-xl text-ink-900 sm:text-3xl">Products</h1>
             <p className="text-[11px] text-ink-700 sm:text-sm">
-              {products.length} product{products.length === 1 ? "" : "s"} in store
+              {hasActiveFilters
+                ? `${filtered.length} of ${products.length} ${products.length === 1 ? "product" : "products"}`
+                : `${products.length} product${products.length === 1 ? "" : "s"} in store`}
             </p>
           </div>
           <Link
@@ -64,14 +78,58 @@ export function ProductsListClient({ products }: Props) {
             className="autofill-on-light h-10 w-full rounded-full border border-ink-500/15 bg-bg-elevated pl-10 pr-4 text-sm text-ink-900 outline-none transition placeholder:text-ink-500 focus:border-accent-primary focus:bg-white sm:h-11"
           />
         </div>
+
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-hide sm:flex-wrap sm:overflow-visible">
+          {STATUS_PILLS.map((pill) => {
+            const active = status === pill.value;
+            const count =
+              pill.value === ""
+                ? products.length
+                : products.filter((p) => p.status === pill.value).length;
+            return (
+              <button
+                key={pill.value || "all"}
+                type="button"
+                onClick={() => setStatus(pill.value)}
+                className={clsx(
+                  "inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[11px] font-medium transition sm:h-8 sm:text-xs",
+                  active
+                    ? "border-accent-primary bg-accent-primary text-white shadow-[0_6px_18px_-10px_rgba(91,58,138,0.7)]"
+                    : "border-ink-500/15 bg-bg-elevated text-ink-700 hover:border-accent-primary hover:text-accent-primary",
+                )}
+              >
+                {pill.label}
+                <span
+                  className={clsx(
+                    "font-mono text-[9px] tabular-nums",
+                    active ? "text-white/80" : "text-ink-500",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </header>
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-ink-500/10 bg-bg-elevated px-6 py-12 text-center">
           <p className="text-sm text-ink-500">
-            {query ? `No products match "${query}".` : "No products yet."}
+            {hasActiveFilters ? "No products match these filters." : "No products yet."}
           </p>
-          {!query && (
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setStatus("");
+              }}
+              className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-ink-500/20 px-4 py-2 text-xs font-medium text-ink-700 transition hover:border-accent-primary hover:text-accent-primary"
+            >
+              Clear filters
+            </button>
+          ) : (
             <Link
               href="/admin/products/new"
               className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-primary-hover"

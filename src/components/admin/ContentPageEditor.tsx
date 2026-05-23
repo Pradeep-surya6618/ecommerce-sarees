@@ -2,15 +2,23 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Eye, FolderTree, Heading, Layers, Link2, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { clsx } from "@/lib/utils/clsx";
 import {
   createContentPageAction,
   deleteContentPageAction,
   updateContentPageAction,
 } from "@/server/actions/admin-content-pages";
+import {
+  FormSection,
+  PillField,
+  PillInput,
+  PillListbox,
+  PillSubmitButton,
+} from "@/components/account/AccountFields";
 import { MarkdownEditor } from "@/components/admin/MarkdownEditor";
-import { Input } from "@/components/ui/Input";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { ContentPage, ContentPageGroup, ContentPageInput } from "@/types/domain";
 
 export interface ContentPageEditorProps {
@@ -28,6 +36,18 @@ const DEFAULT_FORM: ContentPageInput = {
   visible: true,
   externalHref: null,
 };
+
+const GROUP_LABEL: Record<ContentPageGroup, string> = {
+  help: "Help",
+  company: "Company",
+  none: "None (not in footer)",
+};
+
+function groupFromLabel(label: string): ContentPageGroup {
+  if (label === "Company") return "company";
+  if (label === "None (not in footer)") return "none";
+  return "help";
+}
 
 function toInput(p: ContentPage): ContentPageInput {
   return {
@@ -47,6 +67,7 @@ export function ContentPageEditor({ mode, initial }: ContentPageEditorProps) {
   const [form, setForm] = useState<ContentPageInput>(initial ? toInput(initial) : DEFAULT_FORM);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function update<K extends keyof ContentPageInput>(key: K, value: ContentPageInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -71,15 +92,18 @@ export function ContentPageEditor({ mode, initial }: ContentPageEditorProps) {
     });
   }
 
-  function onDelete() {
+  function confirmDelete() {
     if (!initial) return;
-    if (!confirm(`Delete "${initial.title}"? This cannot be undone.`)) return;
     startDelete(async () => {
       try {
         await deleteContentPageAction(initial.id);
-        toast.success("Page deleted");
+        toast.success("Page deleted", {
+          description: `"${initial.title}" was removed.`,
+        });
+        setConfirmOpen(false);
         router.push("/admin/pages");
       } catch (err) {
+        setConfirmOpen(false);
         toast.error(err instanceof Error ? err.message : "Couldn't delete this page.");
       }
     });
@@ -94,185 +118,230 @@ export function ContentPageEditor({ mode, initial }: ContentPageEditorProps) {
       : null;
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="flex flex-col gap-6 rounded-md border border-ink-500/10 bg-bg-elevated p-6"
-    >
-      {/* ── Meta ── */}
-      <Section title="Page details">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Title" htmlFor="title" hint="Shown as the page heading.">
-            <Input
-              id="title"
+    <form onSubmit={onSubmit} className="flex flex-col gap-5 sm:gap-7">
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Page details" hint="What customers see and the URL it lives at.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+            <PillField label="Title" htmlFor="title" required hint="Shown as the page heading.">
+              <PillInput
+                id="title"
+                icon={Heading}
+                required
+                value={form.title}
+                onChange={(e) => update("title", e.target.value)}
+                placeholder="Returns Policy"
+              />
+            </PillField>
+            <PillField
+              label="Slug"
+              htmlFor="slug"
               required
-              value={form.title}
-              onChange={(e) => update("title", e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Slug"
-            htmlFor="slug"
-            hint={
-              isSystem
-                ? "System pages have a fixed slug — wired to the storefront route."
-                : "Lowercase letters, numbers, hyphens. Used in the URL."
-            }
-          >
-            <Input
-              id="slug"
-              required
-              disabled={isSystem}
-              value={form.slug}
-              onChange={(e) => update("slug", e.target.value.toLowerCase())}
-              placeholder="returns-policy"
-            />
-          </Field>
-        </div>
-        {publicUrl && (
-          <p className="text-xs text-ink-500">
-            Public URL: <span className="font-mono text-ink-700">{publicUrl}</span>
-          </p>
-        )}
-      </Section>
-
-      {/* ── Footer placement ── */}
-      <Section title="Footer placement">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Footer label" htmlFor="footerLabel" hint="Text shown in the footer column.">
-            <Input
-              id="footerLabel"
-              required
-              value={form.footerLabel}
-              onChange={(e) => update("footerLabel", e.target.value)}
-            />
-          </Field>
-          <Field label="Group" htmlFor="group" hint="Which footer column shows this page.">
-            <select
-              id="group"
-              value={form.group}
-              onChange={(e) => update("group", e.target.value as ContentPageGroup)}
-              className="h-11 w-full cursor-pointer rounded-sm border border-ink-500/30 bg-bg-base px-3 text-sm text-ink-900 transition focus:border-accent-primary focus:outline-none"
+              hint={
+                isSystem
+                  ? "System pages have a fixed slug — wired to the storefront route."
+                  : "Lowercase letters, numbers, hyphens. Used in the URL."
+              }
             >
-              <option value="help">Help</option>
-              <option value="company">Company</option>
-              <option value="none">None (not in footer)</option>
-            </select>
-          </Field>
-          <Field label="Sort order" htmlFor="sortOrder" hint="Lower numbers appear first.">
-            <Input
-              id="sortOrder"
-              type="number"
-              min={0}
-              value={form.sortOrder}
-              onChange={(e) => update("sortOrder", Number(e.target.value))}
-            />
-          </Field>
-        </div>
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700">
-          <input
-            type="checkbox"
-            checked={form.visible}
-            onChange={(e) => update("visible", e.target.checked)}
-            className="h-4 w-4 cursor-pointer accent-accent-primary"
-          />
-          Visible on storefront and in the footer
-        </label>
-      </Section>
-
-      {/* ── Body ── */}
-      <Section
-        title="Content"
-        hint={
-          hasExternalHref
-            ? "This page links to a dedicated route — its content is edited elsewhere."
-            : "Write in markdown. Use the toolbar buttons to insert headings, links, images, and lists."
-        }
-      >
-        {hasExternalHref ? (
-          <div className="rounded-sm border border-dashed border-ink-500/30 bg-bg-base p-4 text-sm text-ink-700">
-            This page&apos;s body lives in a dedicated admin editor. The footer entry still routes
-            to <span className="font-mono text-xs">{form.externalHref}</span>.
+              <PillInput
+                id="slug"
+                icon={Link2}
+                required
+                disabled={isSystem}
+                value={form.slug}
+                onChange={(e) => update("slug", e.target.value.toLowerCase())}
+                placeholder="returns-policy"
+              />
+            </PillField>
           </div>
-        ) : (
-          <MarkdownEditor
-            id="body"
-            value={form.body}
-            onChange={(v) => update("body", v)}
-            rows={22}
-          />
-        )}
-      </Section>
+          {publicUrl && (
+            <p className="text-[11px] text-ink-500 sm:text-xs">
+              Public URL: <span className="font-mono text-ink-700">{publicUrl}</span>
+            </p>
+          )}
+        </FormSection>
+      </section>
 
-      {/* ── Footer actions ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-sm bg-accent-primary px-6 py-2.5 text-sm font-medium text-white transition hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection title="Footer placement" hint="Where this page appears in the site footer.">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+            <PillField
+              label="Footer label"
+              htmlFor="footerLabel"
+              required
+              hint="Text shown in the footer column."
+            >
+              <PillInput
+                id="footerLabel"
+                icon={Tag}
+                required
+                value={form.footerLabel}
+                onChange={(e) => update("footerLabel", e.target.value)}
+                placeholder="Returns"
+              />
+            </PillField>
+            <PillField label="Group" htmlFor="group" required hint="Which footer column.">
+              <PillListbox
+                id="group"
+                icon={FolderTree}
+                value={GROUP_LABEL[form.group]}
+                onChange={(label) => update("group", groupFromLabel(label))}
+                options={Object.values(GROUP_LABEL)}
+                placeholder="Select column"
+              />
+            </PillField>
+            <PillField
+              label="Sort order"
+              htmlFor="sortOrder"
+              required
+              hint="Lower numbers appear first."
+            >
+              <PillInput
+                id="sortOrder"
+                icon={Layers}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={form.sortOrder}
+                onChange={(e) => update("sortOrder", Number(e.target.value))}
+              />
+            </PillField>
+          </div>
+
+          <label
+            htmlFor="visible"
+            className={clsx(
+              "flex cursor-pointer items-center gap-3 rounded-2xl border bg-bg-elevated p-3 transition sm:p-4",
+              form.visible
+                ? "border-accent-primary/40 bg-accent-primary/[0.04]"
+                : "border-ink-500/15",
+            )}
           >
-            {pending ? "Saving…" : mode === "create" ? "Create page" : "Save changes"}
+            <input
+              id="visible"
+              type="checkbox"
+              checked={form.visible}
+              onChange={(e) => update("visible", e.target.checked)}
+              className="sr-only"
+            />
+            <span
+              className={clsx(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition sm:h-10 sm:w-10",
+                form.visible
+                  ? "bg-accent-primary text-white"
+                  : "bg-ink-900/[0.06] text-accent-primary",
+              )}
+            >
+              <Eye className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-medium text-ink-900">Visible on storefront</span>
+              <span className="text-[11px] text-ink-500 sm:text-xs">
+                Show in the footer and at{" "}
+                <span className="font-mono">/p/{form.slug || "<slug>"}</span>.
+              </span>
+            </span>
+            <span
+              role="switch"
+              aria-checked={form.visible}
+              className={clsx(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition",
+                form.visible ? "bg-accent-primary" : "bg-ink-500/25",
+              )}
+            >
+              <span
+                className={clsx(
+                  "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+                  form.visible ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </span>
+          </label>
+        </FormSection>
+      </section>
+
+      <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+        />
+        <FormSection
+          title="Content"
+          hint={
+            hasExternalHref
+              ? "This page links to a dedicated route — its content is edited elsewhere."
+              : "Write in markdown. Use the toolbar to insert headings, links, images, and lists."
+          }
+        >
+          {hasExternalHref ? (
+            <div className="rounded-2xl border border-dashed border-ink-500/30 bg-bg-base p-4 text-[11px] text-ink-700 sm:p-5 sm:text-sm">
+              This page&apos;s body lives in a dedicated admin editor. The footer entry still routes
+              to <span className="font-mono text-[10px] sm:text-xs">{form.externalHref}</span>.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-ink-500/15 bg-bg-base">
+              <MarkdownEditor
+                id="body"
+                value={form.body}
+                onChange={(v) => update("body", v)}
+                rows={22}
+              />
+            </div>
+          )}
+        </FormSection>
+      </section>
+
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+        {mode === "edit" && initial && !initial.isSystem ? (
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting || pending}
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 self-start rounded-full border border-danger/30 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-danger transition hover:bg-danger/5 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:text-xs sm:tracking-[0.2em] md:h-12 md:text-sm"
+          >
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            {deleting ? "Deleting…" : "Delete page"}
           </button>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-2 sm:gap-3">
           {mode === "edit" && initial && (
-            <span className="text-xs text-ink-500">
+            <span className="hidden text-[10px] text-ink-500 sm:inline-block sm:text-xs">
               Last updated {new Date(initial.updatedAt).toLocaleString()}
             </span>
           )}
-        </div>
-        {mode === "edit" && initial && !initial.isSystem && (
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={deleting}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-sm border border-danger/30 px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+          <PillSubmitButton
+            pending={pending}
+            pendingLabel="Saving…"
+            className="self-stretch sm:self-auto"
           >
-            <Trash2 className="h-4 w-4" />
-            {deleting ? "Deleting…" : "Delete page"}
-          </button>
-        )}
+            {mode === "create" ? "Create page" : "Save changes"}
+          </PillSubmitButton>
+        </div>
       </div>
+
+      {initial && (
+        <ConfirmDialog
+          open={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete this page?"
+          description={`"${initial.title}" will be permanently removed. This can't be undone.`}
+          confirmLabel="Delete"
+          cancelLabel="Keep it"
+          tone="danger"
+          icon={Trash2}
+          pending={deleting}
+        />
+      )}
     </form>
-  );
-}
-
-function Section({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-4 border-b border-ink-500/10 pb-6 last:border-b-0 last:pb-0">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-500">{title}</h2>
-        {hint && <p className="text-xs text-ink-500">{hint}</p>}
-      </div>
-      <div className="flex flex-col gap-4">{children}</div>
-    </section>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  hint,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-ink-900">
-        {label}
-      </label>
-      {children}
-      {hint && <span className="text-xs text-ink-500">{hint}</span>}
-    </div>
   );
 }

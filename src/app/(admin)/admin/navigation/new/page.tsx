@@ -16,13 +16,13 @@ export default async function NewNavMenuItemPage() {
     <div className="flex flex-col gap-6">
       <Link
         href="/admin/navigation"
-        className="inline-flex w-fit items-center gap-2 text-sm text-ink-500 transition hover:text-ink-900"
+        className="inline-flex w-fit cursor-pointer items-center gap-2 text-xs text-ink-500 transition hover:text-ink-900 sm:text-sm"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to navigation
+        <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back to navigation
       </Link>
-      <header>
-        <h1 className="font-display text-3xl text-ink-900">New menu item</h1>
-        <p className="text-sm text-ink-700">
+      <header className="flex flex-col gap-1">
+        <h1 className="font-display text-lg text-ink-900 sm:text-xl md:text-2xl">New menu item</h1>
+        <p className="text-[11px] text-ink-700 sm:text-sm">
           Add a top-level entry or a child under an existing one.
         </p>
       </header>
