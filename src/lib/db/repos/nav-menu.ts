@@ -1,5 +1,4 @@
 import { nanoid } from "nanoid";
-import { NAV_MENU_FIXTURE } from "@/lib/db/fixtures/nav-menu";
 import type { NavMenuItem, NavMenuItemInput } from "@/types/domain";
 
 export interface NavMenuTreeNode {
@@ -25,7 +24,6 @@ declare global {
 function getStore(): Map<string, NavMenuItem> {
   if (globalThis.__mockNavMenu) return globalThis.__mockNavMenu;
   const store = new Map<string, NavMenuItem>();
-  for (const i of NAV_MENU_FIXTURE) store.set(i.id, i);
   globalThis.__mockNavMenu = store;
   return store;
 }

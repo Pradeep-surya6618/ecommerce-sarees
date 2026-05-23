@@ -1,40 +1,64 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesRepo, type CategoryDraft } from "@/lib/db/repos/categories";
 
-async function requireAdmin() {
+export type CategoryActionResult = { ok: true; slug?: string } | { ok: false; error: string };
+
+async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await getCurrentUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
-    throw new Error("Admin access required.");
+    return { ok: false, error: "Admin access required." };
   }
-  return user;
+  return { ok: true };
 }
 
-export async function createCategoryAction(input: CategoryDraft): Promise<void> {
-  await requireAdmin();
-  const category = await categoriesRepo.create(input);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/categories");
-  redirect(`/admin/categories/${category.slug}`);
+export async function createCategoryAction(input: CategoryDraft): Promise<CategoryActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    const category = await categoriesRepo.create(input);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/categories");
+    return { ok: true, slug: category.slug };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to create category.";
+    return { ok: false, error: message };
+  }
 }
 
 export async function updateCategoryAction(
   id: string,
   input: Partial<CategoryDraft>,
-): Promise<void> {
-  await requireAdmin();
-  await categoriesRepo.update(id, input);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/categories");
+): Promise<CategoryActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    const updated = await categoriesRepo.update(id, input);
+    if (!updated) {
+      return { ok: false, error: "Category not found." };
+    }
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/categories");
+    revalidatePath(`/admin/categories/${updated.slug}`);
+    return { ok: true, slug: updated.slug };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update category.";
+    return { ok: false, error: message };
+  }
 }
 
-export async function deleteCategoryAction(id: string): Promise<void> {
-  await requireAdmin();
-  await categoriesRepo.delete(id);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/categories");
-  redirect("/admin/categories");
+export async function deleteCategoryAction(id: string): Promise<CategoryActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  try {
+    await categoriesRepo.delete(id);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/categories");
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to delete category.";
+    return { ok: false, error: message };
+  }
 }

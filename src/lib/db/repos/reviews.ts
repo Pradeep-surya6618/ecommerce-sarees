@@ -1,4 +1,3 @@
-import { REVIEWS_FIXTURE } from "@/lib/db/fixtures/reviews";
 import type { Review } from "@/types/domain";
 
 export interface ReviewListOptions {
@@ -10,24 +9,15 @@ export interface ReviewsRepo {
   listByProduct(productId: string, options?: ReviewListOptions): Promise<Review[]>;
 }
 
-function newestFirst(a: Review, b: Review): number {
-  return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0;
-}
-
-function applyLimit<T>(items: T[], options?: ReviewListOptions): T[] {
-  return options?.limit ? items.slice(0, options.limit) : items;
-}
-
+// Reviews are not yet implemented against DynamoDB. They land in a later phase
+// using the Content table with `REVIEW#<productId>` PK and per-review SK.
+// Until then the storefront should render the empty state.
 export const reviewsRepo: ReviewsRepo = {
-  async listFeatured(options) {
-    const items = REVIEWS_FIXTURE.slice().sort(newestFirst);
-    return applyLimit(items, options);
+  async listFeatured() {
+    return [];
   },
 
-  async listByProduct(productId, options) {
-    const items = REVIEWS_FIXTURE.filter((r) => r.productId === productId)
-      .slice()
-      .sort(newestFirst);
-    return applyLimit(items, options);
+  async listByProduct() {
+    return [];
   },
 };

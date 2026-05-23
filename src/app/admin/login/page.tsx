@@ -1,15 +1,9 @@
-import {
-  DEMO_ADMIN_EMAIL,
-  DEMO_ADMIN_PASSWORD,
-  ensureDemoAdminSeeded,
-} from "@/lib/auth/admin-seed";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { AdminLoginIllustration } from "@/components/admin/AdminLoginIllustration";
 
 export const metadata = { title: "Admin sign in · Saree Store" };
 
-export default async function AdminLoginPage() {
-  await ensureDemoAdminSeeded();
+export default function AdminLoginPage() {
   return (
     <main className="grid h-screen grid-cols-1 bg-[#1a1530] md:grid-cols-[1.05fr_0.95fr]">
       <div className="flex h-screen flex-col justify-center overflow-y-auto px-5 py-6 sm:px-12 sm:py-8 md:h-full md:px-16 lg:px-24">
@@ -23,12 +17,6 @@ export default async function AdminLoginPage() {
               </span>
             </h1>
           </header>
-          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] leading-relaxed text-white/55 sm:mb-5 sm:text-[11px]">
-            <span className="text-white/35">Demo —</span>{" "}
-            <span className="font-mono text-white/80">{DEMO_ADMIN_EMAIL}</span>{" "}
-            <span className="text-white/30">·</span>{" "}
-            <span className="font-mono text-white/80">{DEMO_ADMIN_PASSWORD}</span>
-          </div>
           <AdminLoginForm />
         </div>
       </div>

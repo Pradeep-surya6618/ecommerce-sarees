@@ -1,13 +1,18 @@
-/**
- * STUB hashing for the UI-only phase. NOT secure — real bcrypt
- * (cost 12) lands when the backend phase wires Users to DynamoDB.
- */
-const STUB_PREFIX = "stub-hash:";
+import bcrypt from "bcryptjs";
 
-export async function hashPasswordStub(plain: string): Promise<string> {
-  return `${STUB_PREFIX}${plain}`;
+const BCRYPT_COST = 12;
+
+export async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, BCRYPT_COST);
 }
 
-export async function verifyPasswordStub(plain: string, storedHash: string): Promise<boolean> {
-  return storedHash === `${STUB_PREFIX}${plain}`;
+export async function verifyPassword(plain: string, storedHash: string): Promise<boolean> {
+  if (!storedHash) return false;
+  return bcrypt.compare(plain, storedHash);
 }
+
+// Backwards-compatible aliases used by older call sites. Same behaviour as
+// hashPassword / verifyPassword — the "stub" name remains so we can remove
+// the alias in a follow-up sweep without touching this file again.
+export const hashPasswordStub = hashPassword;
+export const verifyPasswordStub = verifyPassword;

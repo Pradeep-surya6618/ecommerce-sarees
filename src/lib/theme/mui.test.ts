@@ -11,6 +11,6 @@ describe("muiTheme", () => {
 
   it("uses the brand radius and body font", () => {
     expect(muiTheme.shape.borderRadius).toBe(radii.sm);
-    expect(muiTheme.typography.fontFamily).toContain("Inter");
+    expect(muiTheme.typography.fontFamily).toContain("Manrope");
   });
 });

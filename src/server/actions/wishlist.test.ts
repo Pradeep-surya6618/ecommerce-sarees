@@ -34,6 +34,8 @@ describe("wishlist server actions", () => {
 
   it("requires a signed-in user", async () => {
     getCurrentUserMock.mockResolvedValueOnce(null);
-    await expect(addToWishlistAction(sample)).rejects.toThrow(/sign in/i);
+    const result = await addToWishlistAction(sample);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/sign in/i);
   });
 });

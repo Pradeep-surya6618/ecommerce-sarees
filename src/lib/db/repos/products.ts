@@ -1,23 +1,15 @@
+import {
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  ScanCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { nanoid } from "nanoid";
-import { PRODUCTS_FIXTURE } from "@/lib/db/fixtures/products";
+import { getDdbDoc } from "@/lib/db/client";
+import { tableName, TABLES } from "@/lib/db/tables";
 import type { ShopSort } from "@/lib/utils/shop-filters";
 import type { Product, ProductDraft } from "@/types/domain";
-
-declare global {
-  var __mockProducts: Map<string, Product> | undefined;
-}
-
-function getStore(): Map<string, Product> {
-  if (globalThis.__mockProducts) return globalThis.__mockProducts;
-  const store = new Map<string, Product>();
-  for (const p of PRODUCTS_FIXTURE) store.set(p.id, p);
-  globalThis.__mockProducts = store;
-  return store;
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
 
 export interface ListOptions {
   limit?: number;
@@ -63,10 +55,55 @@ export interface ProductsRepo {
   listAll(options?: ListAllOptions): Promise<Product[]>;
 }
 
+// DynamoDB Products table:
+//   PK = productId
+//   GSI SlugIndex(slug) → for /product/<slug>
+//   GSI CategoryStatusIndex(categoryId, statusCreatedAt) → list-by-category browse
+//
+// Naming wart: the GSI hash attribute is `categoryId` for historical reasons,
+// but we actually store the category SLUG there (the domain has `categorySlug`,
+// not numeric IDs). When the table is rebuilt we'll rename it to `categorySlug`.
+//
+// `statusCreatedAt` is a synthetic sort key `<status>#<createdAt>` so the GSI
+// can serve "active products in this category, newest first" with a single
+// Query (begins_with "active#").
+
 const DEFAULT_PAGE_SIZE = 12;
 
-function applyLimit<T>(items: T[], options?: ListOptions): T[] {
-  return options?.limit ? items.slice(0, options.limit) : items;
+function table(): string {
+  return tableName(TABLES.Products);
+}
+
+function statusCreatedAt(p: Pick<Product, "status" | "createdAt">): string {
+  return `${p.status}#${p.createdAt}`;
+}
+
+function toItem(product: Product): Record<string, unknown> {
+  return {
+    ...product,
+    productId: product.id,
+    categoryId: product.categorySlug,
+    statusCreatedAt: statusCreatedAt(product),
+  };
+}
+
+function fromItem(item: Record<string, unknown> | undefined): Product | null {
+  if (!item) return null;
+  const {
+    productId,
+    categoryId,
+    statusCreatedAt: _sca,
+    ...rest
+  } = item as Product & {
+    productId: string;
+    categoryId: string;
+    statusCreatedAt: string;
+  };
+  return {
+    ...(rest as Product),
+    id: productId,
+    categorySlug: rest.categorySlug ?? categoryId,
+  };
 }
 
 function sortNewestFirst(a: Product, b: Product): number {
@@ -75,6 +112,10 @@ function sortNewestFirst(a: Product, b: Product): number {
 
 function activeOnly(p: Product): boolean {
   return p.status === "active";
+}
+
+function applyLimit<T>(items: T[], options?: ListOptions): T[] {
+  return options?.limit ? items.slice(0, options.limit) : items;
 }
 
 function applySort(items: Product[], sort: ShopSort | undefined): Product[] {
@@ -136,58 +177,127 @@ function matchesFilters(p: Product, o: SearchOptions): boolean {
   return true;
 }
 
+async function scanAll(options?: { activeOnly?: boolean }): Promise<Product[]> {
+  const out: Product[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const res = await getDdbDoc().send(
+      new ScanCommand({
+        TableName: table(),
+        ExclusiveStartKey: lastKey,
+      }),
+    );
+    for (const item of res.Items ?? []) {
+      const product = fromItem(item);
+      if (!product) continue;
+      if (options?.activeOnly && product.status !== "active") continue;
+      out.push(product);
+    }
+    lastKey = res.LastEvaluatedKey;
+  } while (lastKey);
+  return out;
+}
+
+async function queryByCategory(categorySlug: string, statusPrefix?: string): Promise<Product[]> {
+  const out: Product[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const res = await getDdbDoc().send(
+      new QueryCommand({
+        TableName: table(),
+        IndexName: "CategoryStatusIndex",
+        KeyConditionExpression: statusPrefix
+          ? "categoryId = :c AND begins_with(statusCreatedAt, :s)"
+          : "categoryId = :c",
+        ExpressionAttributeValues: statusPrefix
+          ? { ":c": categorySlug, ":s": statusPrefix }
+          : { ":c": categorySlug },
+        ExclusiveStartKey: lastKey,
+        // Newer first — sort key is `<status>#<createdAt>` (ISO), so descending
+        // gives newest-first within the status range.
+        ScanIndexForward: false,
+      }),
+    );
+    for (const item of res.Items ?? []) {
+      const product = fromItem(item);
+      if (product) out.push(product);
+    }
+    lastKey = res.LastEvaluatedKey;
+  } while (lastKey);
+  return out;
+}
+
 export const productsRepo: ProductsRepo = {
   async list(options) {
-    const items = [...getStore().values()].filter(activeOnly).slice().sort(sortNewestFirst);
-    return applyLimit(items, options);
+    const items = await scanAll({ activeOnly: true });
+    return applyLimit(items.sort(sortNewestFirst), options);
   },
 
   async listFeatured(options) {
-    const items = [...getStore().values()]
-      .filter((p) => activeOnly(p) && p.featured)
-      .slice()
-      .sort(sortNewestFirst);
-    return applyLimit(items, options);
+    const items = await scanAll({ activeOnly: true });
+    const featured = items.filter((p) => p.featured).sort(sortNewestFirst);
+    return applyLimit(featured, options);
   },
 
   async listByCategory(categorySlug, options) {
-    const items = [...getStore().values()]
-      .filter((p) => activeOnly(p) && p.categorySlug === categorySlug)
-      .slice()
-      .sort(sortNewestFirst);
+    const items = await queryByCategory(categorySlug, "active#");
     return applyLimit(items, options);
   },
 
   async listByCategorySlugs(categorySlugs, options) {
     if (categorySlugs.length === 0) return [];
-    const set = new Set(categorySlugs);
-    const items = [...getStore().values()]
-      .filter((p) => activeOnly(p) && set.has(p.categorySlug))
-      .slice()
-      .sort((a, b) => {
-        // Featured first, then newest
-        if (a.featured !== b.featured) return a.featured ? -1 : 1;
-        return sortNewestFirst(a, b);
-      });
-    return applyLimit(items, options);
+    const arrays = await Promise.all(categorySlugs.map((slug) => queryByCategory(slug, "active#")));
+    const merged = arrays.flat();
+    merged.sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return sortNewestFirst(a, b);
+    });
+    return applyLimit(merged, options);
   },
 
   async getBySlug(slug) {
-    return [...getStore().values()].find((p) => p.slug === slug && activeOnly(p)) ?? null;
+    const res = await getDdbDoc().send(
+      new QueryCommand({
+        TableName: table(),
+        IndexName: "SlugIndex",
+        KeyConditionExpression: "slug = :slug",
+        ExpressionAttributeValues: { ":slug": slug },
+        Limit: 1,
+      }),
+    );
+    const product = fromItem(res.Items?.[0]);
+    if (!product) return null;
+    return activeOnly(product) ? product : null;
   },
 
   async getById(id) {
-    return getStore().get(id) ?? null;
+    const res = await getDdbDoc().send(
+      new GetCommand({
+        TableName: table(),
+        Key: { productId: id },
+      }),
+    );
+    return fromItem(res.Item);
   },
 
   async search(options) {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize =
       options.pageSize && options.pageSize > 0 ? options.pageSize : DEFAULT_PAGE_SIZE;
-    const all = [...getStore().values()]
-      .filter(activeOnly)
-      .filter((p) => matchesFilters(p, options));
-    const sorted = applySort(all, options.sort);
+
+    // If a single category filter is specified, use the GSI Query. Otherwise
+    // fall back to a Scan of all active products — fine until the catalog
+    // grows past a few thousand items.
+    let all: Product[];
+    if (options.categorySlugs && options.categorySlugs.length === 1) {
+      const onlySlug = options.categorySlugs[0];
+      all = onlySlug ? await queryByCategory(onlySlug, "active#") : [];
+    } else {
+      all = await scanAll({ activeOnly: true });
+    }
+
+    const filtered = all.filter((p) => matchesFilters(p, options));
+    const sorted = applySort(filtered, options.sort);
     const start = (page - 1) * pageSize;
     const items = sorted.slice(start, start + pageSize);
     return {
@@ -200,47 +310,60 @@ export const productsRepo: ProductsRepo = {
   },
 
   async create(input) {
-    const store = getStore();
-    const now = nowIso();
+    const now = new Date().toISOString();
     const product: Product = {
       ...input,
       id: `prd_${nanoid(12)}`,
       createdAt: now,
     };
-    store.set(product.id, product);
+    await getDdbDoc().send(
+      new PutCommand({
+        TableName: table(),
+        Item: toItem(product),
+        ConditionExpression: "attribute_not_exists(productId)",
+      }),
+    );
     return product;
   },
 
   async update(id, input) {
-    const store = getStore();
-    const existing = store.get(id);
+    const existing = await productsRepo.getById(id);
     if (!existing) return null;
     const updated: Product = { ...existing, ...input };
-    store.set(id, updated);
+    await getDdbDoc().send(
+      new PutCommand({
+        TableName: table(),
+        Item: toItem(updated),
+      }),
+    );
     return updated;
   },
 
   async archive(id) {
-    const store = getStore();
-    const existing = store.get(id);
+    const existing = await productsRepo.getById(id);
     if (!existing) return null;
     const archived: Product = { ...existing, status: "archived" };
-    store.set(id, archived);
+    await getDdbDoc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { productId: id },
+        UpdateExpression: "SET #s = :s, statusCreatedAt = :sca",
+        ExpressionAttributeNames: { "#s": "status" },
+        ExpressionAttributeValues: {
+          ":s": "archived",
+          ":sca": statusCreatedAt(archived),
+        },
+      }),
+    );
     return archived;
   },
 
   async listAll(options) {
     const includeArchived = options?.includeArchived ?? false;
-    const all = [...getStore().values()];
+    const all = await scanAll();
     const filtered = includeArchived
       ? all
       : all.filter((p) => p.status === "active" || p.status === "draft");
-    return filtered.slice().sort(sortNewestFirst);
+    return filtered.sort(sortNewestFirst);
   },
 };
-
-export function __resetProductsRepo(): void {
-  const store = getStore();
-  store.clear();
-  for (const p of PRODUCTS_FIXTURE) store.set(p.id, p);
-}

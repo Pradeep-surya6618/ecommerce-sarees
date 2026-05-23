@@ -1,4 +1,4 @@
-import { PRODUCTS_FIXTURE } from "@/lib/db/fixtures/products";
+import type { Product } from "@/types/domain";
 
 export interface FabricOption {
   value: string;
@@ -20,16 +20,25 @@ function uniq<T>(values: T[]): T[] {
   return [...new Set(values)];
 }
 
-export function getFabricOptions(): FabricOption[] {
-  const fabrics = uniq(PRODUCTS_FIXTURE.map((p) => p.fabric.toLowerCase()));
+function titleCase(s: string): string {
+  return s.replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+}
+
+// Derive filter options from the catalog the page actually has. Each shop page
+// passes the active product set in; an empty catalog yields empty option lists
+// (the FilterRail renders the empty state). When the catalog grows large enough
+// that scanning every product becomes expensive, move this work to a denormalised
+// "facets" entry on the Categories table.
+export function deriveFabricOptions(products: Product[]): FabricOption[] {
+  const fabrics = uniq(products.map((p) => p.fabric.toLowerCase()).filter(Boolean));
   return fabrics
-    .map((f) => ({ value: f, label: f.replace(/(^|\s)\S/g, (s) => s.toUpperCase()) }))
+    .map((f) => ({ value: f, label: titleCase(f) }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export function getColorOptions(): ColorOption[] {
+export function deriveColorOptions(products: Product[]): ColorOption[] {
   const map = new Map<string, string>();
-  for (const p of PRODUCTS_FIXTURE) {
+  for (const p of products) {
     for (const v of p.variants) {
       if (!map.has(v.colorName)) map.set(v.colorName, v.colorHex);
     }
@@ -39,10 +48,10 @@ export function getColorOptions(): ColorOption[] {
     .sort((a, b) => a.value.localeCompare(b.value));
 }
 
-export function getOccasionOptions(): FabricOption[] {
-  const all = PRODUCTS_FIXTURE.flatMap((p) => p.occasion);
+export function deriveOccasionOptions(products: Product[]): FabricOption[] {
+  const all = products.flatMap((p) => p.occasion);
   return uniq(all)
-    .map((o) => ({ value: o, label: o.replace(/(^|\s)\S/g, (s) => s.toUpperCase()) }))
+    .map((o) => ({ value: o, label: titleCase(o) }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 

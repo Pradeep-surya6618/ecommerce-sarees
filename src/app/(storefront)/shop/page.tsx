@@ -3,9 +3,9 @@ import { productsRepo } from "@/lib/db/repos/products";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { parseShopFilters, serializeShopFilters } from "@/lib/utils/shop-filters";
 import {
-  getColorOptions,
-  getFabricOptions,
-  getOccasionOptions,
+  deriveColorOptions,
+  deriveFabricOptions,
+  deriveOccasionOptions,
   PRICE_BUCKETS,
 } from "@/lib/utils/shop-options";
 import { FilterRail } from "@/components/storefront/FilterRail";
@@ -29,7 +29,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const rawParams = await searchParams;
   const filters = parseShopFilters(rawParams);
   const user = await getCurrentUser();
-  const [result, wishlistItems] = await Promise.all([
+  const [result, wishlistItems, catalog] = await Promise.all([
     productsRepo.search({
       fabrics: filters.fabrics.length > 0 ? filters.fabrics : undefined,
       colors: filters.colors.length > 0 ? filters.colors : undefined,
@@ -41,13 +41,14 @@ export default async function ShopPage({ searchParams }: PageProps) {
       page: filters.page,
     }),
     user ? wishlistRepo.listByUser(user.id) : Promise.resolve([]),
+    productsRepo.list(),
   ]);
   const wishlistProductIds = new Set(wishlistItems.map((w) => w.productId));
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
 
-  const fabricOptions = getFabricOptions();
-  const colorOptions = getColorOptions();
-  const occasionOptions = getOccasionOptions();
+  const fabricOptions = deriveFabricOptions(catalog);
+  const colorOptions = deriveColorOptions(catalog);
+  const occasionOptions = deriveOccasionOptions(catalog);
 
   const buildHref = (page: number) => {
     const qs = serializeShopFilters({ ...filters, page });

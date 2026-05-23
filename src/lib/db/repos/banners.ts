@@ -1,5 +1,4 @@
 import { nanoid } from "nanoid";
-import { BANNERS_FIXTURE } from "@/lib/db/fixtures/banners";
 import type { Banner, BannerInput, BannerPlacement } from "@/types/domain";
 
 export interface BannersRepo {
@@ -18,7 +17,6 @@ declare global {
 function getStore(): Map<string, Banner> {
   if (globalThis.__mockBanners) return globalThis.__mockBanners;
   const store = new Map<string, Banner>();
-  for (const b of BANNERS_FIXTURE) store.set(b.id, b);
   globalThis.__mockBanners = store;
   return store;
 }

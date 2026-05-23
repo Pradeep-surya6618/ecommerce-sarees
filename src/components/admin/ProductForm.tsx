@@ -225,15 +225,26 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
 
     startTransition(async () => {
       try {
-        if (editId) {
-          await updateProductAction(editId, draft);
-          toast.success("Product saved");
-        } else {
-          await createProductAction(draft);
+        const result = editId
+          ? await updateProductAction(editId, draft)
+          : await createProductAction(draft);
+
+        if (!result.ok) {
+          toast.error("Couldn't save product", { description: result.error });
+          return;
         }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error(err instanceof Error ? err.message : "Couldn't save product.");
+
+        if (editId) {
+          toast.success("Product saved");
+          router.refresh();
+        } else {
+          toast.success("Product created", { description: `"${values.name}" is now live.` });
+          if (result.id) router.push(`/admin/products/${result.id}`);
+        }
+      } catch {
+        toast.error("Couldn't save product", {
+          description: "Something went wrong. Please try again.",
+        });
       }
     });
   }
@@ -242,17 +253,20 @@ export function ProductForm({ categories, editId, defaultProduct }: ProductFormP
     if (!editId) return;
     startDeleting(async () => {
       try {
-        await archiveProductAction(editId);
+        const result = await archiveProductAction(editId);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't delete product", { description: result.error });
+          return;
+        }
         toast.success("Product deleted", {
           description: `"${defaultProduct?.name ?? "Product"}" has been archived.`,
         });
-        setConfirmOpen(false);
         router.push("/admin/products");
         router.refresh();
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+      } catch {
         setConfirmOpen(false);
-        toast.error(err instanceof Error ? err.message : "Couldn't delete product.");
+        toast.error("Couldn't delete product", { description: "Please try again." });
       }
     });
   }

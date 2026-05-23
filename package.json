@@ -18,6 +18,7 @@
     "dynamo:setup": "tsx --env-file=.env.local scripts/dynamo-setup.ts",
     "dynamo:teardown": "tsx --env-file=.env.local scripts/dynamo-teardown.ts",
     "admin:bootstrap": "tsx --env-file=.env.local scripts/bootstrap-admin.ts",
+    "user:delete": "tsx --env-file=.env.local scripts/delete-user.ts",
     "prepare": "husky"
   },
   "dependencies": {

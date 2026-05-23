@@ -1,4 +1,3 @@
-import { BLOG_POSTS_FIXTURE } from "@/lib/db/fixtures/blog-posts";
 import type { BlogPost } from "@/types/domain";
 
 declare global {
@@ -8,7 +7,6 @@ declare global {
 function getStore(): Map<string, BlogPost> {
   if (globalThis.__mockBlogPosts) return globalThis.__mockBlogPosts;
   const store = new Map<string, BlogPost>();
-  for (const p of BLOG_POSTS_FIXTURE) store.set(p.id, p);
   globalThis.__mockBlogPosts = store;
   return store;
 }

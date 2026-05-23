@@ -1,5 +1,4 @@
 import { nanoid } from "nanoid";
-import { CONTENT_PAGES_FIXTURE } from "@/lib/db/fixtures/content-pages";
 import type { ContentPage, ContentPageGroup, ContentPageInput } from "@/types/domain";
 
 export interface ContentPagesRepo {
@@ -20,7 +19,6 @@ declare global {
 function getStore(): Map<string, ContentPage> {
   if (globalThis.__mockContentPages) return globalThis.__mockContentPages;
   const store = new Map<string, ContentPage>();
-  for (const p of CONTENT_PAGES_FIXTURE) store.set(p.id, { ...p });
   globalThis.__mockContentPages = store;
   return store;
 }

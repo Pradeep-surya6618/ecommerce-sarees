@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -110,6 +111,7 @@ export function CategoryForm({
   defaultCategory,
   productCount = 0,
 }: CategoryFormProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [deleting, startDeleting] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -146,24 +148,35 @@ export function CategoryForm({
 
   function onSubmit(values: Values) {
     startTransition(async () => {
+      const payload = {
+        name: values.name,
+        slug: values.slug,
+        description: values.description,
+        imageUrl: values.imageUrl,
+        parentSlug: values.parentSlug && values.parentSlug.length > 0 ? values.parentSlug : null,
+        sortOrder: values.sortOrder,
+      };
       try {
-        const payload = {
-          name: values.name,
-          slug: values.slug,
-          description: values.description,
-          imageUrl: values.imageUrl,
-          parentSlug: values.parentSlug && values.parentSlug.length > 0 ? values.parentSlug : null,
-          sortOrder: values.sortOrder,
-        };
-        if (editId) {
-          await updateCategoryAction(editId, payload);
-          toast.success("Category saved");
-        } else {
-          await createCategoryAction(payload);
+        const result = editId
+          ? await updateCategoryAction(editId, payload)
+          : await createCategoryAction(payload);
+
+        if (!result.ok) {
+          toast.error("Couldn't save the category", { description: result.error });
+          return;
         }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error(err instanceof Error ? err.message : "Couldn't save the category.");
+
+        if (editId) {
+          toast.success("Category saved");
+          router.refresh();
+        } else {
+          toast.success("Category created", { description: `"${values.name}" is now live.` });
+          if (result.slug) router.push(`/admin/categories/${result.slug}`);
+        }
+      } catch {
+        toast.error("Couldn't save the category", {
+          description: "Something went wrong. Please try again.",
+        });
       }
     });
   }
@@ -181,15 +194,19 @@ export function CategoryForm({
     if (!editId) return;
     startDeleting(async () => {
       try {
-        await deleteCategoryAction(editId);
+        const result = await deleteCategoryAction(editId);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't delete", { description: result.error });
+          return;
+        }
         toast.success("Category deleted", {
           description: `"${defaultCategory?.name ?? "Category"}" has been removed.`,
         });
+        router.push("/admin/categories");
+      } catch {
         setConfirmOpen(false);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        setConfirmOpen(false);
-        toast.error(err instanceof Error ? err.message : "Couldn't delete.");
+        toast.error("Couldn't delete", { description: "Please try again." });
       }
     });
   }

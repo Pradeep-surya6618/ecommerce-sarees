@@ -1,18 +1,14 @@
+import {
+  DeleteCommand,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { nanoid } from "nanoid";
-import { CATEGORIES_FIXTURE } from "@/lib/db/fixtures/categories";
+import { getDdbDoc } from "@/lib/db/client";
+import { tableName, TABLES } from "@/lib/db/tables";
 import type { Category } from "@/types/domain";
-
-declare global {
-  var __mockCategories: Map<string, Category> | undefined;
-}
-
-function getStore(): Map<string, Category> {
-  if (globalThis.__mockCategories) return globalThis.__mockCategories;
-  const store = new Map<string, Category>();
-  for (const c of CATEGORIES_FIXTURE) store.set(c.id, c);
-  globalThis.__mockCategories = store;
-  return store;
-}
 
 export interface CategoryDraft {
   slug: string;
@@ -40,31 +36,69 @@ export interface CategoriesRepo {
   delete(id: string): Promise<void>;
 }
 
+// DynamoDB Categories table:
+//   PK = categoryId  (stored as `categoryId` attribute, mapped to/from `id`)
+//   GSI SlugIndex: slug → for /shop/<slug> lookup
+//
+// `parentSlug` is a plain attribute. Children are found by scanning + filtering
+// because subcategories are low-volume. If we ever hit hundreds of children
+// per parent, add a ParentSlugIndex GSI.
+
+function table(): string {
+  return tableName(TABLES.Categories);
+}
+
+function toItem(category: Category): Record<string, unknown> {
+  return { ...category, categoryId: category.id };
+}
+
+function fromItem(item: Record<string, unknown> | undefined): Category | null {
+  if (!item) return null;
+  const { categoryId, ...rest } = item as Category & { categoryId: string };
+  return { ...(rest as Category), id: categoryId };
+}
+
 function bySortOrder(a: Category, b: Category): number {
   return a.sortOrder - b.sortOrder;
 }
 
+async function scanAll(): Promise<Category[]> {
+  const out: Category[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const res = await getDdbDoc().send(
+      new ScanCommand({
+        TableName: table(),
+        ExclusiveStartKey: lastKey,
+      }),
+    );
+    for (const item of res.Items ?? []) {
+      const cat = fromItem(item);
+      if (cat) out.push(cat);
+    }
+    lastKey = res.LastEvaluatedKey;
+  } while (lastKey);
+  return out;
+}
+
 export const categoriesRepo: CategoriesRepo = {
   async list() {
-    return [...getStore().values()].slice().sort(bySortOrder);
+    const items = await scanAll();
+    return items.sort(bySortOrder);
   },
 
   async listTopLevel() {
-    return [...getStore().values()]
-      .filter((c) => c.parentSlug === null)
-      .slice()
-      .sort(bySortOrder);
+    const items = await scanAll();
+    return items.filter((c) => c.parentSlug === null).sort(bySortOrder);
   },
 
   async listChildren(parentSlug) {
-    return [...getStore().values()]
-      .filter((c) => c.parentSlug === parentSlug)
-      .slice()
-      .sort(bySortOrder);
+    const items = await scanAll();
+    return items.filter((c) => c.parentSlug === parentSlug).sort(bySortOrder);
   },
 
   async listTree() {
-    const all = [...getStore().values()];
+    const all = await scanAll();
     const parents = all.filter((c) => c.parentSlug === null).sort(bySortOrder);
     return parents.map((parent) => ({
       parent,
@@ -73,16 +107,30 @@ export const categoriesRepo: CategoriesRepo = {
   },
 
   async getBySlug(slug) {
-    return [...getStore().values()].find((c) => c.slug === slug) ?? null;
+    const res = await getDdbDoc().send(
+      new QueryCommand({
+        TableName: table(),
+        IndexName: "SlugIndex",
+        KeyConditionExpression: "slug = :slug",
+        ExpressionAttributeValues: { ":slug": slug },
+        Limit: 1,
+      }),
+    );
+    return fromItem(res.Items?.[0]);
   },
 
   async getById(id) {
-    return getStore().get(id) ?? null;
+    const res = await getDdbDoc().send(
+      new GetCommand({
+        TableName: table(),
+        Key: { categoryId: id },
+      }),
+    );
+    return fromItem(res.Item);
   },
 
   async create(input) {
-    const store = getStore();
-    const existing = [...store.values()].find((c) => c.slug === input.slug);
+    const existing = await categoriesRepo.getBySlug(input.slug);
     if (existing) {
       throw new Error(`A category with slug "${input.slug}" already exists.`);
     }
@@ -90,30 +138,41 @@ export const categoriesRepo: CategoriesRepo = {
       id: `cat_${nanoid(12)}`,
       ...input,
     };
-    store.set(category.id, category);
+    await getDdbDoc().send(
+      new PutCommand({
+        TableName: table(),
+        Item: toItem(category),
+        ConditionExpression: "attribute_not_exists(categoryId)",
+      }),
+    );
     return category;
   },
 
   async update(id, input) {
-    const store = getStore();
-    const existing = store.get(id);
+    const existing = await categoriesRepo.getById(id);
     if (!existing) return null;
     if (input.slug && input.slug !== existing.slug) {
-      const clash = [...store.values()].find((c) => c.slug === input.slug && c.id !== id);
-      if (clash) {
+      const clash = await categoriesRepo.getBySlug(input.slug);
+      if (clash && clash.id !== id) {
         throw new Error(`A category with slug "${input.slug}" already exists.`);
       }
     }
     const updated: Category = { ...existing, ...input };
-    store.set(id, updated);
+    await getDdbDoc().send(
+      new PutCommand({
+        TableName: table(),
+        Item: toItem(updated),
+      }),
+    );
     return updated;
   },
 
   async delete(id) {
-    getStore().delete(id);
+    await getDdbDoc().send(
+      new DeleteCommand({
+        TableName: table(),
+        Key: { categoryId: id },
+      }),
+    );
   },
 };
-
-export function __resetCategoriesRepo(): void {
-  globalThis.__mockCategories = undefined;
-}

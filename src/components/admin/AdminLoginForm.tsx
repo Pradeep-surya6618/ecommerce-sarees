@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 export function AdminLoginForm() {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -27,12 +29,16 @@ export function AdminLoginForm() {
   function onSubmit(values: Values) {
     startTransition(async () => {
       try {
-        await adminLoginAction(values);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        const message =
-          err instanceof Error ? err.message : "Couldn't sign you in. Please try again.";
-        toast.error(message);
+        const result = await adminLoginAction(values);
+        if (!result.ok) {
+          toast.error("Sign-in failed", { description: result.error });
+          return;
+        }
+        toast.success("Signed in", { description: "Welcome back." });
+        router.push("/admin/dashboard");
+        router.refresh();
+      } catch {
+        toast.error("Sign-in failed", { description: "Something went wrong. Please try again." });
       }
     });
   }

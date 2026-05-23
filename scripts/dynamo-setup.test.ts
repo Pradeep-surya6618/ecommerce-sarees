@@ -16,27 +16,17 @@ vi.mock("@/lib/db/client", () => ({
 }));
 
 describe("TABLE_SPECS", () => {
-  it("covers every entity in the design spec", () => {
+  it("covers every entity in the 7-table design", () => {
     const names = TABLE_SPECS.map((t) => t.name);
     expect(names).toEqual(
       expect.arrayContaining([
         "Users",
-        "OtpCodes",
-        "Sessions",
         "Categories",
         "Products",
-        "Inventory",
         "Carts",
-        "Addresses",
         "Orders",
-        "Coupons",
-        "Banners",
-        "Reviews",
-        "BlogPosts",
-        "WebhookEvents",
-        "AdminAuditLog",
-        "Settings",
-        "RateLimits",
+        "Ephemeral",
+        "Content",
       ]),
     );
   });
@@ -47,8 +37,8 @@ describe("TABLE_SPECS", () => {
     }
   });
 
-  it("enables TTL where the spec requires it", () => {
-    const ttlExpected = ["OtpCodes", "Sessions", "Carts", "WebhookEvents", "RateLimits"];
+  it("enables TTL on the tables that need eviction", () => {
+    const ttlExpected = ["Carts", "Ephemeral"];
     for (const name of ttlExpected) {
       const spec = TABLE_SPECS.find((t) => t.name === name);
       expect(spec?.ttlAttribute, `${name} should have a TTL attribute`).toBeTruthy();
@@ -65,6 +55,12 @@ describe("TABLE_SPECS", () => {
     const orders = TABLE_SPECS.find((t) => t.name === "Orders");
     expect(orders?.gsis?.map((g) => g.name)).toEqual(
       expect.arrayContaining(["UserCreatedIndex", "StatusCreatedIndex"]),
+    );
+    const ephemeral = TABLE_SPECS.find((t) => t.name === "Ephemeral");
+    expect(ephemeral?.gsis?.map((g) => g.name)).toContain("UserIndex");
+    const content = TABLE_SPECS.find((t) => t.name === "Content");
+    expect(content?.gsis?.map((g) => g.name)).toEqual(
+      expect.arrayContaining(["GSI1", "SlugIndex"]),
     );
   });
 });
