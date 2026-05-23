@@ -32,7 +32,7 @@ const DEFAULT_FORM: ContentPageInput = {
   body: "",
   footerLabel: "",
   group: "help",
-  sortOrder: 10,
+  sortOrder: 0,
   visible: true,
   externalHref: null,
 };
@@ -77,17 +77,29 @@ export function ContentPageEditor({ mode, initial }: ContentPageEditorProps) {
     e.preventDefault();
     startTransition(async () => {
       try {
-        if (mode === "create") {
-          const created = await createContentPageAction(form);
-          toast.success("Page created");
-          router.push(`/admin/pages/${created.id}`);
-        } else if (initial) {
-          await updateContentPageAction(initial.id, form);
-          toast.success("Page updated");
-          router.refresh();
+        const result =
+          mode === "create"
+            ? await createContentPageAction(form)
+            : initial
+              ? await updateContentPageAction(initial.id, form)
+              : null;
+
+        if (!result) return;
+        if (!result.ok) {
+          toast.error("Couldn't save page", { description: result.error });
+          return;
         }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't save changes.");
+
+        if (mode === "create") {
+          toast.success("Page created", {
+            description: `"${form.title}" is now live at /p/${result.page.slug}.`,
+          });
+        } else {
+          toast.success("Page updated");
+        }
+        router.push("/admin/pages");
+      } catch {
+        toast.error("Couldn't save page", { description: "Please try again." });
       }
     });
   }
@@ -96,15 +108,19 @@ export function ContentPageEditor({ mode, initial }: ContentPageEditorProps) {
     if (!initial) return;
     startDelete(async () => {
       try {
-        await deleteContentPageAction(initial.id);
+        const result = await deleteContentPageAction(initial.id);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't delete page", { description: result.error });
+          return;
+        }
         toast.success("Page deleted", {
           description: `"${initial.title}" was removed.`,
         });
-        setConfirmOpen(false);
         router.push("/admin/pages");
-      } catch (err) {
+      } catch {
         setConfirmOpen(false);
-        toast.error(err instanceof Error ? err.message : "Couldn't delete this page.");
+        toast.error("Couldn't delete page", { description: "Please try again." });
       }
     });
   }
@@ -209,8 +225,17 @@ export function ContentPageEditor({ mode, initial }: ContentPageEditorProps) {
                 type="number"
                 min={0}
                 inputMode="numeric"
-                value={form.sortOrder}
-                onChange={(e) => update("sortOrder", Number(e.target.value))}
+                placeholder="0"
+                value={form.sortOrder === 0 ? "" : form.sortOrder}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    update("sortOrder", 0);
+                    return;
+                  }
+                  const n = Number(raw);
+                  update("sortOrder", Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
+                }}
               />
             </PillField>
           </div>

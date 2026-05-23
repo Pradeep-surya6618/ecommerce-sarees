@@ -36,7 +36,10 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
 
   return (
     <div className="flex flex-col gap-3 md:flex-row md:gap-4">
-      <div className="order-2 flex gap-2 overflow-x-auto md:order-1 md:flex-col">
+      {/* Thumbnails — wrap into rows of 4 on mobile (no horizontal scroll),
+           vertical column on tablet+. Each thumb fills its grid cell as a
+           square on mobile and snaps to a fixed 80×80 on desktop. */}
+      <div className="order-2 grid grid-cols-4 gap-2 sm:grid-cols-5 md:order-1 md:flex md:flex-col md:gap-3">
         {images.map((img, idx) => (
           <button
             key={img.url}
@@ -44,11 +47,17 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
             onClick={() => onThumbClick(idx)}
             aria-label={`View image ${idx + 1}`}
             className={clsx(
-              "relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-sm border transition",
+              "relative aspect-square w-full cursor-pointer overflow-hidden rounded-sm border transition md:aspect-auto md:h-20 md:w-20",
               selected === idx ? "border-ink-900" : "border-ink-500/15 hover:border-ink-700",
             )}
           >
-            <Image src={img.url} alt={img.alt} fill sizes="80px" className="object-cover" />
+            <Image
+              src={img.url}
+              alt={img.alt}
+              fill
+              sizes="(min-width: 768px) 80px, 25vw"
+              className="object-cover"
+            />
           </button>
         ))}
       </div>

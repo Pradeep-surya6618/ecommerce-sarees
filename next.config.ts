@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
   // origins, which breaks client interactivity (search, menus, timers).
   allowedDevOrigins: ["192.168.1.6", "192.168.1.*", "192.168.0.*", "10.0.0.*", "*.local"],
   images: {
+    // Bypass Next.js image optimization entirely — serve admin-uploaded
+    // images straight from CloudFront at their original resolution and
+    // quality. The default 75% quality + AVIF/WebP transcode noticeably
+    // degrades detail on saree photography (zari work, fabric weave),
+    // which the team wants to preserve. CloudFront still caches at the
+    // edge, so bandwidth and TTFB are unchanged.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -20,7 +27,6 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
-    formats: ["image/avif", "image/webp"],
   },
 };
 
