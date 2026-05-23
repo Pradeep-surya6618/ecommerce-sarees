@@ -147,8 +147,11 @@ export function MegaMenu({ items }: MegaMenuProps) {
 }
 
 function MegaMenuPanel({ item, onNavigate }: { item: MegaMenuItem; onNavigate: () => void }) {
-  const { label, href, children, trending, isCategory } = item;
-  const hasTrending = isCategory && trending.length > 0;
+  const { label, href, children, trending } = item;
+  // Show the trending rail whenever the column has trending products,
+  // regardless of kind — the system "Shop" item gets newest-across-catalog,
+  // category items get newest-in-category (see lib/nav/mega-menu).
+  const hasTrending = trending.length > 0;
 
   return (
     <div

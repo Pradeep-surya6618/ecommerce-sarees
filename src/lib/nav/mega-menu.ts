@@ -32,7 +32,11 @@ export async function loadMegaMenu(): Promise<MegaMenuColumn[]> {
   return Promise.all(
     topLevel.map(async ({ item, children }) => {
       const isCategory = item.kind === "category";
-      // Trending: only fetch for category items, from this slug + any child category slugs.
+      const itemHref = resolveHref(item);
+      // Trending strategy:
+      //  - Category items → pull newest from this slug + any child category slugs
+      //  - The system "Shop" item (href = /shop, no params) → pull newest across
+      //    the whole catalog so the dropdown surfaces fresh stock
       let trending: Product[] = [];
       if (isCategory && item.categorySlug) {
         const childCategorySlugs = children
@@ -40,11 +44,13 @@ export async function loadMegaMenu(): Promise<MegaMenuColumn[]> {
           .map((c) => c.categorySlug as string);
         const slugs = [item.categorySlug, ...childCategorySlugs];
         trending = await productsRepo.listByCategorySlugs(slugs, { limit: TRENDING_LIMIT });
+      } else if (itemHref === "/shop") {
+        trending = await productsRepo.list({ limit: TRENDING_LIMIT });
       }
       return {
         id: item.id,
         label: item.label,
-        href: resolveHref(item),
+        href: itemHref,
         isCategory,
         children: children.map((c) => ({
           id: c.id,

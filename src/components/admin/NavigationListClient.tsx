@@ -16,6 +16,8 @@ interface TreeNode {
 interface Props {
   tree: TreeNode[];
   totalCount: number;
+  topLevelCount: number;
+  maxItems: number;
 }
 
 type KindFilter = "" | "category" | "custom-link";
@@ -40,9 +42,11 @@ function matchesQuery(item: NavMenuItem, q: string): boolean {
   );
 }
 
-export function NavigationListClient({ tree, totalCount }: Props) {
+export function NavigationListClient({ tree, totalCount, topLevelCount, maxItems }: Props) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("");
+  // The cap applies only to top-level items — children are unlimited.
+  const atLimit = topLevelCount >= maxItems;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -71,9 +75,12 @@ export function NavigationListClient({ tree, totalCount }: Props) {
             <p className="text-[11px] text-ink-700 sm:text-sm">
               {hasActiveFilters
                 ? `${visibleCount} of ${totalCount} items`
-                : `${totalCount} items · header menu & mobile drawer`}
+                : `${topLevelCount} of ${maxItems} top-level · ${totalCount} items total · header menu & mobile drawer`}
             </p>
           </div>
+          {/* New item is always reachable — even when top-level is full,
+              admins can add a child under an existing parent. The button
+              just stays primary. */}
           <Link
             href="/admin/navigation/new"
             className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-accent-primary px-3 text-xs font-medium text-white shadow-[0_8px_24px_-12px_rgba(91,58,138,0.7)] transition hover:bg-accent-primary-hover sm:h-10 sm:gap-2 sm:px-4 sm:text-sm"
@@ -118,8 +125,16 @@ export function NavigationListClient({ tree, totalCount }: Props) {
 
         <p className="rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] px-3 py-2 text-[10px] text-ink-700 sm:px-4 sm:py-3 sm:text-xs">
           Items are shown in <strong>sort order</strong> (lower numbers first). Top-level items
-          appear in the header bar; child items appear in the dropdown panel under their parent.
+          appear in the header bar (max {maxItems}); child items appear in the dropdown panel under
+          their parent and have no limit.
         </p>
+
+        {atLimit && (
+          <p className="rounded-xl border border-warning/30 bg-warning/[0.06] px-3 py-2 text-[10px] text-ink-700 sm:px-4 sm:py-3 sm:text-xs">
+            You&apos;ve reached the {maxItems} top-level item limit. You can still add child items
+            under any existing parent — delete or hide a top-level item to add another at the top.
+          </p>
+        )}
       </header>
 
       {filtered.length === 0 ? (

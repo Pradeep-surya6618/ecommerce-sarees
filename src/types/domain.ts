@@ -318,6 +318,11 @@ export interface NavMenuItem {
   parentId: string | null;
   sortOrder: number;
   visible: boolean;
+  /** System items — admin can rename, reorder, and hide them but cannot
+   *  change the route or delete them. Wired to known storefront routes that
+   *  the admin doesn't manage. Set by the seed script, never editable from
+   *  the form. */
+  isSystem: boolean;
 }
 
 export interface NavMenuItemInput {

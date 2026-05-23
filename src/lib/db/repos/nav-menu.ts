@@ -109,7 +109,9 @@ export const navMenuRepo: NavMenuRepo = {
   },
 
   async create(input) {
-    const item: NavMenuItem = { id: `nav_${nanoid(10)}`, ...input };
+    // Admin-created items are never system. The seed script flips this flag
+    // for the 3 storefront-wired items (Shop / All sarees / New arrivals).
+    const item: NavMenuItem = { id: `nav_${nanoid(10)}`, isSystem: false, ...input };
     await getDdbDoc().send(
       new PutCommand({
         TableName: table(),

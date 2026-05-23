@@ -11,6 +11,9 @@ export default async function NewNavMenuItemPage() {
     categoriesRepo.list(),
     navMenuRepo.listTopLevel(),
   ]);
+  // No hard redirect here — even when the top-level cap is hit, admins
+  // can still add a child under an existing parent. The server action
+  // returns an error if they try to submit another top-level item.
 
   return (
     <div className="flex flex-col gap-6">

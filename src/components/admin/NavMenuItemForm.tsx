@@ -115,11 +115,10 @@ export function NavMenuItemForm({
         }
         if (editId) {
           toast.success("Menu item saved");
-          router.refresh();
         } else {
           toast.success("Menu item created", { description: `"${payload.label}" is now live.` });
-          if (result.id) router.push(`/admin/navigation/${result.id}`);
         }
+        router.push("/admin/navigation");
       } catch {
         toast.error("Couldn't save menu item", { description: "Please try again." });
       }
@@ -147,8 +146,20 @@ export function NavMenuItemForm({
     });
   }
 
+  const isSystem = defaultItem?.isSystem ?? false;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 sm:gap-7">
+      {isSystem && (
+        <div className="flex items-start gap-2.5 rounded-2xl border border-accent-gold/30 bg-accent-gold/[0.06] px-4 py-3 text-[12px] leading-relaxed text-ink-700 sm:px-5 sm:py-3.5 sm:text-sm">
+          <ListTree className="mt-0.5 h-4 w-4 shrink-0 text-accent-gold" />
+          <span>
+            <strong>System item.</strong> Wired to a storefront page — the route, link kind and
+            parent can&apos;t be changed and it can&apos;t be deleted. You can still rename it,
+            reorder it, or hide it from the menu.
+          </span>
+        </div>
+      )}
       <section className="relative rounded-2xl border border-ink-500/10 bg-bg-elevated p-4 sm:p-6 md:p-8">
         <span
           aria-hidden
@@ -165,7 +176,12 @@ export function NavMenuItemForm({
                 invalid={!!errors.label}
               />
             </PillField>
-            <PillField label="Kind" htmlFor="kind" required>
+            <PillField
+              label="Kind"
+              htmlFor="kind"
+              required
+              hint={isSystem ? "Locked for system items." : undefined}
+            >
               <Controller
                 name="kind"
                 control={control}
@@ -178,6 +194,7 @@ export function NavMenuItemForm({
                     onBlur={field.onBlur}
                     options={Object.values(KIND_LABEL)}
                     placeholder="Select kind"
+                    disabled={isSystem}
                   />
                 )}
               />
@@ -189,7 +206,7 @@ export function NavMenuItemForm({
               label="Category"
               htmlFor="categorySlug"
               required
-              hint="Links to /shop/<slug>."
+              hint={isSystem ? "Locked for system items." : "Links to /shop/<slug>."}
               error={errors.categorySlug?.message}
             >
               <Controller
@@ -210,6 +227,7 @@ export function NavMenuItemForm({
                       options={categoryOptions}
                       placeholder="Select a category"
                       invalid={!!errors.categorySlug}
+                      disabled={isSystem}
                     />
                   );
                 }}
@@ -222,7 +240,11 @@ export function NavMenuItemForm({
               label="URL"
               htmlFor="href"
               required
-              hint="Relative (/offers) or absolute (https://…)."
+              hint={
+                isSystem
+                  ? "Locked for system items."
+                  : "Relative (/offers) or absolute (https://…)."
+              }
               error={errors.href?.message}
             >
               <PillInput
@@ -231,6 +253,7 @@ export function NavMenuItemForm({
                 placeholder="/offers/buy-1-get-1"
                 {...register("href")}
                 invalid={!!errors.href}
+                disabled={isSystem}
               />
             </PillField>
           )}
@@ -250,7 +273,7 @@ export function NavMenuItemForm({
             <PillField
               label="Parent"
               htmlFor="parentId"
-              hint="Leave as None for a top-level item."
+              hint={isSystem ? "Locked for system items." : "Leave as None for a top-level item."}
               error={errors.parentId?.message}
             >
               <Controller
@@ -277,6 +300,7 @@ export function NavMenuItemForm({
                       onBlur={field.onBlur}
                       options={parentNames}
                       placeholder="Select parent"
+                      disabled={isSystem}
                     />
                   );
                 }}
@@ -344,7 +368,7 @@ export function NavMenuItemForm({
       </section>
 
       <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-        {editId ? (
+        {editId && !isSystem ? (
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
