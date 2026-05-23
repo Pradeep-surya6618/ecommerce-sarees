@@ -88,17 +88,16 @@ interface InfoFieldProps {
 
 function InfoField({ icon: Icon, label, value, mono }: InfoFieldProps) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-ink-500/10 bg-bg-base/60 p-3 transition hover:border-ink-500/20 hover:bg-bg-base sm:p-3.5">
+    <div className="flex items-start gap-3 overflow-hidden rounded-xl border border-ink-500/10 bg-bg-base/60 p-3 transition hover:border-ink-500/20 hover:bg-bg-base sm:p-3.5">
       <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900/[0.05] text-ink-700 sm:h-10 sm:w-10">
         <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
       </span>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-ink-500 sm:text-[10px]">
           {label}
         </span>
         <span
-          className={`truncate text-[12px] text-ink-900 sm:text-sm ${mono ? "font-mono" : ""}`}
-          title={value}
+          className={`min-w-0 break-words text-[12px] leading-snug text-ink-900 sm:text-sm ${mono ? "font-mono" : ""}`}
         >
           {value}
         </span>
@@ -169,7 +168,7 @@ export default async function AdminSettingsPage() {
           {KEYS.map((k) => (
             <div
               key={k.label}
-              className="flex items-center gap-3 rounded-xl border border-ink-500/10 bg-bg-base/60 p-3 sm:p-3.5"
+              className="flex items-start gap-3 overflow-hidden rounded-xl border border-ink-500/10 bg-bg-base/60 p-3 sm:p-3.5"
             >
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900/[0.05] text-ink-700 sm:h-10 sm:w-10">
                 {k.status === "demo" ? (
@@ -178,14 +177,11 @@ export default async function AdminSettingsPage() {
                   <Key className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                 )}
               </span>
-              <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-ink-500 sm:text-[10px]">
                   {k.label}
                 </span>
-                <span
-                  className="truncate font-mono text-[11px] text-ink-900 sm:text-xs"
-                  title={k.value}
-                >
+                <span className="min-w-0 break-all font-mono text-[11px] leading-snug text-ink-900 sm:text-xs">
                   {k.value}
                 </span>
               </div>

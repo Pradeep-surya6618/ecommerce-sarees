@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Banknote,
   BookOpen,
@@ -20,9 +20,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
-import { logoutAction } from "@/server/actions/auth";
+import { adminLogoutAction } from "@/server/actions/admin-auth";
 import { Tooltip } from "@/components/admin/Tooltip";
 import { InstagramGlyph } from "@/components/shared/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type NavItem = { href: string; label: string; icon: LucideIcon | typeof InstagramGlyph };
 
@@ -82,6 +83,19 @@ export function AdminSidebar({
   onDrawerClose,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signingOut, startSignOut] = useTransition();
+
+  function confirmSignOut() {
+    startSignOut(async () => {
+      try {
+        await adminLogoutAction();
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setSignOutOpen(false);
+      }
+    });
+  }
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -242,28 +256,45 @@ export function AdminSidebar({
               <span className="truncate text-[10px] text-white/50">{userEmail}</span>
             </div>
           </div>
-          <form action={logoutAction} className="mt-2">
+          <div className="mt-2">
             {collapsed ? (
               <Tooltip label="Sign out" side="right" hideOnMobile className="w-full">
                 <button
-                  type="submit"
-                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-0 py-1.5 text-xs text-white/60 transition hover:text-white"
+                  type="button"
+                  onClick={() => setSignOutOpen(true)}
+                  disabled={signingOut}
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-0 py-1.5 text-xs text-white/60 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <LogOut className="h-4 w-4 shrink-0" />
                 </button>
               </Tooltip>
             ) : (
               <button
-                type="submit"
-                className="inline-flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs text-white/60 transition hover:text-white"
+                type="button"
+                onClick={() => setSignOutOpen(true)}
+                disabled={signingOut}
+                className="inline-flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs text-white/60 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 <span>Sign out</span>
               </button>
             )}
-          </form>
+          </div>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={signOutOpen}
+        onClose={() => setSignOutOpen(false)}
+        onConfirm={confirmSignOut}
+        title="Sign out of admin?"
+        description={`You'll need to sign in again to manage the store. Signed in as ${userName}.`}
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        tone="danger"
+        icon={LogOut}
+        pending={signingOut}
+      />
     </>
   );
 }

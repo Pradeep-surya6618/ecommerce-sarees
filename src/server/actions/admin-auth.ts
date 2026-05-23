@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifyPasswordStub } from "@/lib/auth/passwords";
-import { setSessionCookie } from "@/lib/auth/session-cookie";
+import { clearSessionCookie, setSessionCookie } from "@/lib/auth/session-cookie";
 import { sessionsRepo } from "@/lib/db/repos/sessions";
 import { usersRepo } from "@/lib/db/repos/users";
 
@@ -29,4 +29,10 @@ export async function adminLoginAction(input: AdminLoginInput): Promise<void> {
   await setSessionCookie(session.id);
   revalidatePath("/", "layout");
   redirect("/admin/dashboard");
+}
+
+export async function adminLogoutAction(): Promise<void> {
+  await clearSessionCookie();
+  revalidatePath("/", "layout");
+  redirect("/admin/login");
 }

@@ -110,8 +110,18 @@ export function AnnouncementBarEditor({ initial }: AnnouncementBarEditorProps) {
           Preview
         </span>
         {enabled && trimmed ? (
-          <div className="rounded-lg bg-ink-900 py-2 text-center text-[10px] uppercase tracking-[0.2em] text-bg-base sm:py-2.5 sm:text-xs">
-            {trimmed}
+          <div className="overflow-hidden rounded-lg bg-ink-900 py-2 text-[10px] uppercase tracking-[0.2em] text-bg-base sm:py-2.5 sm:text-xs">
+            {/* Mobile marquee — duplicated content for a seamless loop, matching the storefront's `announcement-marquee` animation. */}
+            <div className="flex w-max items-center gap-12 pl-12 sm:hidden announcement-marquee">
+              <span>{trimmed}</span>
+              <span aria-hidden>·</span>
+              <span aria-hidden>{trimmed}</span>
+              <span aria-hidden>·</span>
+              <span aria-hidden>{trimmed}</span>
+              <span aria-hidden>·</span>
+            </div>
+            {/* Desktop — static, centered, matching how the storefront renders on wider viewports. */}
+            <div className="hidden text-center sm:block">{trimmed}</div>
           </div>
         ) : (
           <span className="text-[11px] italic text-ink-500 sm:text-xs">

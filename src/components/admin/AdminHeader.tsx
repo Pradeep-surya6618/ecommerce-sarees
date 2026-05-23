@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   Bell,
   ChevronRight,
@@ -10,12 +10,11 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings as SettingsIcon,
-  User as UserIcon,
 } from "lucide-react";
-import { logoutAction } from "@/server/actions/auth";
+import { adminLogoutAction } from "@/server/actions/admin-auth";
 import { Tooltip } from "@/components/admin/Tooltip";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const LABELS: Record<string, string> = {
   admin: "Admin",
@@ -73,8 +72,20 @@ export function AdminHeader({
   const crumbs = buildCrumbs(pathname);
   const currentCrumb = crumbs[crumbs.length - 1];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signingOut, startSignOut] = useTransition();
+
+  function confirmSignOut() {
+    startSignOut(async () => {
+      try {
+        await adminLogoutAction();
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setSignOutOpen(false);
+      }
+    });
+  }
   const menuRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -83,10 +94,6 @@ export function AdminHeader({
       }
     }
     function handleKey(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
       if (event.key === "Escape") setMenuOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -160,28 +167,6 @@ export function AdminHeader({
       )}
 
       <div className="ml-auto flex items-center gap-1.5 md:gap-3">
-        <button
-          type="button"
-          aria-label="Search"
-          onClick={() => searchRef.current?.focus()}
-          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-white/70 transition hover:bg-white/10 hover:text-white sm:hidden"
-        >
-          <Search className="h-[18px] w-[18px]" />
-        </button>
-
-        <div className="relative hidden sm:block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-          <input
-            ref={searchRef}
-            type="search"
-            placeholder="Search…"
-            className="autofill-on-dark h-9 w-44 rounded-full border border-white/10 bg-white/5 pl-9 pr-14 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-accent-primary focus:bg-white/10 md:w-64"
-          />
-          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 select-none items-center gap-0.5 rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-white/50 md:inline-flex">
-            ⌘K
-          </kbd>
-        </div>
-
         <Tooltip label="Notifications" side="bottom-end">
           <button
             type="button"
@@ -212,46 +197,85 @@ export function AdminHeader({
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-ink-500/10 bg-white shadow-elev"
+              className="absolute right-0 top-full z-40 mt-2 w-72 overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-base shadow-[0_24px_60px_rgba(37,31,62,0.18)]"
             >
-              <div className="border-b border-ink-500/10 px-4 py-3">
-                <p className="truncate text-sm font-medium text-ink-900">{userName}</p>
-                <p className="truncate text-xs text-ink-500">{userEmail}</p>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/70 to-transparent"
+              />
+
+              {/* ── Identity card ── */}
+              <div className="flex items-center gap-3 px-4 py-4 sm:px-5">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary to-accent-primary-hover text-sm font-semibold text-white shadow-[0_8px_20px_-10px_rgba(91,58,138,0.6)]">
+                  {initialsOf(userName)}
+                </span>
+                <div className="flex min-w-0 flex-col leading-tight">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-gold">
+                    Admin
+                  </span>
+                  <p className="truncate text-sm font-medium text-ink-900">{userName}</p>
+                  <p className="truncate text-[11px] text-ink-500">{userEmail}</p>
+                </div>
               </div>
-              <div className="flex flex-col py-1">
+
+              <div className="h-px bg-gradient-to-r from-transparent via-ink-500/15 to-transparent" />
+
+              {/* ── Menu items ── */}
+              <div className="flex flex-col gap-0.5 p-1.5">
                 <Link
                   href="/admin/settings"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-ink-700 transition hover:bg-bg-base/60 hover:text-ink-900"
+                  className="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-ink-700 transition hover:bg-bg-elevated hover:text-ink-900"
                   role="menuitem"
                 >
-                  <UserIcon className="h-4 w-4" />
-                  Profile
-                </Link>
-                <Link
-                  href="/admin/settings"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-ink-700 transition hover:bg-bg-base/60 hover:text-ink-900"
-                  role="menuitem"
-                >
-                  <SettingsIcon className="h-4 w-4" />
-                  Settings
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-gold/15 text-accent-gold transition group-hover:bg-accent-gold/20">
+                    <SettingsIcon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-[13px] font-medium">Settings</span>
+                    <span className="text-[10px] text-ink-500">Store profile & integrations.</span>
+                  </span>
                 </Link>
               </div>
-              <form action={logoutAction} className="border-t border-ink-500/10">
+
+              <div className="h-px bg-gradient-to-r from-transparent via-ink-500/15 to-transparent" />
+
+              <div className="p-1.5">
                 <button
-                  type="submit"
-                  className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-sm text-danger transition hover:bg-danger/5"
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setSignOutOpen(true);
+                  }}
+                  className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm text-danger transition hover:bg-danger/[0.06]"
                   role="menuitem"
                 >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger transition group-hover:bg-danger/15">
+                    <LogOut className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-[13px] font-medium">Sign out</span>
+                    <span className="text-[10px] text-danger/70">End this session.</span>
+                  </span>
                 </button>
-              </form>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={signOutOpen}
+        onClose={() => setSignOutOpen(false)}
+        onConfirm={confirmSignOut}
+        title="Sign out of admin?"
+        description={`You'll need to sign in again to manage the store. Signed in as ${userName}.`}
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        tone="danger"
+        icon={LogOut}
+        pending={signingOut}
+      />
     </header>
   );
 }
