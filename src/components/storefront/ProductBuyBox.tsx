@@ -49,12 +49,12 @@ export function ProductBuyBox({
   const eta2 = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000);
   const fmtDay = (d: Date) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
-  async function addToCart(): Promise<void> {
+  async function addToCart(): Promise<boolean> {
     if (!selectedVariant || !selectedSku) {
       toast.error("Please choose a variant first.");
-      return;
+      return false;
     }
-    await addToCartAction({
+    const result = await addToCartAction({
       productId: product.id,
       productSlug: product.slug,
       productName: product.name,
@@ -67,18 +67,24 @@ export function ProductBuyBox({
       unitMrpPaise: product.mrpInPaise,
       quantity,
     });
+    if (!result.ok) {
+      toast.error("Couldn't add to cart", { description: result.error });
+      return false;
+    }
+    return true;
   }
 
   function onAddToCart() {
     if (!inStock) return;
     startAdd(async () => {
       try {
-        await addToCart();
+        const ok = await addToCart();
+        if (!ok) return;
         toast.success(`Added ${quantity} × ${product.name} to cart`, {
           action: { label: "View cart", onClick: () => (window.location.href = "/cart") },
         });
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't add to cart.");
+      } catch {
+        toast.error("Couldn't add to cart", { description: "Please try again." });
       }
     });
   }
@@ -87,10 +93,11 @@ export function ProductBuyBox({
     if (!inStock) return;
     startBuy(async () => {
       try {
-        await addToCart();
+        const ok = await addToCart();
+        if (!ok) return;
         window.location.href = "/checkout";
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't proceed to checkout.");
+      } catch {
+        toast.error("Couldn't proceed to checkout", { description: "Please try again." });
       }
     });
   }

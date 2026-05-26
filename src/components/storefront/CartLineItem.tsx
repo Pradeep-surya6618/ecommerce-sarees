@@ -19,10 +19,12 @@ export function CartLineItem({ item }: { item: CartItem }) {
   function changeQty(next: number) {
     startTransition(async () => {
       try {
-        await updateCartItemAction(item.id, next);
-      } catch (err) {
-        toast.error("Couldn't update quantity.");
-        console.error(err);
+        const result = await updateCartItemAction(item.id, next);
+        if (!result.ok) {
+          toast.error("Couldn't update quantity", { description: result.error });
+        }
+      } catch {
+        toast.error("Couldn't update quantity", { description: "Please try again." });
       }
     });
   }
@@ -30,16 +32,18 @@ export function CartLineItem({ item }: { item: CartItem }) {
   function confirmRemove() {
     startTransition(async () => {
       try {
-        await removeCartItemAction(item.id);
+        const result = await removeCartItemAction(item.id);
+        setConfirmOpen(false);
+        if (!result.ok) {
+          toast.error("Couldn't remove the item", { description: result.error });
+          return;
+        }
         toast.success("Removed from cart", {
           description: `"${item.productName}" is no longer in your cart.`,
         });
+      } catch {
         setConfirmOpen(false);
-      } catch (err) {
-        setConfirmOpen(false);
-        toast.error("Couldn't remove the item.", {
-          description: err instanceof Error ? err.message : "Please try again.",
-        });
+        toast.error("Couldn't remove the item", { description: "Please try again." });
       }
     });
   }

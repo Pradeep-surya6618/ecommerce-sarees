@@ -1,14 +1,12 @@
+import { randomInt } from "node:crypto";
 import type { OtpPurpose } from "@/types/domain";
 
-/**
- * Demo-mode OTP. In a real backend phase this is replaced with
- * cryptographically-random 6-digit codes and SES delivery.
- */
-export const DEMO_OTP_CODE = "123456";
+// 6-digit numeric OTPs delivered via SES. randomInt is cryptographically
+// random and avoids the modulo bias of `Math.floor(Math.random() * 1e6)`.
 export const OTP_TTL_SECONDS = 60 * 10;
 
 export function generateOtpCode(): string {
-  return DEMO_OTP_CODE;
+  return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
 export function isValidOtpCode(code: string): boolean {

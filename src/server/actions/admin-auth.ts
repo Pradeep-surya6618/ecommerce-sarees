@@ -34,13 +34,13 @@ export async function adminLoginAction(input: AdminLoginInput): Promise<AdminLog
   }
 
   const session = await sessionsRepo.create(user.id);
-  await setSessionCookie(session.id);
+  await setSessionCookie("admin", session.id);
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 export async function adminLogoutAction(): Promise<void> {
-  await clearSessionCookie();
+  await clearSessionCookie("admin");
   revalidatePath("/", "layout");
   redirect("/admin/login");
 }

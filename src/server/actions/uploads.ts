@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentAdminUser } from "@/lib/auth/current-user";
 import { createPresignedUpload } from "@/lib/storage/s3";
 
 const ALLOWED_FOLDERS = new Set([
@@ -25,7 +25,7 @@ export interface RequestUploadInput {
 export async function requestUploadUrlAction(
   input: RequestUploadInput,
 ): Promise<RequestUploadResult> {
-  const user = await getCurrentUser();
+  const user = await getCurrentAdminUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { ok: false, error: "Admin access required." };
   }

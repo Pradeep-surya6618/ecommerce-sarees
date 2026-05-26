@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { MAX_NAV_ITEMS } from "@/lib/admin/nav-limits";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentAdminUser } from "@/lib/auth/current-user";
 import { navMenuRepo } from "@/lib/db/repos/nav-menu";
 import type { NavMenuItemInput } from "@/types/domain";
 
 export type NavMenuActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
 async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await getCurrentUser();
+  const user = await getCurrentAdminUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { ok: false, error: "Admin access required." };
   }

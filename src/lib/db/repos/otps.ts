@@ -1,4 +1,7 @@
+import { DeleteCommand, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { nanoid } from "nanoid";
+import { getDdbDoc } from "@/lib/db/client";
+import { tableName, TABLES } from "@/lib/db/tables";
 import type { OtpPurpose, OtpRecord } from "@/types/domain";
 
 export interface CreateOtpInput {
@@ -11,14 +14,23 @@ export interface CreateOtpInput {
 export interface OtpsRepo {
   create(input: CreateOtpInput): Promise<OtpRecord>;
   findActive(email: string, purpose: OtpPurpose): Promise<OtpRecord | null>;
-  consume(id: string): Promise<void>;
+  consume(email: string, purpose: OtpPurpose): Promise<void>;
 }
 
-declare global {
-  var __mockOtps: Map<string, OtpRecord> | undefined;
+// OTPs live in the shared `Ephemeral` table.
+//   PK = "OTP#<email>"
+//   SK = "<purpose>"   ("signup" | "password-reset")
+// One active code per (email, purpose) — re-issuing for the same pair just
+// overwrites the previous row. DDB TTL auto-evicts after the code's expiry;
+// findActive also re-checks expiry on read to handle TTL delivery lag.
+
+function table(): string {
+  return tableName(TABLES.Ephemeral);
 }
 
-const otps: Map<string, OtpRecord> = globalThis.__mockOtps ?? (globalThis.__mockOtps = new Map());
+function otpPk(email: string): string {
+  return `OTP#${normaliseEmail(email)}`;
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -28,39 +40,91 @@ function normaliseEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+interface OtpRow {
+  pk: string;
+  sk: string;
+  otpId: string;
+  email: string;
+  purpose: OtpPurpose;
+  code: string;
+  expiresAt: number; // epoch seconds for DDB TTL
+  expiresAtIso: string;
+  consumedAt: string | null;
+}
+
+function toItem(rec: OtpRecord): OtpRow {
+  return {
+    pk: otpPk(rec.email),
+    sk: rec.purpose,
+    otpId: rec.id,
+    email: rec.email,
+    purpose: rec.purpose,
+    code: rec.code,
+    expiresAt: Math.floor(Date.parse(rec.expiresAt) / 1000),
+    expiresAtIso: rec.expiresAt,
+    consumedAt: rec.consumedAt,
+  };
+}
+
+function fromItem(item: Record<string, unknown> | undefined): OtpRecord | null {
+  if (!item) return null;
+  const otpId = item.otpId as string | undefined;
+  const email = item.email as string | undefined;
+  const purpose = item.purpose as OtpPurpose | undefined;
+  const code = item.code as string | undefined;
+  const expiresAtIso = item.expiresAtIso as string | undefined;
+  const consumedAt = (item.consumedAt as string | null | undefined) ?? null;
+  if (!otpId || !email || !purpose || !code || !expiresAtIso) return null;
+  return { id: otpId, email, purpose, code, expiresAt: expiresAtIso, consumedAt };
+}
+
 export const otpsRepo: OtpsRepo = {
   async create(input) {
-    const now = Date.now();
+    const expiresIso = new Date(Date.now() + input.ttlSeconds * 1000).toISOString();
     const record: OtpRecord = {
       id: `otp_${nanoid(12)}`,
       email: normaliseEmail(input.email),
       purpose: input.purpose,
       code: input.code,
-      expiresAt: new Date(now + input.ttlSeconds * 1000).toISOString(),
+      expiresAt: expiresIso,
       consumedAt: null,
     };
-    otps.set(record.id, record);
+    await getDdbDoc().send(new PutCommand({ TableName: table(), Item: toItem(record) }));
     return record;
   },
 
   async findActive(email, purpose) {
-    const target = normaliseEmail(email);
-    for (const r of [...otps.values()].reverse()) {
-      if (r.email !== target) continue;
-      if (r.purpose !== purpose) continue;
-      if (r.consumedAt !== null) continue;
-      if (Date.parse(r.expiresAt) <= Date.now()) continue;
-      return r;
+    const res = await getDdbDoc().send(
+      new GetCommand({
+        TableName: table(),
+        Key: { pk: otpPk(email), sk: purpose },
+      }),
+    );
+    const record = fromItem(res.Item);
+    if (!record) return null;
+    if (record.consumedAt) return null;
+    if (Date.parse(record.expiresAt) <= Date.now()) {
+      // DDB TTL deletion can lag by minutes — clean up eagerly.
+      await getDdbDoc().send(
+        new DeleteCommand({
+          TableName: table(),
+          Key: { pk: otpPk(email), sk: purpose },
+        }),
+      );
+      return null;
     }
-    return null;
+    return record;
   },
 
-  async consume(id) {
-    const r = otps.get(id);
-    if (r) r.consumedAt = nowIso();
+  async consume(email, purpose) {
+    await getDdbDoc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { pk: otpPk(email), sk: purpose },
+        UpdateExpression: "SET consumedAt = :c",
+        ExpressionAttributeValues: { ":c": nowIso() },
+        ConditionExpression: "attribute_exists(pk)",
+      }),
+    );
   },
 };
-
-export function __resetOtpsRepo(): void {
-  otps.clear();
-}

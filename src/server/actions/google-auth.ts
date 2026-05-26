@@ -20,7 +20,7 @@ export async function googleSignInAction(email: DemoGoogleEmail): Promise<void> 
     fullName: account.fullName,
   });
   const session = await sessionsRepo.create(user.id);
-  await setSessionCookie(session.id);
+  await setSessionCookie("customer", session.id);
 
   // Merge guest cart if present, then clear the guest cookie.
   const guestSessionId = await getGuestSessionId();

@@ -1,14 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentAdminUser } from "@/lib/auth/current-user";
 import { bannersRepo } from "@/lib/db/repos/banners";
 import type { BannerInput } from "@/types/domain";
 
 export type BannerActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
 async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await getCurrentUser();
+  const user = await getCurrentAdminUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { ok: false, error: "Admin access required." };
   }

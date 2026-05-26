@@ -9,7 +9,7 @@ import {
 import { nanoid } from "nanoid";
 import { getDdbDoc } from "@/lib/db/client";
 import { tableName, TABLES } from "@/lib/db/tables";
-import type { AuthProvider, User, UserRole } from "@/types/domain";
+import type { AuthProvider, SavedAddress, User, UserRole, WishlistItem } from "@/types/domain";
 
 export interface CreateUserInput {
   email: string;
@@ -31,6 +31,10 @@ export interface UsersRepo {
   blockUser(id: string): Promise<User | null>;
   unblockUser(id: string): Promise<User | null>;
   deleteById(id: string): Promise<void>;
+  // Replace the embedded arrays atomically — wishlistRepo / addressesRepo
+  // own the per-item logic and just call these to persist the result.
+  setWishlist(userId: string, items: WishlistItem[]): Promise<User | null>;
+  setAddresses(userId: string, items: SavedAddress[]): Promise<User | null>;
 }
 
 function nowIso(): string {
@@ -241,5 +245,36 @@ export const usersRepo: UsersRepo = {
         Key: { userId: id },
       }),
     );
+  },
+
+  async setWishlist(userId, items) {
+    // Empty array writes as `:list = []`, dropping the attribute if the
+    // caller passes []. We write the literal array — DDB stores empty
+    // arrays fine and our toItem/fromItem layer doesn't filter them.
+    const res = await getDdbDoc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { userId },
+        UpdateExpression: "SET wishlist = :w, updatedAt = :u",
+        ExpressionAttributeValues: { ":w": items, ":u": nowIso() },
+        ConditionExpression: "attribute_exists(userId)",
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    return fromItem(res.Attributes);
+  },
+
+  async setAddresses(userId, items) {
+    const res = await getDdbDoc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { userId },
+        UpdateExpression: "SET addresses = :a, updatedAt = :u",
+        ExpressionAttributeValues: { ":a": items, ":u": nowIso() },
+        ConditionExpression: "attribute_exists(userId)",
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    return fromItem(res.Attributes);
   },
 };

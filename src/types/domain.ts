@@ -182,6 +182,11 @@ export interface User {
   blocked: boolean;
   createdAt: string;
   updatedAt: string;
+  // Embedded customer-side data — kept inside the user item so a single
+  // Get pulls everything we need. Both arrays are optional on the type so
+  // legacy items without these attributes still parse cleanly.
+  wishlist?: WishlistItem[];
+  addresses?: SavedAddress[];
 }
 
 export interface ProductDraft {

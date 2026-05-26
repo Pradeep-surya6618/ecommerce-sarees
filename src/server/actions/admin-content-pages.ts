@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentAdminUser } from "@/lib/auth/current-user";
 import { contentPagesRepo } from "@/lib/db/repos/content-pages";
 import type { ContentPage, ContentPageInput } from "@/types/domain";
 
@@ -12,7 +12,7 @@ export type ContentPageActionResult =
 export type DeleteContentPageResult = { ok: true } | { ok: false; error: string };
 
 async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await getCurrentUser();
+  const user = await getCurrentAdminUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { ok: false, error: "Admin access required." };
   }

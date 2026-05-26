@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentAdminUser } from "@/lib/auth/current-user";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import type {
   AboutPageContent,
@@ -16,7 +16,7 @@ import type {
 export type SiteSettingsActionResult = { ok: true } | { ok: false; error: string };
 
 async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await getCurrentUser();
+  const user = await getCurrentAdminUser();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { ok: false, error: "Admin access required." };
   }

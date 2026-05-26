@@ -1,4 +1,7 @@
+import { DeleteCommand, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { nanoid } from "nanoid";
+import { getDdbDoc } from "@/lib/db/client";
+import { tableName, TABLES } from "@/lib/db/tables";
 import type { Cart, CartItem } from "@/types/domain";
 
 export interface AddItemInput {
@@ -27,23 +30,104 @@ export interface CartRepo {
   mergeGuestIntoUser(guestSessionId: string, userId: string): Promise<Cart>;
 }
 
-declare global {
-  var __mockCartsByGuest: Map<string, Cart> | undefined;
+// Carts table layout:
+//   PK = cartId
+//   GSI UserIndex   (userId)          → find a logged-in user's cart
+//   GSI SessionIndex (guestSessionId) → find a guest's cart
+//   TTL on `expiresAt` (epoch seconds)
+//
+// Items are embedded as an array attribute on the cart row — every mutation
+// rewrites the whole cart, which is fine because items count is small (single
+// digit to maybe a few dozen).
 
-  var __mockCartsByUser: Map<string, Cart> | undefined;
+const GUEST_TTL_DAYS = 30; // anonymous browsers — short
+const USER_TTL_DAYS = 90; // signed-in users — longer
+const SECONDS_PER_DAY = 60 * 60 * 24;
+
+function table(): string {
+  return tableName(TABLES.Carts);
 }
-
-const cartsByGuest: Map<string, Cart> =
-  globalThis.__mockCartsByGuest ?? (globalThis.__mockCartsByGuest = new Map());
-const cartsByUser: Map<string, Cart> =
-  globalThis.__mockCartsByUser ?? (globalThis.__mockCartsByUser = new Map());
 
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-function ensureGuestCart(guestSessionId: string): Cart {
-  const existing = cartsByGuest.get(guestSessionId);
+function expiresAtFor(cart: Pick<Cart, "userId">): number {
+  const days = cart.userId ? USER_TTL_DAYS : GUEST_TTL_DAYS;
+  return Math.floor(Date.now() / 1000) + days * SECONDS_PER_DAY;
+}
+
+// `userId` and `guestSessionId` back GSIs. DDB rejects NULL as a GSI key
+// value, so we omit them entirely when null. fromItem patches them back to
+// null so the domain type stays consistent.
+function toItem(cart: Cart): Record<string, unknown> {
+  const item: Record<string, unknown> = {
+    cartId: cart.id,
+    items: cart.items,
+    updatedAt: cart.updatedAt,
+    expiresAt: expiresAtFor(cart),
+  };
+  if (cart.userId) item.userId = cart.userId;
+  if (cart.guestSessionId) item.guestSessionId = cart.guestSessionId;
+  return item;
+}
+
+function fromItem(row: Record<string, unknown> | undefined): Cart | null {
+  if (!row) return null;
+  const r = row as {
+    cartId: string;
+    userId?: string;
+    guestSessionId?: string;
+    items: Cart["items"];
+    updatedAt: string;
+  };
+  return {
+    id: r.cartId,
+    userId: r.userId ?? null,
+    guestSessionId: r.guestSessionId ?? null,
+    items: r.items,
+    updatedAt: r.updatedAt,
+  };
+}
+
+async function getByCartId(cartId: string): Promise<Cart | null> {
+  const res = await getDdbDoc().send(new GetCommand({ TableName: table(), Key: { cartId } }));
+  return fromItem(res.Item);
+}
+
+async function findByUserId(userId: string): Promise<Cart | null> {
+  const res = await getDdbDoc().send(
+    new QueryCommand({
+      TableName: table(),
+      IndexName: "UserIndex",
+      KeyConditionExpression: "userId = :u",
+      ExpressionAttributeValues: { ":u": userId },
+      Limit: 1,
+    }),
+  );
+  return fromItem(res.Items?.[0]);
+}
+
+async function findByGuestSession(guestSessionId: string): Promise<Cart | null> {
+  const res = await getDdbDoc().send(
+    new QueryCommand({
+      TableName: table(),
+      IndexName: "SessionIndex",
+      KeyConditionExpression: "guestSessionId = :s",
+      ExpressionAttributeValues: { ":s": guestSessionId },
+      Limit: 1,
+    }),
+  );
+  return fromItem(res.Items?.[0]);
+}
+
+async function saveCart(cart: Cart): Promise<Cart> {
+  await getDdbDoc().send(new PutCommand({ TableName: table(), Item: toItem(cart) }));
+  return cart;
+}
+
+async function ensureGuestCart(guestSessionId: string): Promise<Cart> {
+  const existing = await findByGuestSession(guestSessionId);
   if (existing) return existing;
   const cart: Cart = {
     id: `cart_${nanoid(12)}`,
@@ -52,12 +136,11 @@ function ensureGuestCart(guestSessionId: string): Cart {
     items: [],
     updatedAt: nowIso(),
   };
-  cartsByGuest.set(guestSessionId, cart);
-  return cart;
+  return saveCart(cart);
 }
 
-function ensureUserCart(userId: string): Cart {
-  const existing = cartsByUser.get(userId);
+async function ensureUserCart(userId: string): Promise<Cart> {
+  const existing = await findByUserId(userId);
   if (existing) return existing;
   const cart: Cart = {
     id: `cart_${nanoid(12)}`,
@@ -66,16 +149,18 @@ function ensureUserCart(userId: string): Cart {
     items: [],
     updatedAt: nowIso(),
   };
-  cartsByUser.set(userId, cart);
-  return cart;
+  return saveCart(cart);
 }
 
-function addOrMergeItem(target: Cart, input: AddItemInput): void {
+function addOrMergeItem(target: Cart, input: AddItemInput): Cart {
   const existing = target.items.find((i) => i.variantSku === input.variantSku);
+  let items: CartItem[];
   if (existing) {
-    existing.quantity += input.quantity;
+    items = target.items.map((i) =>
+      i.variantSku === input.variantSku ? { ...i, quantity: i.quantity + input.quantity } : i,
+    );
   } else {
-    const item: CartItem = {
+    const newItem: CartItem = {
       id: `ci_${nanoid(10)}`,
       productId: input.productId,
       productSlug: input.productSlug,
@@ -88,9 +173,27 @@ function addOrMergeItem(target: Cart, input: AddItemInput): void {
       quantity: input.quantity,
       addedAt: nowIso(),
     };
-    target.items.push(item);
+    items = [...target.items, newItem];
   }
-  target.updatedAt = nowIso();
+  return { ...target, items, updatedAt: nowIso() };
+}
+
+function setItemQuantity(cart: Cart, itemId: string, quantity: number): Cart {
+  const exists = cart.items.some((i) => i.id === itemId);
+  if (!exists) return cart;
+  const items =
+    quantity <= 0
+      ? cart.items.filter((i) => i.id !== itemId)
+      : cart.items.map((i) => (i.id === itemId ? { ...i, quantity } : i));
+  return { ...cart, items, updatedAt: nowIso() };
+}
+
+function withoutItem(cart: Cart, itemId: string): Cart {
+  return { ...cart, items: cart.items.filter((i) => i.id !== itemId), updatedAt: nowIso() };
+}
+
+function emptied(cart: Cart): Cart {
+  return { ...cart, items: [], updatedAt: nowIso() };
 }
 
 export const cartRepo: CartRepo = {
@@ -103,98 +206,80 @@ export const cartRepo: CartRepo = {
   },
 
   async addItem(guestSessionId, input) {
-    const cart = ensureGuestCart(guestSessionId);
-    addOrMergeItem(cart, input);
-    return cart;
+    const cart = await ensureGuestCart(guestSessionId);
+    return saveCart(addOrMergeItem(cart, input));
   },
 
   async addItemAsUser(userId, input) {
-    const cart = ensureUserCart(userId);
-    addOrMergeItem(cart, input);
-    return cart;
+    const cart = await ensureUserCart(userId);
+    return saveCart(addOrMergeItem(cart, input));
   },
 
   async updateQuantity(guestSessionId, itemId, quantity) {
-    const cart = ensureGuestCart(guestSessionId);
-    const item = cart.items.find((i) => i.id === itemId);
-    if (item) {
-      if (quantity <= 0) {
-        cart.items = cart.items.filter((i) => i.id !== itemId);
-      } else {
-        item.quantity = quantity;
-      }
-      cart.updatedAt = nowIso();
-    }
-    return cart;
-  },
-
-  async removeItem(guestSessionId, itemId) {
-    const cart = ensureGuestCart(guestSessionId);
-    cart.items = cart.items.filter((i) => i.id !== itemId);
-    cart.updatedAt = nowIso();
-    return cart;
+    const cart = await ensureGuestCart(guestSessionId);
+    return saveCart(setItemQuantity(cart, itemId, quantity));
   },
 
   async updateQuantityAsUser(userId, itemId, quantity) {
-    const cart = ensureUserCart(userId);
-    const item = cart.items.find((i) => i.id === itemId);
-    if (item) {
-      if (quantity <= 0) {
-        cart.items = cart.items.filter((i) => i.id !== itemId);
-      } else {
-        item.quantity = quantity;
-      }
-      cart.updatedAt = nowIso();
-    }
-    return cart;
+    const cart = await ensureUserCart(userId);
+    return saveCart(setItemQuantity(cart, itemId, quantity));
+  },
+
+  async removeItem(guestSessionId, itemId) {
+    const cart = await ensureGuestCart(guestSessionId);
+    return saveCart(withoutItem(cart, itemId));
   },
 
   async removeItemAsUser(userId, itemId) {
-    const cart = ensureUserCart(userId);
-    cart.items = cart.items.filter((i) => i.id !== itemId);
-    cart.updatedAt = nowIso();
-    return cart;
-  },
-
-  async clearAsUser(userId) {
-    const cart = ensureUserCart(userId);
-    cart.items = [];
-    cart.updatedAt = nowIso();
-    return cart;
+    const cart = await ensureUserCart(userId);
+    return saveCart(withoutItem(cart, itemId));
   },
 
   async clear(guestSessionId) {
-    const cart = ensureGuestCart(guestSessionId);
-    cart.items = [];
-    cart.updatedAt = nowIso();
-    return cart;
+    const cart = await ensureGuestCart(guestSessionId);
+    return saveCart(emptied(cart));
+  },
+
+  async clearAsUser(userId) {
+    const cart = await ensureUserCart(userId);
+    return saveCart(emptied(cart));
   },
 
   async mergeGuestIntoUser(guestSessionId, userId) {
-    const guest = cartsByGuest.get(guestSessionId);
-    const user = ensureUserCart(userId);
-    if (guest) {
-      for (const item of guest.items) {
-        addOrMergeItem(user, {
-          productId: item.productId,
-          productSlug: item.productSlug,
-          productName: item.productName,
-          variantSku: item.variantSku,
-          variantLabel: item.variantLabel,
-          imageUrl: item.imageUrl,
-          unitPricePaise: item.unitPricePaise,
-          unitMrpPaise: item.unitMrpPaise,
-          quantity: item.quantity,
-        });
-      }
-      guest.items = [];
-      guest.updatedAt = nowIso();
+    const [guest, user] = await Promise.all([
+      findByGuestSession(guestSessionId),
+      ensureUserCart(userId),
+    ]);
+    if (!guest || guest.items.length === 0) return user;
+
+    let merged = user;
+    for (const item of guest.items) {
+      merged = addOrMergeItem(merged, {
+        productId: item.productId,
+        productSlug: item.productSlug,
+        productName: item.productName,
+        variantSku: item.variantSku,
+        variantLabel: item.variantLabel,
+        imageUrl: item.imageUrl,
+        unitPricePaise: item.unitPricePaise,
+        unitMrpPaise: item.unitMrpPaise,
+        quantity: item.quantity,
+      });
     }
-    return user;
+    await saveCart(merged);
+    // Delete the guest row — once merged it has no purpose. (TTL would
+    // eventually evict it but deleting now keeps the table clean and avoids
+    // a stale guest cart re-appearing if the same cookie is reused.)
+    await getDdbDoc().send(new DeleteCommand({ TableName: table(), Key: { cartId: guest.id } }));
+    return merged;
   },
 };
 
+// Retained for any leftover test imports — no-op now that the repo lives in
+// DynamoDB. Use the dynamo-teardown scripts to clear real data.
 export function __resetCartRepo(): void {
-  cartsByGuest.clear();
-  cartsByUser.clear();
+  // intentional no-op
 }
+
+// Re-export for direct lookups (used by guest-session tests, etc.).
+export { getByCartId };
