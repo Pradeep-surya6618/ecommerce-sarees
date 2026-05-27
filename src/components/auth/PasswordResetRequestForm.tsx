@@ -25,8 +25,11 @@ export function PasswordResetRequestForm() {
       try {
         await requestPasswordResetAction(values);
       } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error("Couldn't send the reset code.");
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          toast.success("If that email is registered, a reset code is on its way.");
+          return;
+        }
+        toast.error(err instanceof Error ? err.message : "Couldn't send the reset code.");
       }
     });
   }

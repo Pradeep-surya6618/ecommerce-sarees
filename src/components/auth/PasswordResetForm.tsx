@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { resetPasswordAction } from "@/server/actions/auth";
@@ -33,7 +33,10 @@ export function PasswordResetForm({ email }: { email: string }) {
       try {
         await resetPasswordAction({ email, code, password: values.password });
       } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          toast.success("Password updated. You're signed in.");
+          return;
+        }
         toast.error(err instanceof Error ? err.message : "Reset failed.");
       }
     });
@@ -46,12 +49,7 @@ export function PasswordResetForm({ email }: { email: string }) {
         a new password.
       </p>
       <AuthField label="Verification code" htmlFor="otp" required>
-        <div className="flex items-center gap-2 rounded-full border border-bg-base/15 bg-bg-base/[0.08] py-2 pl-1 pr-3 sm:gap-3 sm:pr-4">
-          <span className="pointer-events-none inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg-base text-accent-primary sm:h-10 sm:w-10">
-            <KeyRound className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-          </span>
-          <OtpInput value={code} onChange={setCode} variant="dark" />
-        </div>
+        <OtpInput value={code} onChange={setCode} variant="dark" />
       </AuthField>
       <AuthField
         label="New password"

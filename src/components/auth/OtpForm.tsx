@@ -24,7 +24,10 @@ export function OtpForm({ email }: OtpFormProps) {
       try {
         await verifyOtpAction({ email, code });
       } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          toast.success("Email verified. Welcome!");
+          return;
+        }
         const message = err instanceof Error ? err.message : "Verification failed.";
         toast.error(message);
       }
@@ -35,9 +38,9 @@ export function OtpForm({ email }: OtpFormProps) {
     startResending(async () => {
       try {
         await resendOtpAction({ email, purpose: "signup" });
-        toast.success("A new code has been generated. (Demo mode: it's still 123456.)");
-      } catch {
-        toast.error("Couldn't resend the code.");
+        toast.success("A new code has been sent to your email.");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Couldn't resend the code.");
       }
     });
   }

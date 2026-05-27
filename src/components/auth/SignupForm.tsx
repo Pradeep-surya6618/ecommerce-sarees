@@ -37,7 +37,10 @@ export function SignupForm() {
       try {
         await signupAction(values);
       } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          toast.success("Account created. Check your email for the code.");
+          return;
+        }
         const message =
           err instanceof Error ? err.message : "Couldn't create your account. Please try again.";
         toast.error(message);

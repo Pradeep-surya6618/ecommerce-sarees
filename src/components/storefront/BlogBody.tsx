@@ -1,13 +1,8 @@
+import { MarkdownContent } from "@/components/storefront/MarkdownContent";
+
+// Thin wrapper around MarkdownContent — kept as a separate name so the blog
+// detail page can swap rendering strategies in the future without rippling
+// the prop type out to its caller.
 export function BlogBody({ body }: { body: string }) {
-  const paragraphs = body
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  return (
-    <div className="flex flex-col gap-5 text-ink-700 [&_p]:leading-relaxed">
-      {paragraphs.map((p, idx) => (
-        <p key={idx}>{p}</p>
-      ))}
-    </div>
-  );
+  return <MarkdownContent source={body} />;
 }

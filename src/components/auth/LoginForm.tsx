@@ -40,8 +40,13 @@ export function LoginForm() {
           toast.error(result.error);
         }
       } catch (err) {
-        // `redirect()` throws NEXT_REDIRECT — let it through.
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        // `redirect()` throws NEXT_REDIRECT on success — show the toast even
+        // though the navigation may eat it; per the toast-everywhere rule
+        // we'd rather over-call than be silent.
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          toast.success("Signed in");
+          return;
+        }
         toast.error("Couldn't sign you in. Please try again.");
       }
     });
