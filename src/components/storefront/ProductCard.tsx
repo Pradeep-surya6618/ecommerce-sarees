@@ -16,15 +16,13 @@ export interface ProductCardProps {
   isInWishlist?: boolean;
 }
 
-// Deterministic 4.0–5.0 rating from the product id so each card is stable but varied.
-// Will be replaced by real review aggregation when the backend lands.
-function pseudoRating(productId: string): number {
-  let hash = 0;
-  for (let i = 0; i < productId.length; i++) {
-    hash = (hash * 31 + productId.charCodeAt(i)) | 0;
-  }
-  const variance = (Math.abs(hash) % 11) / 10;
-  return Math.round((4.0 + variance) * 10) / 10;
+// Real rating from the denormalised aggregate on the product. Returns null
+// when the product has no reviews yet so the card can hide the chip.
+function averageRating(product: Product): number | null {
+  const count = product.ratingCount ?? 0;
+  const sum = product.ratingSum ?? 0;
+  if (count <= 0) return null;
+  return Math.round((sum / count) * 10) / 10;
 }
 
 export function ProductCard({ product, priority, className, isInWishlist }: ProductCardProps) {
@@ -39,7 +37,7 @@ export function ProductCard({ product, priority, className, isInWishlist }: Prod
   const discountPct = hasDiscount
     ? Math.round(((product.mrpInPaise - product.priceInPaise) / product.mrpInPaise) * 100)
     : 0;
-  const rating = pseudoRating(product.id);
+  const rating = averageRating(product);
 
   return (
     <Link
@@ -81,14 +79,16 @@ export function ProductCard({ product, priority, className, isInWishlist }: Prod
           />
         </div>
 
-        {/* Rating chip — bottom-right */}
-        <span
-          aria-label={`Rated ${rating} out of 5`}
-          className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-sm bg-bg-elevated/95 px-2 py-1 text-xs font-semibold tabular-nums text-ink-900 shadow-sm backdrop-blur"
-        >
-          {rating.toFixed(1)}
-          <Star className="h-3 w-3 fill-accent-gold text-accent-gold" />
-        </span>
+        {/* Rating chip — bottom-right, only once the product has reviews */}
+        {rating !== null && (
+          <span
+            aria-label={`Rated ${rating} out of 5`}
+            className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-sm bg-bg-elevated/95 px-2 py-1 text-xs font-semibold tabular-nums text-ink-900 shadow-sm backdrop-blur"
+          >
+            {rating.toFixed(1)}
+            <Star className="h-3 w-3 fill-accent-gold text-accent-gold" />
+          </span>
+        )}
       </div>
       <div className="flex min-w-0 flex-col gap-0.5 sm:gap-1">
         <h3 className="font-display text-sm font-semibold leading-tight text-ink-900 sm:text-lg">

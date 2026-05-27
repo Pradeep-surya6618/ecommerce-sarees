@@ -10,16 +10,14 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PriceTag } from "@/components/ui/PriceTag";
 import type { Product, WishlistItem } from "@/types/domain";
 
-// Deterministic 4.0–5.0 rating from product id — mirrors ProductCard so cards
-// in the wishlist read consistently with the catalogue. (Replace with real
-// review aggregation when the backend lands.)
-function pseudoRating(productId: string): number {
-  let hash = 0;
-  for (let i = 0; i < productId.length; i++) {
-    hash = (hash * 31 + productId.charCodeAt(i)) | 0;
-  }
-  const variance = (Math.abs(hash) % 11) / 10;
-  return Math.round((4.0 + variance) * 10) / 10;
+// Real rating from the product's denormalised aggregate — mirrors ProductCard.
+// Null when there are no reviews yet (or the product isn't loaded), so the
+// card hides the rating chip.
+function averageRating(product: Product | undefined): number | null {
+  const count = product?.ratingCount ?? 0;
+  const sum = product?.ratingSum ?? 0;
+  if (count <= 0) return null;
+  return Math.round((sum / count) * 10) / 10;
 }
 
 export interface WishlistGridProps {
@@ -66,7 +64,7 @@ export function WishlistGrid({ items, productById }: WishlistGridProps) {
         const discountPct = hasDiscount
           ? Math.round(((mrpInPaise - priceInPaise) / mrpInPaise) * 100)
           : 0;
-        const rating = pseudoRating(item.productId);
+        const rating = averageRating(product);
         const imageUrl = product?.images[0]?.url ?? item.imageUrl;
 
         return (
@@ -90,14 +88,16 @@ export function WishlistGrid({ items, productById }: WishlistGridProps) {
                   </span>
                 )}
 
-                {/* Rating chip — bottom-right */}
-                <span
-                  aria-label={`Rated ${rating} out of 5`}
-                  className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-sm bg-bg-elevated/95 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-ink-900 shadow-sm backdrop-blur sm:bottom-3 sm:right-3 sm:px-2 sm:py-1 sm:text-xs"
-                >
-                  {rating.toFixed(1)}
-                  <Star className="h-2.5 w-2.5 fill-accent-gold text-accent-gold sm:h-3 sm:w-3" />
-                </span>
+                {/* Rating chip — bottom-right, only once the product has reviews */}
+                {rating !== null && (
+                  <span
+                    aria-label={`Rated ${rating} out of 5`}
+                    className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-sm bg-bg-elevated/95 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-ink-900 shadow-sm backdrop-blur sm:bottom-3 sm:right-3 sm:px-2 sm:py-1 sm:text-xs"
+                  >
+                    {rating.toFixed(1)}
+                    <Star className="h-2.5 w-2.5 fill-accent-gold text-accent-gold sm:h-3 sm:w-3" />
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-0.5 sm:gap-1">

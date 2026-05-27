@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesRepo } from "@/lib/db/repos/categories";
 import { productsRepo } from "@/lib/db/repos/products";
+import { reviewsRepo } from "@/lib/db/repos/reviews";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
 import { ProductBuyBox } from "@/components/storefront/ProductBuyBox";
 import { ProductGallery } from "@/components/storefront/ProductGallery";
+import { ProductReviews } from "@/components/storefront/ProductReviews";
 import { ProductSpecifications } from "@/components/storefront/ProductSpecifications";
 import { RelatedProductsCarousel } from "@/components/storefront/RelatedProductsCarousel";
 import { SectionFlourishHeading } from "@/components/storefront/SectionFlourishHeading";
@@ -40,15 +42,17 @@ export default async function ProductPage({ params }: PageProps) {
   if (!product) notFound();
 
   const user = await getCurrentUser();
-  const [category, related, wishlistItems] = await Promise.all([
+  const [category, related, wishlistItems, reviews] = await Promise.all([
     categoriesRepo.getBySlug(product.categorySlug),
     productsRepo.listByCategory(product.categorySlug, { limit: 8 }),
     user ? wishlistRepo.listByUser(user.id) : Promise.resolve([]),
+    reviewsRepo.listByProduct(product.id),
   ]);
   const recommendations = related.filter((p) => p.id !== product.id);
   const categoryLabel = category?.name ?? titleCase(product.categorySlug.replace(/-/g, " "));
   const galleryBadge = product.tags[0] ? titleCase(product.tags[0]) : categoryLabel;
   const initiallyInWishlist = wishlistItems.some((w) => w.productId === product.id);
+  const myReview = user ? (reviews.find((r) => r.userId === user.id) ?? null) : null;
 
   return (
     <Container size="xl" className="py-6">
@@ -71,6 +75,18 @@ export default async function ProductPage({ params }: PageProps) {
       <div className="mt-16">
         <ProductSpecifications product={product} />
       </div>
+
+      <section className="mt-12 sm:mt-16">
+        <SectionFlourishHeading title="Ratings & Reviews" />
+        <div className="mt-6 sm:mt-8">
+          <ProductReviews
+            productId={product.id}
+            reviews={reviews}
+            myReview={myReview}
+            isSignedIn={!!user}
+          />
+        </div>
+      </section>
 
       {recommendations.length > 0 && (
         <section className="mt-10 sm:mt-16 md:mt-20">

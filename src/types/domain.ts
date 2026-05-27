@@ -45,6 +45,13 @@ export interface Product {
   featured: boolean;
   specifications?: ProductSpecifications;
   createdAt: string;
+  /**
+   * Denormalised rating aggregate, recomputed on every review write. Average =
+   * ratingSum / ratingCount. Absent/zero ratingCount means "no reviews yet" —
+   * product cards hide the rating chip in that case.
+   */
+  ratingSum?: number;
+  ratingCount?: number;
 }
 
 export interface Category {
@@ -75,11 +82,14 @@ export interface Banner {
 export interface Review {
   id: string;
   productId: string | null;
+  /** Author's user id — one review per (user, product). Null for legacy rows. */
+  userId: string | null;
   authorName: string;
   rating: 1 | 2 | 3 | 4 | 5;
   title?: string;
   body: string;
   createdAt: string;
+  updatedAt: string;
   verifiedPurchase: boolean;
 }
 

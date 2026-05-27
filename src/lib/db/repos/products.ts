@@ -53,6 +53,7 @@ export interface ProductsRepo {
   update(id: string, input: Partial<ProductDraft>): Promise<Product | null>;
   archive(id: string): Promise<Product | null>;
   listAll(options?: ListAllOptions): Promise<Product[]>;
+  updateRatingAggregate(id: string, sum: number, count: number): Promise<void>;
 }
 
 // DynamoDB Products table:
@@ -365,5 +366,19 @@ export const productsRepo: ProductsRepo = {
       ? all
       : all.filter((p) => p.status === "active" || p.status === "draft");
     return filtered.sort(sortNewestFirst);
+  },
+
+  // Targeted update so review writes don't clobber unrelated product fields.
+  // `ratingSum`/`ratingCount` ride through `fromItem`'s spread automatically.
+  async updateRatingAggregate(id, sum, count) {
+    await getDdbDoc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { productId: id },
+        UpdateExpression: "SET ratingSum = :s, ratingCount = :c",
+        ExpressionAttributeValues: { ":s": sum, ":c": count },
+        ConditionExpression: "attribute_exists(productId)",
+      }),
+    );
   },
 };

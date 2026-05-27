@@ -30,7 +30,7 @@ export default async function HomePage() {
       regionsRepo.listActive(),
       productsRepo.listFeatured({ limit: 8 }),
       productsRepo.list({ limit: 8 }),
-      reviewsRepo.listFeatured({ limit: 6 }),
+      reviewsRepo.listFeatured({ limit: 10 }),
       siteSettingsRepo.get(),
       user ? wishlistRepo.listByUser(user.id) : Promise.resolve([]),
     ]);
