@@ -7,7 +7,14 @@ import { getShippingOptions } from "@/lib/cart/shipping";
 import { computeSubtotalPaise, computeTaxPaise, computeTotalPaise } from "@/lib/cart/totals";
 import { placeOrderAction } from "@/server/actions/orders";
 import { Container } from "@/components/ui/Container";
-import type { Address, Cart, PaymentMethod, SavedAddress, ShippingOption } from "@/types/domain";
+import type {
+  Address,
+  Cart,
+  PaymentMethod,
+  SavedAddress,
+  ShippingOption,
+  ShippingSettings,
+} from "@/types/domain";
 import { AddressForm, type AddressFormValues } from "./AddressForm";
 import { CheckoutStepper, type CheckoutStepId } from "./CheckoutStepper";
 import { CheckoutSummary } from "./CheckoutSummary";
@@ -18,6 +25,7 @@ import { ShippingOptionPicker } from "./ShippingOptionPicker";
 export interface CheckoutFlowProps {
   cart: Cart;
   savedAddresses: SavedAddress[];
+  shippingRates: ShippingSettings;
 }
 
 function toAddressFormValues(a: SavedAddress | Address): AddressFormValues {
@@ -33,10 +41,10 @@ function toAddressFormValues(a: SavedAddress | Address): AddressFormValues {
   };
 }
 
-export function CheckoutFlow({ cart, savedAddresses }: CheckoutFlowProps) {
+export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFlowProps) {
   const subtotalPaise = computeSubtotalPaise(cart.items);
   const taxPaise = computeTaxPaise(subtotalPaise);
-  const shippingOptions = getShippingOptions(subtotalPaise);
+  const shippingOptions = getShippingOptions(subtotalPaise, shippingRates);
 
   const defaultAddress = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0] ?? null;
 

@@ -422,6 +422,15 @@ export interface StoreProfileSettings {
   wholesaleEmail: string;
 }
 
+export interface ShippingSettings {
+  /** Cart subtotal (in paise) at or above which shipping is free. */
+  freeShippingThresholdPaise: number;
+  /** Flat standard-delivery price in paise. */
+  standardRatePaise: number;
+  /** Flat express-delivery price in paise. */
+  expressRatePaise: number;
+}
+
 export interface SiteSettings {
   announcement: AnnouncementSettings;
   about: AboutPageContent;
@@ -429,6 +438,7 @@ export interface SiteSettings {
   social: SocialLinks;
   visit: VisitSettings;
   storeProfile: StoreProfileSettings;
+  shipping: ShippingSettings;
 }
 
 export type ContentPageGroup = "help" | "company" | "none";

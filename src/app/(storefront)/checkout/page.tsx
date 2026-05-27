@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getGuestSessionId } from "@/lib/cart/guest-session";
 import { addressesRepo } from "@/lib/db/repos/addresses";
 import { cartRepo } from "@/lib/db/repos/cart";
+import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { Container } from "@/components/ui/Container";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -42,6 +43,9 @@ export default async function CheckoutPage() {
 
   // Hydrate saved addresses for the address step. Empty for guests.
   const savedAddresses = user ? await addressesRepo.listByUser(user.id) : [];
+  const settings = await siteSettingsRepo.get();
 
-  return <CheckoutFlow cart={cart} savedAddresses={savedAddresses} />;
+  return (
+    <CheckoutFlow cart={cart} savedAddresses={savedAddresses} shippingRates={settings.shipping} />
+  );
 }

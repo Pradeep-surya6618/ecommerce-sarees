@@ -9,6 +9,7 @@ import type {
   AnnouncementSettings,
   InstagramSettings,
   InstagramTile,
+  ShippingSettings,
   SocialLinks,
   StoreProfileSettings,
   VisitSettings,
@@ -176,6 +177,42 @@ export async function updateStoreProfileAction(
     return { ok: true };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Failed to save store profile.";
+    return { ok: false, error: errMsg };
+  }
+}
+
+export async function updateShippingAction(
+  input: ShippingSettings,
+): Promise<SiteSettingsActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+
+  const fields: [keyof ShippingSettings, string][] = [
+    ["freeShippingThresholdPaise", "Free-shipping threshold"],
+    ["standardRatePaise", "Standard rate"],
+    ["expressRatePaise", "Express rate"],
+  ];
+  for (const [key, label] of fields) {
+    const value = input[key];
+    if (!Number.isInteger(value) || value < 0) {
+      return { ok: false, error: `${label} must be a whole, non-negative amount.` };
+    }
+  }
+
+  try {
+    await siteSettingsRepo.updateShipping({
+      freeShippingThresholdPaise: input.freeShippingThresholdPaise,
+      standardRatePaise: input.standardRatePaise,
+      expressRatePaise: input.expressRatePaise,
+    });
+    // Cart estimate, checkout options, and the admin display all read this.
+    revalidatePath("/", "layout");
+    revalidatePath("/cart");
+    revalidatePath("/checkout");
+    revalidatePath("/admin/settings");
+    return { ok: true };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "Failed to save shipping rates.";
     return { ok: false, error: errMsg };
   }
 }

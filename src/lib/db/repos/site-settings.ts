@@ -5,6 +5,7 @@ import type {
   AboutPageContent,
   AnnouncementSettings,
   InstagramSettings,
+  ShippingSettings,
   SiteSettings,
   SocialLinks,
   StoreProfileSettings,
@@ -62,6 +63,14 @@ const EMPTY_STORE_PROFILE: StoreProfileSettings = {
   wholesaleEmail: "",
 };
 
+// Mirrors the flat rates that lived as constants in lib/cart/shipping.ts —
+// ₹2,000 free-shipping threshold, ₹80 standard, ₹200 express.
+const DEFAULT_SHIPPING: ShippingSettings = {
+  freeShippingThresholdPaise: 200000,
+  standardRatePaise: 8000,
+  expressRatePaise: 20000,
+};
+
 const DEFAULT_SETTINGS: SiteSettings = {
   announcement: { message: "", enabled: false },
   about: EMPTY_ABOUT,
@@ -69,6 +78,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   social: EMPTY_SOCIAL,
   visit: EMPTY_VISIT,
   storeProfile: EMPTY_STORE_PROFILE,
+  shipping: DEFAULT_SHIPPING,
 };
 
 export interface SiteSettingsRepo {
@@ -79,6 +89,7 @@ export interface SiteSettingsRepo {
   updateSocial(input: SocialLinks): Promise<SiteSettings>;
   updateVisit(input: VisitSettings): Promise<SiteSettings>;
   updateStoreProfile(input: StoreProfileSettings): Promise<SiteSettings>;
+  updateShipping(input: ShippingSettings): Promise<SiteSettings>;
 }
 
 function table(): string {
@@ -116,6 +127,7 @@ function fromItem(item: Record<string, unknown> | undefined): SiteSettings | nul
     social: rest.social ?? DEFAULT_SETTINGS.social,
     visit: rest.visit ?? DEFAULT_SETTINGS.visit,
     storeProfile,
+    shipping: rest.shipping ?? DEFAULT_SETTINGS.shipping,
   };
 }
 
@@ -188,6 +200,12 @@ export const siteSettingsRepo: SiteSettingsRepo = {
   async updateStoreProfile(input) {
     const current = await load();
     const next: SiteSettings = { ...current, storeProfile: { ...input } };
+    return save(next);
+  },
+
+  async updateShipping(input) {
+    const current = await load();
+    const next: SiteSettings = { ...current, shipping: { ...input } };
     return save(next);
   },
 };

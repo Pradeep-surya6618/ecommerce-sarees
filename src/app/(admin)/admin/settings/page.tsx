@@ -14,6 +14,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import { AnnouncementBarEditor } from "@/components/admin/AnnouncementBarEditor";
+import { ShippingEditor } from "@/components/admin/ShippingEditor";
 import { SocialLinksEditor } from "@/components/admin/SocialLinksEditor";
 import { StoreProfileEditor } from "@/components/admin/StoreProfileEditor";
 import { VisitEditor } from "@/components/admin/VisitEditor";
@@ -24,12 +25,6 @@ export const metadata = { title: "Settings · Admin" };
 const TAX = {
   gstRate: "5%",
   appliesTo: "All sarees and ethnic wear (HSN 5407, 5408, 5208)",
-};
-
-const SHIPPING = {
-  freeShippingThreshold: "₹2,000",
-  standardRate: "₹80",
-  expressRate: "₹200",
 };
 
 const KEYS: { label: string; value: string; status: "demo" | "missing" }[] = [
@@ -152,16 +147,8 @@ export default async function AdminSettingsPage() {
         </div>
       </Section>
 
-      <Section title="Shipping" hint="Rates and thresholds at checkout." icon={Truck}>
-        <div className="grid gap-2.5 sm:grid-cols-3 sm:gap-3">
-          <InfoField
-            icon={Truck}
-            label="Free shipping over"
-            value={SHIPPING.freeShippingThreshold}
-          />
-          <InfoField icon={Truck} label="Standard rate" value={SHIPPING.standardRate} />
-          <InfoField icon={Truck} label="Express rate" value={SHIPPING.expressRate} />
-        </div>
+      <Section title="Shipping" hint="Rates and thresholds applied at checkout." icon={Truck}>
+        <ShippingEditor initial={settings.shipping} />
       </Section>
 
       <Section
