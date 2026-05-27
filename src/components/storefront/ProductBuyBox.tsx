@@ -95,6 +95,7 @@ export function ProductBuyBox({
       try {
         const ok = await addToCart();
         if (!ok) return;
+        toast.success("Heading to checkout…");
         window.location.href = "/checkout";
       } catch {
         toast.error("Couldn't proceed to checkout", { description: "Please try again." });

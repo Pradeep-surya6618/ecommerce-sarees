@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { addressesRepo } from "@/lib/db/repos/addresses";
 import { ordersRepo } from "@/lib/db/repos/orders";
 import { wishlistRepo } from "@/lib/db/repos/wishlist";
-import { logoutAction } from "@/server/actions/auth";
+import { SignOutButton } from "@/components/account/SignOutButton";
 
 export const metadata = { title: "Account · Saree Store" };
 
@@ -137,14 +137,14 @@ export default async function AccountDashboardPage() {
       </section>
 
       {/* ── Mobile sign-out (sidebar version is desktop-only) ── */}
-      <form action={logoutAction} className="md:hidden">
-        <button
-          type="submit"
-          className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-ink-500/30 px-4 py-2.5 text-xs font-medium uppercase tracking-[0.18em] text-ink-700 transition hover:border-danger hover:text-danger"
+      <div className="md:hidden">
+        <SignOutButton
+          className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-ink-500/30 px-4 py-2.5 text-xs font-medium uppercase tracking-[0.18em] text-ink-700 transition hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+          pendingChildren="Signing out…"
         >
           Sign out
-        </button>
-      </form>
+        </SignOutButton>
+      </div>
     </div>
   );
 }

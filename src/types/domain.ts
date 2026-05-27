@@ -222,6 +222,13 @@ export interface OtpRecord {
   code: string;
   expiresAt: string;
   consumedAt: string | null;
+  /**
+   * Password hash to apply to the user when this OTP is consumed. Used by the
+   * "add password to existing Google-only account" signup flow — the password
+   * is hashed at signup time but only written to the user row after the OTP
+   * proves the requester controls the email inbox.
+   */
+  pendingPasswordHash?: string;
 }
 
 export interface SavedAddress {

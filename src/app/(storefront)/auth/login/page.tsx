@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { OAuthErrorToast } from "@/components/auth/OAuthErrorToast";
 
 export const metadata = { title: "Sign in · Saree Store" };
 
@@ -12,6 +14,10 @@ export default function LoginPage() {
       footerHref="/auth/signup"
       footerLabel="Create an account"
     >
+      {/* useSearchParams requires a Suspense boundary. */}
+      <Suspense fallback={null}>
+        <OAuthErrorToast />
+      </Suspense>
       <LoginForm />
     </AuthCard>
   );

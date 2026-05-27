@@ -27,6 +27,8 @@ const minimalEnv = {
   SHIPROCKET_EMAIL: "sr@example.com",
   SHIPROCKET_PASSWORD: "sr",
   SHIPROCKET_WEBHOOK_SECRET: "srw",
+  GOOGLE_CLIENT_ID: "google-client-id.apps.googleusercontent.com",
+  GOOGLE_CLIENT_SECRET: "GOCSPX-test-secret",
   RATE_LIMIT_SALT: "salt",
   LOG_LEVEL: "info",
 } as const;

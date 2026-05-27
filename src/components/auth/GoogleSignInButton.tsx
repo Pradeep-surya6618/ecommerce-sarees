@@ -1,75 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { toast } from "sonner";
-import { DEMO_GOOGLE_ACCOUNTS, type DemoGoogleEmail } from "@/lib/auth/google-demo-accounts";
+import { useState } from "react";
 import { clsx } from "@/lib/utils/clsx";
-import { googleSignInAction } from "@/server/actions/google-auth";
-import { Sheet } from "@/components/ui/Sheet";
 
+// Anchor (not button) — clicking starts a full-page navigation to our OAuth
+// start endpoint, which redirects to Google. Using `<a>` means the browser
+// handles the navigation natively; no JS needed for the flow itself.
 export function GoogleSignInButton({ className }: { className?: string }) {
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-
-  function pick(email: DemoGoogleEmail) {
-    setOpen(false);
-    startTransition(async () => {
-      try {
-        await googleSignInAction(email);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
-        toast.error("Google sign-in failed. Please try again.");
-      }
-    });
-  }
+  const [pending, setPending] = useState(false);
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={pending}
-        className={clsx(
-          "inline-flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-bg-base/20 bg-bg-base/[0.06] px-4 text-xs font-medium uppercase tracking-[0.18em] text-bg-base transition hover:border-accent-gold hover:bg-bg-base/[0.12] sm:h-12 sm:text-sm sm:tracking-[0.15em]",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          className,
-        )}
-      >
-        <GoogleLogoSvg />
-        Continue with Google
-      </button>
-      <Sheet
-        open={open}
-        onClose={() => setOpen(false)}
-        side="bottom"
-        title="Choose a demo Google account"
-      >
-        <div className="flex flex-col gap-2 pb-4">
-          <p className="text-xs text-ink-500">
-            Demo mode: real Google OAuth wires up in a later phase. Pick a demo account to continue.
-          </p>
-          {DEMO_GOOGLE_ACCOUNTS.map((acc) => (
-            <button
-              key={acc.email}
-              type="button"
-              onClick={() => pick(acc.email)}
-              className="flex items-center gap-3 rounded-sm border border-ink-500/15 bg-bg-base p-4 text-left transition hover:border-ink-700"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-primary/10 text-sm font-semibold text-accent-primary">
-                {acc.fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
-              </span>
-              <span className="flex flex-col">
-                <span className="font-medium text-ink-900">{acc.fullName}</span>
-                <span className="text-xs text-ink-500">{acc.email}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </Sheet>
-    </>
+    <a
+      href="/api/auth/google/start"
+      onClick={() => setPending(true)}
+      aria-disabled={pending}
+      className={clsx(
+        "inline-flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-bg-base/20 bg-bg-base/[0.06] px-4 text-xs font-medium uppercase tracking-[0.18em] text-bg-base transition hover:border-accent-gold hover:bg-bg-base/[0.12] sm:h-12 sm:text-sm sm:tracking-[0.15em]",
+        pending && "pointer-events-none opacity-60",
+        className,
+      )}
+    >
+      <GoogleLogoSvg />
+      {pending ? "Redirecting…" : "Continue with Google"}
+    </a>
   );
 }
 

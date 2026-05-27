@@ -51,6 +51,9 @@ const schema = z.object({
   SHIPROCKET_PASSWORD: optionalString,
   SHIPROCKET_WEBHOOK_SECRET: optionalString,
 
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+
   RATE_LIMIT_SALT: z.string().min(1),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });

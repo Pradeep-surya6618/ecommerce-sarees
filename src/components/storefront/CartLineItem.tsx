@@ -20,7 +20,9 @@ export function CartLineItem({ item }: { item: CartItem }) {
     startTransition(async () => {
       try {
         const result = await updateCartItemAction(item.id, next);
-        if (!result.ok) {
+        if (result.ok) {
+          toast.success("Quantity updated");
+        } else {
           toast.error("Couldn't update quantity", { description: result.error });
         }
       } catch {

@@ -34,10 +34,14 @@ export function ProfileForm({
   function onSubmit(values: Values) {
     startTransition(async () => {
       try {
-        await updateNameAction(values);
-        toast.success("Name updated");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't update");
+        const result = await updateNameAction(values);
+        if (result.ok) {
+          toast.success("Name updated");
+        } else {
+          toast.error(result.error);
+        }
+      } catch {
+        toast.error("Couldn't update. Please try again.");
       }
     });
   }

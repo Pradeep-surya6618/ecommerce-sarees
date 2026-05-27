@@ -108,7 +108,13 @@ export function CheckoutFlow({ cart, savedAddresses }: CheckoutFlowProps) {
           paymentMethod,
         });
       } catch (err) {
-        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        // placeOrderAction calls `redirect()` on success, which throws
+        // NEXT_REDIRECT. Toast first so the user sees confirmation even though
+        // the success page itself is also a clear success state.
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          toast.success("Order placed!");
+          return;
+        }
         toast.error("Couldn't place order. Please try again.");
         console.error(err);
       }

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Heart, LayoutDashboard, LogOut, MapPin, Package, User as UserIcon } from "lucide-react";
 import { clsx } from "@/lib/utils/clsx";
-import { logoutAction } from "@/server/actions/auth";
+import { SignOutButton } from "@/components/account/SignOutButton";
 import { Container } from "@/components/ui/Container";
 
 const NAV: { href: string; label: string; icon: typeof UserIcon }[] = [
@@ -144,15 +144,20 @@ export function AccountShell({ userName, userEmail, children }: AccountShellProp
               })}
             </nav>
 
-            <form action={logoutAction} className="border-t border-ink-500/10 px-3 py-3">
-              <button
-                type="submit"
-                className="inline-flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-ink-700 transition hover:bg-danger/10 hover:text-danger"
+            <div className="border-t border-ink-500/10 px-3 py-3">
+              <SignOutButton
+                className="inline-flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-ink-700 transition hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+                pendingChildren={
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Signing out…
+                  </>
+                }
               >
                 <LogOut className="h-4 w-4" />
                 Sign out
-              </button>
-            </form>
+              </SignOutButton>
+            </div>
           </div>
         </aside>
 

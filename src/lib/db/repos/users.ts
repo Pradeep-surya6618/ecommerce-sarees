@@ -25,6 +25,7 @@ export interface UsersRepo {
   findById(id: string): Promise<User | null>;
   markEmailVerified(id: string): Promise<User | null>;
   updatePasswordHash(id: string, passwordHash: string): Promise<User | null>;
+  updateFullName(id: string, fullName: string): Promise<User | null>;
   findOrCreateGoogle(input: { email: string; fullName: string }): Promise<User>;
   promoteToAdmin(id: string): Promise<User | null>;
   listCustomers(options?: { search?: string; limit?: number }): Promise<User[]>;
@@ -135,6 +136,20 @@ export const usersRepo: UsersRepo = {
         Key: { userId: id },
         UpdateExpression: "SET passwordHash = :p, updatedAt = :u",
         ExpressionAttributeValues: { ":p": passwordHash, ":u": nowIso() },
+        ConditionExpression: "attribute_exists(userId)",
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    return fromItem(res.Attributes);
+  },
+
+  async updateFullName(id, fullName) {
+    const res = await getDdbDoc().send(
+      new UpdateCommand({
+        TableName: table(),
+        Key: { userId: id },
+        UpdateExpression: "SET fullName = :n, updatedAt = :u",
+        ExpressionAttributeValues: { ":n": fullName, ":u": nowIso() },
         ConditionExpression: "attribute_exists(userId)",
         ReturnValues: "ALL_NEW",
       }),

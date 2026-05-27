@@ -9,6 +9,8 @@ export interface CreateOtpInput {
   purpose: OtpPurpose;
   code: string;
   ttlSeconds: number;
+  /** Carried alongside the code; consumed-side reads + applies it to the user. */
+  pendingPasswordHash?: string;
 }
 
 export interface OtpsRepo {
@@ -50,10 +52,11 @@ interface OtpRow {
   expiresAt: number; // epoch seconds for DDB TTL
   expiresAtIso: string;
   consumedAt: string | null;
+  pendingPasswordHash?: string;
 }
 
 function toItem(rec: OtpRecord): OtpRow {
-  return {
+  const row: OtpRow = {
     pk: otpPk(rec.email),
     sk: rec.purpose,
     otpId: rec.id,
@@ -64,6 +67,8 @@ function toItem(rec: OtpRecord): OtpRow {
     expiresAtIso: rec.expiresAt,
     consumedAt: rec.consumedAt,
   };
+  if (rec.pendingPasswordHash) row.pendingPasswordHash = rec.pendingPasswordHash;
+  return row;
 }
 
 function fromItem(item: Record<string, unknown> | undefined): OtpRecord | null {
@@ -74,8 +79,18 @@ function fromItem(item: Record<string, unknown> | undefined): OtpRecord | null {
   const code = item.code as string | undefined;
   const expiresAtIso = item.expiresAtIso as string | undefined;
   const consumedAt = (item.consumedAt as string | null | undefined) ?? null;
+  const pendingPasswordHash = item.pendingPasswordHash as string | undefined;
   if (!otpId || !email || !purpose || !code || !expiresAtIso) return null;
-  return { id: otpId, email, purpose, code, expiresAt: expiresAtIso, consumedAt };
+  const record: OtpRecord = {
+    id: otpId,
+    email,
+    purpose,
+    code,
+    expiresAt: expiresAtIso,
+    consumedAt,
+  };
+  if (pendingPasswordHash) record.pendingPasswordHash = pendingPasswordHash;
+  return record;
 }
 
 export const otpsRepo: OtpsRepo = {
@@ -89,6 +104,7 @@ export const otpsRepo: OtpsRepo = {
       expiresAt: expiresIso,
       consumedAt: null,
     };
+    if (input.pendingPasswordHash) record.pendingPasswordHash = input.pendingPasswordHash;
     await getDdbDoc().send(new PutCommand({ TableName: table(), Item: toItem(record) }));
     return record;
   },

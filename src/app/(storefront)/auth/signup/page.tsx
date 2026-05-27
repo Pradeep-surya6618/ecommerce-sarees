@@ -1,5 +1,4 @@
 import { AuthCard } from "@/components/auth/AuthCard";
-import { DemoNotice } from "@/components/auth/DemoNotice";
 import { SignupForm } from "@/components/auth/SignupForm";
 
 export const metadata = { title: "Create account · Saree Store" };
@@ -13,7 +12,6 @@ export default function SignupPage() {
       footerHref="/auth/login"
       footerLabel="Sign in"
     >
-      <DemoNotice />
       <SignupForm />
     </AuthCard>
   );

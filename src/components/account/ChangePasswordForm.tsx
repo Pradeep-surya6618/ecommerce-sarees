@@ -27,11 +27,15 @@ export function ChangePasswordForm() {
   function onSubmit(values: Values) {
     startTransition(async () => {
       try {
-        await changePasswordAction(values);
-        toast.success("Password updated");
-        reset();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't update");
+        const result = await changePasswordAction(values);
+        if (result.ok) {
+          toast.success("Password updated");
+          reset();
+        } else {
+          toast.error(result.error);
+        }
+      } catch {
+        toast.error("Couldn't update. Please try again.");
       }
     });
   }
