@@ -141,6 +141,60 @@ export function ProductBuyBox({
     );
   }
 
+  // Each share handler reads `window.location.href` at click time (not at
+  // render time) so it works even when this product page was loaded via a
+  // client-side navigation rather than a hard reload.
+  function openInNewTab(url: string) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function onShareInstagram() {
+    if (typeof window === "undefined") return;
+    // Instagram has no web share endpoint — the only thing that works from a
+    // browser is "copy the link, paste it in Stories/DM/bio".
+    navigator.clipboard?.writeText(window.location.href).then(
+      () =>
+        toast.success("Link copied", {
+          description: "Paste it in your Instagram Story, DM, or bio.",
+        }),
+      () => toast.error("Couldn't copy the link"),
+    );
+  }
+
+  function onShareWhatsApp() {
+    if (typeof window === "undefined") return;
+    const text = `${product.name} — ${window.location.href}`;
+    openInNewTab(`https://wa.me/?text=${encodeURIComponent(text)}`);
+  }
+
+  function onSharePinterest() {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams({
+      url: window.location.href,
+      media: primaryImage,
+      description: product.name,
+    });
+    openInNewTab(`https://pinterest.com/pin/create/button/?${params.toString()}`);
+  }
+
+  function onShareFacebook() {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams({ u: window.location.href });
+    openInNewTab(`https://www.facebook.com/sharer/sharer.php?${params.toString()}`);
+  }
+
+  function onShareEmail() {
+    if (typeof window === "undefined") return;
+    const subject = `Check out: ${product.name}`;
+    const body = `I thought you might like this: ${product.name}\n\n${window.location.href}`;
+    // `location.assign()` (a method call) instead of assigning `location.href`
+    // — the React Compiler's immutability rule forbids writing to globals.
+    // Same-window navigation so mobile mail clients launch reliably.
+    window.location.assign(
+      `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+    );
+  }
+
   return (
     <div className="flex flex-col gap-5 sm:gap-7">
       {/* Title block */}
@@ -284,47 +338,46 @@ export function ProductBuyBox({
             {
               icon: InstagramGlyph,
               label: "Share on Instagram",
-              href: "https://www.instagram.com/",
+              onClick: onShareInstagram,
               hoverClass: "hover:bg-[#E1306C] hover:text-white",
             },
             {
               icon: WhatsAppIcon,
               label: "Share on WhatsApp",
-              href: "https://wa.me/",
+              onClick: onShareWhatsApp,
               hoverClass: "hover:bg-[#25D366] hover:text-white",
             },
             {
               icon: PinterestIcon,
               label: "Share on Pinterest",
-              href: "https://www.pinterest.com/",
+              onClick: onSharePinterest,
               hoverClass: "hover:bg-[#E60023] hover:text-white",
             },
             {
               icon: FacebookIcon,
               label: "Share on Facebook",
-              href: "https://www.facebook.com/",
+              onClick: onShareFacebook,
               hoverClass: "hover:bg-[#1877F2] hover:text-white",
             },
             {
               icon: Mail,
               label: "Share via email",
-              href: "mailto:",
+              onClick: onShareEmail,
               hoverClass: "hover:bg-accent-primary hover:text-white",
             },
           ].map((item) => (
-            <a
+            <button
               key={item.label}
-              href={item.href}
-              target="_blank"
-              rel="noreferrer noopener"
+              type="button"
+              onClick={item.onClick}
               aria-label={item.label}
               className={clsx(
-                "inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink-500/10 text-ink-700 transition",
+                "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-ink-500/10 text-ink-700 transition",
                 item.hoverClass,
               )}
             >
               <item.icon className="h-4 w-4" />
-            </a>
+            </button>
           ))}
         </div>
       </div>

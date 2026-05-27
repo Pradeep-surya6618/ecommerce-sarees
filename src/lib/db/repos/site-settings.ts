@@ -7,6 +7,7 @@ import type {
   InstagramSettings,
   SiteSettings,
   SocialLinks,
+  StoreProfileSettings,
   VisitSettings,
 } from "@/types/domain";
 
@@ -50,12 +51,24 @@ const EMPTY_VISIT: VisitSettings = {
   href: "",
 };
 
+const EMPTY_STORE_PROFILE: StoreProfileSettings = {
+  legalName: "",
+  tradeName: "",
+  gstNumber: "",
+  pan: "",
+  address: "",
+  email: "",
+  phone: "",
+  wholesaleEmail: "",
+};
+
 const DEFAULT_SETTINGS: SiteSettings = {
   announcement: { message: "", enabled: false },
   about: EMPTY_ABOUT,
   instagram: EMPTY_INSTAGRAM,
   social: EMPTY_SOCIAL,
   visit: EMPTY_VISIT,
+  storeProfile: EMPTY_STORE_PROFILE,
 };
 
 export interface SiteSettingsRepo {
@@ -65,6 +78,7 @@ export interface SiteSettingsRepo {
   updateInstagram(input: InstagramSettings): Promise<SiteSettings>;
   updateSocial(input: SocialLinks): Promise<SiteSettings>;
   updateVisit(input: VisitSettings): Promise<SiteSettings>;
+  updateStoreProfile(input: StoreProfileSettings): Promise<SiteSettings>;
 }
 
 function table(): string {
@@ -85,13 +99,23 @@ function fromItem(item: Record<string, unknown> | undefined): SiteSettings | nul
   if (!item) return null;
   if ((item as { entity?: string }).entity !== "settings") return null;
   const { pk: _pk, sk: _sk, entity: _e, ...rest } = item as SettingsItem;
-  // Backfill missing top-level fields when reading older items.
+  // Backfill missing top-level fields when reading older items. Also migrate
+  // the older `contact` block (email/phone/wholesaleEmail) into the new
+  // storeProfile shape so admin edits made before this refactor aren't lost.
+  const legacyContact = (rest as { contact?: Partial<StoreProfileSettings> }).contact;
+  const storeProfile: StoreProfileSettings = rest.storeProfile
+    ? rest.storeProfile
+    : {
+        ...DEFAULT_SETTINGS.storeProfile,
+        ...(legacyContact ?? {}),
+      };
   return {
     announcement: rest.announcement ?? DEFAULT_SETTINGS.announcement,
     about: rest.about ?? DEFAULT_SETTINGS.about,
     instagram: rest.instagram ?? DEFAULT_SETTINGS.instagram,
     social: rest.social ?? DEFAULT_SETTINGS.social,
     visit: rest.visit ?? DEFAULT_SETTINGS.visit,
+    storeProfile,
   };
 }
 
@@ -158,6 +182,12 @@ export const siteSettingsRepo: SiteSettingsRepo = {
   async updateVisit(input) {
     const current = await load();
     const next: SiteSettings = { ...current, visit: { ...input } };
+    return save(next);
+  },
+
+  async updateStoreProfile(input) {
+    const current = await load();
+    const next: SiteSettings = { ...current, storeProfile: { ...input } };
     return save(next);
   },
 };

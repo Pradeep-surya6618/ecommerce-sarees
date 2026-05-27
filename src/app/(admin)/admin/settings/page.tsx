@@ -2,37 +2,24 @@ import {
   AlertCircle,
   Building2,
   CreditCard,
-  Hash,
   Key,
-  Mail,
   MapPin,
   Megaphone,
   Percent,
-  Phone,
   Plug,
   Receipt,
   Share2,
-  Tag,
   Truck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
 import { AnnouncementBarEditor } from "@/components/admin/AnnouncementBarEditor";
 import { SocialLinksEditor } from "@/components/admin/SocialLinksEditor";
+import { StoreProfileEditor } from "@/components/admin/StoreProfileEditor";
 import { VisitEditor } from "@/components/admin/VisitEditor";
 import { Badge } from "@/components/ui/Badge";
 
 export const metadata = { title: "Settings · Admin" };
-
-const STORE = {
-  legalName: "Saree Store Private Limited",
-  tradeName: "Saree Store",
-  gstNumber: "29ABCDE1234F1Z5",
-  pan: "ABCDE1234F",
-  contactEmail: "hello@sareestore.example",
-  phone: "+91 80 4567 8901",
-  addressLine: "27 Lavelle Road, Bengaluru 560001, KA",
-};
 
 const TAX = {
   gstRate: "5%",
@@ -100,7 +87,10 @@ function InfoField({ icon: Icon, label, value, mono }: InfoFieldProps) {
           {label}
         </span>
         <span
-          className={`min-w-0 break-words text-[12px] leading-snug text-ink-900 sm:text-sm ${mono ? "font-mono" : ""}`}
+          className={
+            "min-w-0 break-words text-[12px] leading-snug text-ink-900 sm:text-sm " +
+            (mono ? "font-mono" : "")
+          }
         >
           {value}
         </span>
@@ -108,6 +98,8 @@ function InfoField({ icon: Icon, label, value, mono }: InfoFieldProps) {
     </div>
   );
 }
+// InfoField is still used by the (read-only) Tax / Shipping / Integrations
+// sections below — keep it around even though Store Profile no longer needs it.
 
 export default async function AdminSettingsPage() {
   const settings = await siteSettingsRepo.get();
@@ -145,18 +137,12 @@ export default async function AdminSettingsPage() {
         <VisitEditor initial={settings.visit} />
       </Section>
 
-      <Section title="Store profile" hint="Legal identifiers and contact details." icon={Building2}>
-        <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-          <InfoField icon={Building2} label="Legal name" value={STORE.legalName} />
-          <InfoField icon={Tag} label="Trade name" value={STORE.tradeName} />
-          <InfoField icon={Hash} label="GST number" value={STORE.gstNumber} mono />
-          <InfoField icon={Receipt} label="PAN" value={STORE.pan} mono />
-          <InfoField icon={Mail} label="Contact email" value={STORE.contactEmail} />
-          <InfoField icon={Phone} label="Phone" value={STORE.phone} />
-          <div className="sm:col-span-2">
-            <InfoField icon={MapPin} label="Address" value={STORE.addressLine} />
-          </div>
-        </div>
+      <Section
+        title="Store profile"
+        hint="Legal identifiers and contact details shown on /contact and invoices."
+        icon={Building2}
+      >
+        <StoreProfileEditor initial={settings.storeProfile} />
       </Section>
 
       <Section title="Tax" hint="GST applied at checkout." icon={Percent}>

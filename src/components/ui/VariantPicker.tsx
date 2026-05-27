@@ -19,10 +19,19 @@ function uniqueColors(variants: ProductVariant[]) {
 }
 
 function uniqueSizesForColor(variants: ProductVariant[], colorName: string) {
-  return variants
-    .filter((v) => v.colorName === colorName)
-    .map((v) => ({ size: v.size, sku: v.sku, stock: v.stock }))
-    .filter((v): v is { size: string; sku: string; stock: number } => typeof v.size === "string");
+  return (
+    variants
+      .filter((v) => v.colorName === colorName)
+      .map((v) => ({ size: v.size, sku: v.sku, stock: v.stock }))
+      // Drop variants whose `size` is missing OR an empty/whitespace string —
+      // the admin form leaves Size blank for "free size" sarees, and an empty
+      // string slipped past the previous `typeof === "string"` guard and
+      // rendered as a black chip with no label.
+      .filter(
+        (v): v is { size: string; sku: string; stock: number } =>
+          typeof v.size === "string" && v.size.trim().length > 0,
+      )
+  );
 }
 
 export function VariantPicker({ variants, selectedSku, onChange, className }: VariantPickerProps) {

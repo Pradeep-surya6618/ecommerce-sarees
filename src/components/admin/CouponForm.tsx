@@ -6,7 +6,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BadgePercent,
-  Calendar,
   FileText,
   Hash,
   IndianRupee,
@@ -32,6 +31,7 @@ import {
   PillListbox,
   PillSubmitButton,
 } from "@/components/account/AccountFields";
+import { PillDateInput } from "@/components/admin/PillDateInput";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Coupon } from "@/types/domain";
 
@@ -116,6 +116,7 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
   });
 
   const couponType = watch("type");
+  const validFromWatch = watch("validFrom");
 
   async function onSubmit(values: CouponFormValues) {
     const validFromIso = `${values.validFrom}T00:00:00.000Z`;
@@ -395,22 +396,39 @@ export function CouponForm({ editCode, defaultCoupon }: CouponFormProps) {
               required
               error={errors.validFrom?.message}
             >
-              <PillInput
-                id="validFrom"
-                icon={Calendar}
-                type="date"
-                {...register("validFrom")}
-                invalid={!!errors.validFrom}
+              <Controller
+                name="validFrom"
+                control={control}
+                render={({ field }) => (
+                  <PillDateInput
+                    id="validFrom"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="Select start date"
+                    invalid={!!errors.validFrom}
+                  />
+                )}
               />
             </PillField>
 
             <PillField label="Valid to" htmlFor="validTo" required error={errors.validTo?.message}>
-              <PillInput
-                id="validTo"
-                icon={Calendar}
-                type="date"
-                {...register("validTo")}
-                invalid={!!errors.validTo}
+              <Controller
+                name="validTo"
+                control={control}
+                render={({ field }) => (
+                  <PillDateInput
+                    id="validTo"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    // Floor the end date at the chosen start date so admins
+                    // can't accidentally pick an empty validity window.
+                    min={validFromWatch || undefined}
+                    placeholder="Select end date"
+                    invalid={!!errors.validTo}
+                  />
+                )}
               />
             </PillField>
 

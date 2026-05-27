@@ -28,9 +28,9 @@ function categoriesToFooterLinks(categories: Category[]): FooterLink[] {
 }
 
 function visitToFooterLinks(visit: VisitSettings): FooterLink[] {
-  // Default to /p/contact when the admin hasn't set a href but has filled in
+  // Default to /contact when the admin hasn't set a href but has filled in
   // any visit info — the column is otherwise hidden entirely (see Footer).
-  const href = visit.href || "/p/contact";
+  const href = visit.href || "/contact";
   const lines = [visit.addressLine1, visit.addressLine2, visit.hours].filter(
     (s) => s.trim().length > 0,
   );
@@ -152,21 +152,6 @@ export async function Footer() {
             Handpicked sarees from looms across India. Slow fashion, fairly sourced — each weave
             chosen for its story, not the season.
           </p>
-
-          {/* Newsletter */}
-          <form className="mt-2 flex w-full max-w-md flex-col gap-2 sm:mt-4 sm:flex-row">
-            <input
-              type="email"
-              placeholder="Your email"
-              className="autofill-on-dark flex-1 rounded-sm border border-bg-base/20 bg-white/[0.04] px-3 py-2.5 text-xs text-bg-base placeholder:text-bg-base/45 focus:border-accent-gold focus:outline-none sm:px-4 sm:py-3 sm:text-sm"
-            />
-            <button
-              type="submit"
-              className="cursor-pointer rounded-sm bg-accent-gold px-4 py-2.5 text-xs font-medium uppercase tracking-[0.15em] text-ink-900 transition hover:bg-accent-gold/85 sm:px-5 sm:py-3 sm:text-sm"
-            >
-              Subscribe
-            </button>
-          </form>
         </div>
 
         {/* ── Ornamental divider ── */}

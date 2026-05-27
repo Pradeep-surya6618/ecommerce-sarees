@@ -76,12 +76,12 @@ export function VisitEditor({ initial }: VisitEditorProps) {
         <PillField
           label="Link target"
           htmlFor="visitHref"
-          hint="Where clicking any line goes. e.g. /contact, /p/contact, or a maps URL."
+          hint="Where clicking any line goes. e.g. /contact or a maps URL."
         >
           <PillInput
             id="visitHref"
             icon={Link2}
-            placeholder="/p/contact"
+            placeholder="/contact"
             value={values.href}
             onChange={(e) => update("href", e.target.value)}
           />

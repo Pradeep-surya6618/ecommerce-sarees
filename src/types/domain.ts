@@ -393,12 +393,32 @@ export interface VisitSettings {
   href: string;
 }
 
+export interface StoreProfileSettings {
+  /** Registered legal entity name — appears on invoices/legal pages. */
+  legalName: string;
+  /** Customer-facing brand name. */
+  tradeName: string;
+  /** 15-char GSTIN. */
+  gstNumber: string;
+  /** 10-char PAN. */
+  pan: string;
+  /** Registered business / mailing address. Single-line. */
+  address: string;
+  /** Primary support address — "Reach us" → Email row on /contact. */
+  email: string;
+  /** International format. Doubles as the "Phone / WhatsApp" line. */
+  phone: string;
+  /** Inbox for trade enquiries, kept separate from `email`. */
+  wholesaleEmail: string;
+}
+
 export interface SiteSettings {
   announcement: AnnouncementSettings;
   about: AboutPageContent;
   instagram: InstagramSettings;
   social: SocialLinks;
   visit: VisitSettings;
+  storeProfile: StoreProfileSettings;
 }
 
 export type ContentPageGroup = "help" | "company" | "none";

@@ -10,6 +10,7 @@ import type {
   InstagramSettings,
   InstagramTile,
   SocialLinks,
+  StoreProfileSettings,
   VisitSettings,
 } from "@/types/domain";
 
@@ -107,6 +108,74 @@ export async function updateVisitAction(input: VisitSettings): Promise<SiteSetti
     return { ok: true };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Failed to save visit info.";
+    return { ok: false, error: errMsg };
+  }
+}
+
+// Simple email validator — same shape we use elsewhere. Empty string is
+// allowed (admins can clear a field to hide it on the contact page).
+function validateEmail(value: string, label: string): string | null {
+  if (!value) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    return `${label} doesn't look like a valid email address.`;
+  }
+  return null;
+}
+
+// GST and PAN format checks. Empty allowed — admin can clear what hasn't been
+// registered yet. We do a loose shape match rather than full checksum so
+// transitional values during typing aren't rejected.
+function validateGst(value: string): string | null {
+  if (!value) return null;
+  if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(value)) {
+    return "GST number should be 15 characters in the standard GSTIN format.";
+  }
+  return null;
+}
+
+function validatePan(value: string): string | null {
+  if (!value) return null;
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) {
+    return "PAN should be 10 characters (5 letters, 4 digits, 1 letter).";
+  }
+  return null;
+}
+
+export async function updateStoreProfileAction(
+  input: StoreProfileSettings,
+): Promise<SiteSettingsActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+
+  const trimmed: StoreProfileSettings = {
+    legalName: input.legalName.trim(),
+    tradeName: input.tradeName.trim(),
+    // GST and PAN are case-sensitive uppercase by convention.
+    gstNumber: input.gstNumber.trim().toUpperCase(),
+    pan: input.pan.trim().toUpperCase(),
+    address: input.address.trim(),
+    email: input.email.trim(),
+    phone: input.phone.trim(),
+    wholesaleEmail: input.wholesaleEmail.trim(),
+  };
+
+  const emailErr = validateEmail(trimmed.email, "Contact email");
+  if (emailErr) return { ok: false, error: emailErr };
+  const wholesaleErr = validateEmail(trimmed.wholesaleEmail, "Wholesale email");
+  if (wholesaleErr) return { ok: false, error: wholesaleErr };
+  const gstErr = validateGst(trimmed.gstNumber);
+  if (gstErr) return { ok: false, error: gstErr };
+  const panErr = validatePan(trimmed.pan);
+  if (panErr) return { ok: false, error: panErr };
+
+  try {
+    await siteSettingsRepo.updateStoreProfile(trimmed);
+    revalidatePath("/", "layout");
+    revalidatePath("/contact");
+    revalidatePath("/admin/settings");
+    return { ok: true };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "Failed to save store profile.";
     return { ok: false, error: errMsg };
   }
 }
