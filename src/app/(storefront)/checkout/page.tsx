@@ -46,6 +46,11 @@ export default async function CheckoutPage() {
   const settings = await siteSettingsRepo.get();
 
   return (
-    <CheckoutFlow cart={cart} savedAddresses={savedAddresses} shippingRates={settings.shipping} />
+    <CheckoutFlow
+      cart={cart}
+      savedAddresses={savedAddresses}
+      shippingRates={settings.shipping}
+      isSignedIn={!!user}
+    />
   );
 }

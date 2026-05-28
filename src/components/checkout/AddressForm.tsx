@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Building2, Hash, Home, Mail, Map, MapPin, Phone, User } from "lucide-react";
 import { z } from "zod";
 import { INDIA_STATES } from "@/lib/cart/india-states";
+import { clsx } from "@/lib/utils/clsx";
 import { PillField, PillInput, PillListbox } from "@/components/account/AccountFields";
 import type { Address } from "@/types/domain";
 
@@ -22,13 +23,22 @@ const schema = z.object({
 
 export type AddressFormValues = z.infer<typeof schema>;
 
-export interface AddressFormProps {
-  defaultValues?: Partial<AddressFormValues>;
-  onSubmit: (address: Address) => void;
-  formId?: string;
+export interface AddressSubmitOptions {
+  /** Persist this address to the customer's account for next time. */
+  saveToAccount: boolean;
 }
 
-export function AddressForm({ defaultValues, onSubmit, formId }: AddressFormProps) {
+export interface AddressFormProps {
+  defaultValues?: Partial<AddressFormValues>;
+  onSubmit: (address: Address, opts: AddressSubmitOptions) => void;
+  formId?: string;
+  /** Show the "save to my account" checkbox — only for signed-in customers. */
+  showSaveOption?: boolean;
+}
+
+export function AddressForm({ defaultValues, onSubmit, formId, showSaveOption }: AddressFormProps) {
+  // Default to saving — most signed-in customers want their address remembered.
+  const [saveToAccount, setSaveToAccount] = useState(true);
   const {
     register,
     control,
@@ -47,7 +57,12 @@ export function AddressForm({ defaultValues, onSubmit, formId }: AddressFormProp
   return (
     <form
       id={formId}
-      onSubmit={handleSubmit((values) => onSubmit({ ...values, country: "IN" }))}
+      onSubmit={handleSubmit((values) =>
+        onSubmit(
+          { ...values, country: "IN" },
+          { saveToAccount: showSaveOption ? saveToAccount : false },
+        ),
+      )}
       className="flex flex-col gap-4 sm:gap-5"
     >
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
@@ -163,6 +178,21 @@ export function AddressForm({ defaultValues, onSubmit, formId }: AddressFormProp
           )}
         />
       </PillField>
+
+      {showSaveOption && (
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-700">
+          <input
+            type="checkbox"
+            checked={saveToAccount}
+            onChange={(e) => setSaveToAccount(e.target.checked)}
+            className={clsx(
+              "h-4 w-4 shrink-0 cursor-pointer rounded border-ink-500/40 text-accent-primary",
+              "focus:ring-accent-primary/40",
+            )}
+          />
+          Save this address to my account for next time
+        </label>
+      )}
     </form>
   );
 }

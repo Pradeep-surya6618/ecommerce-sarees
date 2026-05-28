@@ -5,7 +5,9 @@ import { ChevronLeft, MapPin, Plus, ShoppingBag, Sparkles, Truck, Wallet } from 
 import { toast } from "sonner";
 import { getShippingOptions } from "@/lib/cart/shipping";
 import { computeSubtotalPaise, computeTaxPaise, computeTotalPaise } from "@/lib/cart/totals";
+import { createAddressAction } from "@/server/actions/addresses";
 import { placeOrderAction } from "@/server/actions/orders";
+import { getShippingRatesAction } from "@/server/actions/shipping";
 import { Container } from "@/components/ui/Container";
 import type {
   Address,
@@ -15,7 +17,7 @@ import type {
   ShippingOption,
   ShippingSettings,
 } from "@/types/domain";
-import { AddressForm, type AddressFormValues } from "./AddressForm";
+import { AddressForm, type AddressFormValues, type AddressSubmitOptions } from "./AddressForm";
 import { CheckoutStepper, type CheckoutStepId } from "./CheckoutStepper";
 import { CheckoutSummary } from "./CheckoutSummary";
 import { PaymentMethodPicker } from "./PaymentMethodPicker";
@@ -26,6 +28,8 @@ export interface CheckoutFlowProps {
   cart: Cart;
   savedAddresses: SavedAddress[];
   shippingRates: ShippingSettings;
+  /** Signed-in customers can save a new address to their account. */
+  isSignedIn: boolean;
 }
 
 function toAddressFormValues(a: SavedAddress | Address): AddressFormValues {
@@ -41,10 +45,18 @@ function toAddressFormValues(a: SavedAddress | Address): AddressFormValues {
   };
 }
 
-export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFlowProps) {
+export function CheckoutFlow({
+  cart,
+  savedAddresses,
+  shippingRates,
+  isSignedIn,
+}: CheckoutFlowProps) {
   const subtotalPaise = computeSubtotalPaise(cart.items);
   const taxPaise = computeTaxPaise(subtotalPaise);
-  const shippingOptions = getShippingOptions(subtotalPaise, shippingRates);
+  // Flat options serve as the immediate default + the fallback if the live
+  // rate fetch fails. Once we know the delivery pincode we replace them with
+  // Shiprocket's live courier quotes.
+  const flatOptions = getShippingOptions(subtotalPaise, shippingRates);
 
   const defaultAddress = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0] ?? null;
 
@@ -58,19 +70,56 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     defaultAddress?.id ?? null,
   );
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>(flatOptions);
+  const [ratesLoading, setRatesLoading] = useState(false);
   const [shippingOption, setShippingOption] = useState<ShippingOption | null>(
-    shippingOptions[0] ?? null,
+    flatOptions[0] ?? null,
   );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
   const [pending, startTransition] = useTransition();
 
+  // Fetch live courier rates for a pincode and swap them in. Falls back to the
+  // flat options already in state if the fetch errors. Called when the address
+  // step completes (that's when we first know where it's shipping).
+  function loadRatesFor(pincode: string) {
+    setRatesLoading(true);
+    void getShippingRatesAction({ deliveryPincode: pincode, paymentMethod })
+      .then((result) => {
+        if (result.ok && result.options.length > 0) {
+          setShippingOptions(result.options);
+          setShippingOption(result.options[0] ?? null);
+        }
+      })
+      .finally(() => setRatesLoading(false));
+  }
+
   const shippingPaise = shippingOption?.pricePaise ?? 0;
   const totalPaise = computeTotalPaise({ subtotalPaise, taxPaise, shippingPaise });
 
-  function onAddressSubmit(values: AddressFormValues) {
-    setAddress({ ...values, country: "IN" });
+  function onAddressSubmit(values: Address, opts: AddressSubmitOptions) {
+    setAddress(values);
     setCompleted((c) => Array.from(new Set([...c, "address"])));
+    loadRatesFor(values.pincode);
     setStep("shipping");
+
+    // Optionally persist the new address to the account — fire-and-forget so
+    // it doesn't block the checkout flow. Toast either way per the app's
+    // every-action-toasts rule.
+    if (opts.saveToAccount && isSignedIn) {
+      void createAddressAction({
+        fullName: values.fullName,
+        phone: values.phone,
+        email: values.email,
+        line1: values.line1,
+        line2: values.line2 ?? "",
+        city: values.city,
+        state: values.state,
+        pincode: values.pincode,
+        country: "IN",
+      })
+        .then(() => toast.success("Address saved to your account"))
+        .catch(() => toast.error("Couldn't save the address, but your order can still proceed."));
+    }
   }
 
   function continueFromPicker() {
@@ -91,7 +140,15 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
       country: "IN",
     });
     setCompleted((c) => Array.from(new Set([...c, "address"])));
+    loadRatesFor(saved.pincode);
     setStep("shipping");
+  }
+
+  // Open a blank "add new address" form. Clears any previously picked/entered
+  // address so the form never inherits the selected saved address.
+  function startAddNew() {
+    setAddress(null);
+    setAddressMode("form");
   }
 
   function onShippingNext() {
@@ -129,10 +186,12 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
     });
   }
 
-  // Pre-fill the form with the selected saved address when switching to form mode.
-  const selectedSaved = savedAddresses.find((a) => a.id === selectedAddressId);
+  // "Add new" must open a blank form — never pre-filled with a saved address.
+  // We only restore values the customer typed themselves this session (held in
+  // `address` after they submit), so hitting Back from the shipping step keeps
+  // their entry. A freshly-picked saved address shouldn't leak into the form.
   const formDefaults: Partial<AddressFormValues> | undefined =
-    addressMode === "form" && selectedSaved ? toAddressFormValues(selectedSaved) : undefined;
+    addressMode === "form" && address ? toAddressFormValues(address) : undefined;
 
   return (
     <Container size="xl" className="px-4! py-5 sm:px-6! sm:py-8 md:px-8! md:py-10">
@@ -169,7 +228,9 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
                   savedAddresses.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setAddressMode((m) => (m === "picker" ? "form" : "picker"))}
+                      onClick={() =>
+                        addressMode === "picker" ? startAddNew() : setAddressMode("picker")
+                      }
                       className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-ink-500/20 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-700 transition hover:border-accent-primary hover:text-accent-primary sm:text-[11px]"
                     >
                       {addressMode === "picker" ? (
@@ -194,7 +255,7 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
                     addresses={savedAddresses}
                     selectedId={selectedAddressId}
                     onSelect={setSelectedAddressId}
-                    onAddNew={() => setAddressMode("form")}
+                    onAddNew={startAddNew}
                   />
                   <div className="mt-5 flex justify-end sm:mt-7">
                     <button
@@ -218,6 +279,7 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
                     }
                     onSubmit={onAddressSubmit}
                     formId="address-form"
+                    showSaveOption={isSignedIn}
                   />
                   <div className="mt-5 flex justify-end sm:mt-7">
                     <button
@@ -245,11 +307,15 @@ export function CheckoutFlow({ cart, savedAddresses, shippingRates }: CheckoutFl
                 className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
               />
               <SectionHeader eyebrow="Step 2" title="Shipping" icon={Truck} />
-              <ShippingOptionPicker
-                options={shippingOptions}
-                selectedId={shippingOption?.id ?? null}
-                onChange={setShippingOption}
-              />
+              {ratesLoading ? (
+                <p className="py-4 text-sm text-ink-500">Fetching live delivery rates…</p>
+              ) : (
+                <ShippingOptionPicker
+                  options={shippingOptions}
+                  selectedId={shippingOption?.id ?? null}
+                  onChange={setShippingOption}
+                />
+              )}
               <StepActions
                 onBack={() => setStep("address")}
                 onNext={onShippingNext}

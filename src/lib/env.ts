@@ -50,6 +50,8 @@ const schema = z.object({
   SHIPROCKET_EMAIL: optionalEmail,
   SHIPROCKET_PASSWORD: optionalString,
   SHIPROCKET_WEBHOOK_SECRET: optionalString,
+  // Origin pincode shipments dispatch from — required for live rate quotes.
+  SHIPROCKET_PICKUP_PINCODE: optionalString,
 
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
