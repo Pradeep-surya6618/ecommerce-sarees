@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronRight, Package, Search, ShoppingBag, X } from "lucide-react";
+import { ChevronRight, Search, ShoppingBag, X } from "lucide-react";
 import { formatRupees } from "@/lib/money";
 import { clsx } from "@/lib/utils/clsx";
 import { OrderStatusBadge } from "@/components/account/OrderStatusBadge";
@@ -13,6 +13,7 @@ import type { Order } from "@/types/domain";
 const STATUS_PILLS: { value: string; label: string }[] = [
   { value: "", label: "All" },
   { value: "confirmed", label: "Confirmed" },
+  { value: "paid", label: "Paid" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
@@ -148,129 +149,170 @@ export function OrdersListClient({ orders, totalCount }: Props) {
         </div>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-elevated shadow-card md:block">
+          {/* ── Desktop table card with brass hairline ── */}
+          <div className="relative hidden overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-elevated shadow-card md:block">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+            />
             <table className="min-w-full divide-y divide-ink-500/10 text-sm">
               <thead className="bg-bg-base/50">
                 <tr>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-ink-500"
+                    className="px-4 py-3.5 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500"
                   >
                     Order
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-ink-500"
+                    className="px-4 py-3.5 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500"
                   >
                     Customer
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-ink-500"
+                    className="px-4 py-3.5 text-right text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500"
                   >
                     Items
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-ink-500"
+                    className="px-4 py-3.5 text-right text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500"
                   >
                     Total
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-ink-500"
+                    className="px-4 py-3.5 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500"
                   >
                     Status
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-ink-500"
+                    className="px-4 py-3.5 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500"
                   >
                     Placed
                   </th>
-                  <th scope="col" className="w-[60px] px-4 py-3" aria-label="Actions" />
+                  <th scope="col" className="w-[60px] px-4 py-3.5" aria-label="Actions" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-500/10">
-                {orders.map((o) => (
-                  <tr key={o.id} className="group transition hover:bg-bg-base/40">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/orders/${o.id}`}
-                        className="font-mono text-xs text-ink-900 transition hover:text-accent-primary"
-                      >
-                        {o.id}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-ink-900">
-                          {o.shippingAddress.fullName}
-                        </span>
-                        <span className="truncate text-[11px] text-ink-500">
-                          {o.shippingAddress.email}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-ink-700">
-                      {o.items.length}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-ink-900">
-                      {formatRupees(o.totalPaise)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <OrderStatusBadge status={o.status} />
-                    </td>
-                    <td className="px-4 py-3 text-ink-700">{formatDate(o.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <Tooltip label="Open order" side="left" hideOnMobile>
+                {orders.map((o) => {
+                  const initial = o.shippingAddress.fullName.trim().charAt(0).toUpperCase() || "?";
+                  return (
+                    <tr
+                      key={o.id}
+                      onClick={() => router.push(`/admin/orders/${o.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/admin/orders/${o.id}`);
+                        }
+                      }}
+                      role="link"
+                      tabIndex={0}
+                      aria-label={`Open order ${o.id}`}
+                      className="group cursor-pointer transition hover:bg-bg-base/50 focus-visible:bg-bg-base/50 focus-visible:outline-none"
+                    >
+                      <td className="px-4 py-3.5">
                         <Link
                           href={`/admin/orders/${o.id}`}
-                          aria-label={`Open order ${o.id}`}
-                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 transition hover:border-accent-primary hover:bg-accent-primary/5 hover:text-accent-primary"
+                          className="inline-flex rounded-md bg-ink-500/5 px-2 py-1 font-mono text-[11px] text-ink-700 transition group-hover:bg-accent-primary/10 group-hover:text-accent-primary"
                         >
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          {o.id}
                         </Link>
-                      </Tooltip>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary/15 to-accent-gold/15 font-display text-sm font-semibold text-accent-primary">
+                            {initial}
+                          </span>
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate font-medium text-ink-900">
+                              {o.shippingAddress.fullName}
+                            </span>
+                            <span className="truncate text-[11px] text-ink-500">
+                              {o.shippingAddress.email}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-ink-700">
+                        {o.items.length}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-display text-base tabular-nums text-ink-900">
+                        {formatRupees(o.totalPaise)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <OrderStatusBadge status={o.status} />
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-ink-700">
+                        {formatDate(o.createdAt)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Tooltip label="Open order" side="left" hideOnMobile>
+                          <Link
+                            href={`/admin/orders/${o.id}`}
+                            aria-label={`Open order ${o.id}`}
+                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 transition group-hover:border-accent-primary group-hover:bg-accent-primary group-hover:text-white"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+                          </Link>
+                        </Tooltip>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
-          <ul className="flex flex-col gap-2 md:hidden">
-            {orders.map((o) => (
-              <li key={o.id}>
-                <Link
-                  href={`/admin/orders/${o.id}`}
-                  className="flex items-center gap-2.5 rounded-xl border border-ink-500/10 bg-bg-elevated p-2.5 shadow-card transition hover:-translate-y-0.5 hover:shadow-elev"
-                >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary">
-                    <Package className="h-[18px] w-[18px]" />
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-mono text-[11px] text-ink-700">{o.id}</span>
-                      <span className="shrink-0 text-[13px] font-semibold tabular-nums text-ink-900">
-                        {formatRupees(o.totalPaise)}
-                      </span>
-                    </div>
-                    <span className="truncate text-[13px] font-medium leading-tight text-ink-900">
-                      {o.shippingAddress.fullName}
+          {/* ── Mobile cards — tighter, premium hairline ── */}
+          <ul className="flex flex-col gap-1.5 md:hidden">
+            {orders.map((o) => {
+              const initial = o.shippingAddress.fullName.trim().charAt(0).toUpperCase() || "?";
+              return (
+                <li key={o.id}>
+                  <Link
+                    href={`/admin/orders/${o.id}`}
+                    className="relative flex items-center gap-2 overflow-hidden rounded-xl border border-ink-500/10 bg-bg-elevated p-2 shadow-card transition active:scale-[0.99]"
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/50 to-transparent"
+                    />
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent-primary/15 to-accent-gold/15 font-display text-[13px] font-semibold text-accent-primary">
+                      {initial}
                     </span>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-500">
-                      <span>{formatDate(o.createdAt)}</span>
-                      <span>·</span>
-                      <span>
-                        {o.items.length} {o.items.length === 1 ? "item" : "items"}
+                    <div className="flex min-w-0 flex-1 flex-col gap-px">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-[10px] text-ink-500">{o.id}</span>
+                        <span className="shrink-0 font-display text-[13px] font-semibold tabular-nums text-ink-900">
+                          {formatRupees(o.totalPaise)}
+                        </span>
+                      </div>
+                      <span className="truncate text-[12px] font-medium leading-tight text-ink-900">
+                        {o.shippingAddress.fullName}
                       </span>
+                      <div className="flex items-center gap-1.5 text-[9px] text-ink-500">
+                        <span>{formatDate(o.createdAt)}</span>
+                        <span className="text-ink-500/50">·</span>
+                        <span>
+                          {o.items.length} {o.items.length === 1 ? "item" : "items"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <OrderStatusBadge status={o.status} />
-                </Link>
-              </li>
-            ))}
+                    <div className="shrink-0">
+                      <OrderStatusBadge
+                        status={o.status}
+                        className="px-1.5 py-0 text-[9px] tracking-[0.06em]"
+                      />
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

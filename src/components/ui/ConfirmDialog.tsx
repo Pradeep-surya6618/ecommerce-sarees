@@ -19,6 +19,8 @@ const useIsClient = () =>
 
 const TRANSITION_MS = 220;
 
+export type ConfirmDialogTone = "default" | "danger" | "success" | "info";
+
 export interface ConfirmDialogProps {
   open: boolean;
   onClose: () => void;
@@ -27,13 +29,50 @@ export interface ConfirmDialogProps {
   description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  tone?: "default" | "danger";
+  tone?: ConfirmDialogTone;
   icon?: LucideIcon;
   pending?: boolean;
+  /** Shown next to the spinner while `pending`. Defaults to "Deleting…" so
+   *  existing delete dialogs keep their copy unchanged; new callers (shipping
+   *  / delivered / refund / etc.) should pass their own pending label. */
+  pendingLabel?: string;
   /** "confirm" (default) shows confirm + cancel buttons.
    *  "info" shows a single button (defaults to "Got it") that calls onConfirm. */
   mode?: "confirm" | "info";
 }
+
+// Per-tone classes for the icon chip + confirm button. Teal ("info") uses raw
+// hex because the theme has no blue-leaning token; the others lean on the
+// success/danger/accent-primary tokens already defined in globals.css.
+const TONE_CLASSES: Record<
+  ConfirmDialogTone,
+  { iconBg: string; iconText: string; btnBg: string; btnHover: string }
+> = {
+  default: {
+    iconBg: "bg-accent-primary/10",
+    iconText: "text-accent-primary",
+    btnBg: "bg-accent-primary",
+    btnHover: "hover:bg-accent-primary-hover",
+  },
+  danger: {
+    iconBg: "bg-danger/10",
+    iconText: "text-danger",
+    btnBg: "bg-danger",
+    btnHover: "hover:bg-danger-hover",
+  },
+  success: {
+    iconBg: "bg-success/12",
+    iconText: "text-success",
+    btnBg: "bg-success",
+    btnHover: "hover:bg-success-hover",
+  },
+  info: {
+    iconBg: "bg-info/12",
+    iconText: "text-info",
+    btnBg: "bg-info",
+    btnHover: "hover:bg-info-hover",
+  },
+};
 
 /**
  * Centered modal confirmation. Backdrop fades; the card slides down from the
@@ -55,10 +94,12 @@ export function ConfirmDialog({
   tone = "default",
   icon,
   pending = false,
+  pendingLabel = "Deleting…",
   mode = "confirm",
 }: ConfirmDialogProps) {
   const isInfo = mode === "info";
   const resolvedConfirmLabel = confirmLabel ?? (isInfo ? "Got it" : "Confirm");
+  const toneCls = TONE_CLASSES[tone];
   // Close on Escape. We intentionally do NOT lock document scroll here —
   // setting `overflow: hidden` on <html> would strip the scrolling context
   // that admin sticky elements (sidebar, header) anchor to, causing them to
@@ -77,7 +118,6 @@ export function ConfirmDialog({
   if (!isClient) return null;
 
   const Icon = icon ?? AlertTriangle;
-  const isDanger = tone === "danger";
 
   return createPortal(
     <div
@@ -136,7 +176,8 @@ export function ConfirmDialog({
           <span
             className={clsx(
               "inline-flex h-11 w-11 items-center justify-center rounded-full sm:h-12 sm:w-12",
-              isDanger ? "bg-danger/10 text-danger" : "bg-accent-primary/10 text-accent-primary",
+              toneCls.iconBg,
+              toneCls.iconText,
             )}
           >
             <Icon className="h-5 w-5 sm:h-[22px] sm:w-[22px]" />
@@ -179,15 +220,14 @@ export function ConfirmDialog({
             disabled={pending}
             className={clsx(
               "inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full px-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition disabled:cursor-not-allowed disabled:opacity-80 sm:h-10 sm:px-5 sm:text-xs",
-              isDanger
-                ? "bg-danger hover:bg-[#7a1812]"
-                : "bg-accent-primary hover:bg-accent-primary-hover",
+              toneCls.btnBg,
+              toneCls.btnHover,
             )}
           >
             {pending ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                Deleting…
+                {pendingLabel}
               </>
             ) : (
               resolvedConfirmLabel

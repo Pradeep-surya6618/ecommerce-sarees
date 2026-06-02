@@ -11,8 +11,14 @@
   --color-accent-primary-hover: #432966;
   --color-accent-gold: #b8a064;
   --color-success: #1a7a3a;
+  --color-success-hover: #155d2d;
   --color-warning: #a06a3c;
   --color-danger: #b3261e;
+  --color-danger-hover: #7a1812;
+  /* Teal / green-blue used by status flows that aren't quite "success"
+     (e.g. shipped — in transit). Distinct from the green `success` token. */
+  --color-info: #0d9488;
+  --color-info-hover: #0f766e;
 
   /* Typography */
   --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;

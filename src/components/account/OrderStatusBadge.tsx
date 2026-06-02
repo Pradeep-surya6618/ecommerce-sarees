@@ -23,6 +23,16 @@ const LABEL: Record<OrderStatus, string> = {
   payment_failed: "Payment failed",
 };
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  return <Badge tone={TONE[status]}>{LABEL[status]}</Badge>;
+export function OrderStatusBadge({
+  status,
+  className,
+}: {
+  status: OrderStatus;
+  className?: string;
+}) {
+  return (
+    <Badge tone={TONE[status]} className={className}>
+      {LABEL[status]}
+    </Badge>
+  );
 }

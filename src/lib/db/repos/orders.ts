@@ -239,7 +239,11 @@ export const ordersRepo: OrdersRepo = {
             "SET #s = :s, paymentStatus = :ps, razorpayPaymentId = :pid, updatedAt = :u",
           ExpressionAttributeNames: { "#s": "status" },
           ExpressionAttributeValues: {
-            ":s": "confirmed",
+            // Advance the workflow rank to "paid" so the journey timeline ticks
+            // forward (Confirmed → Paid). Customers paying via Razorpay reach
+            // rank 2 the moment the signature verifies; COD orders stay at
+            // "confirmed" (rank 1) until the courier collects the cash.
+            ":s": "paid",
             ":ps": "paid",
             ":pid": razorpayPaymentId,
             ":u": nowIso(),
