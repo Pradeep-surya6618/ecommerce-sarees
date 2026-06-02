@@ -732,7 +732,14 @@ function RevenueTrendCard({
           const h = Math.max((d.revenue / max) * 100, d.revenue > 0 ? 4 : 0);
           const isEmpty = d.revenue === 0;
           return (
-            <div key={d.date} className="group relative flex flex-1 flex-col items-center">
+            // h-full is required: the bar below sizes itself by `height: X%`,
+            // and that percentage needs an explicit parent height to resolve
+            // against. `items-end` on the row collapses these columns to their
+            // content height otherwise, leaving the bars 0px tall.
+            <div
+              key={d.date}
+              className="group relative flex h-full flex-1 flex-col items-center justify-end"
+            >
               <div
                 className={`w-full rounded-t-md transition ${
                   isEmpty

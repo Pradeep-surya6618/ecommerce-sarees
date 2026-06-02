@@ -145,16 +145,30 @@ export function CustomersListClient({ rows, totalCount }: Props) {
               </thead>
               <tbody className="divide-y divide-ink-500/10">
                 {rows.map((r) => (
-                  <tr key={r.id} className="group transition hover:bg-bg-base/40">
+                  <tr
+                    key={r.id}
+                    onClick={() => router.push(`/admin/customers/${r.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/admin/customers/${r.id}`);
+                      }
+                    }}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Open ${r.fullName}`}
+                    className="group cursor-pointer transition hover:bg-bg-base/50 focus-visible:bg-bg-base/50 focus-visible:outline-none"
+                  >
                     <td className="px-4 py-3">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary/15 to-accent-primary/5 text-xs font-semibold text-accent-primary">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary/15 to-accent-gold/15 font-display text-sm font-semibold text-accent-primary">
                         {initialsOf(r.fullName)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/customers/${r.id}`}
-                        className="font-medium text-ink-900 transition hover:text-accent-primary"
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-medium text-ink-900 transition group-hover:text-accent-primary"
                       >
                         {r.fullName}
                       </Link>
@@ -163,7 +177,7 @@ export function CustomersListClient({ rows, totalCount }: Props) {
                     <td className="px-4 py-3 text-right tabular-nums text-ink-700">
                       {r.orderCount}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-ink-900">
+                    <td className="px-4 py-3 text-right font-display text-base tabular-nums text-ink-900">
                       {formatRupees(r.lifetimePaise)}
                     </td>
                     <td className="px-4 py-3">
@@ -178,9 +192,10 @@ export function CustomersListClient({ rows, totalCount }: Props) {
                         <Link
                           href={`/admin/customers/${r.id}`}
                           aria-label={`Open ${r.fullName}`}
-                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 transition hover:border-accent-primary hover:bg-accent-primary/5 hover:text-accent-primary"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-700 transition group-hover:border-accent-primary group-hover:bg-accent-primary group-hover:text-white"
                         >
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
                         </Link>
                       </Tooltip>
                     </td>

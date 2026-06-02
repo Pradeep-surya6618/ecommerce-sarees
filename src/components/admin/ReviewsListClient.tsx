@@ -88,13 +88,20 @@ export function ReviewsListClient({ reviews }: Props) {
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
+      {/* ── Hero header ── */}
       <header className="flex flex-col gap-3 sm:gap-4">
         <div className="min-w-0">
-          <h1 className="font-display text-xl text-ink-900 sm:text-3xl">Reviews</h1>
-          <p className="text-[11px] text-ink-700 sm:text-sm">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-accent-gold sm:text-xs">
+            <MessageSquareQuote className="h-3 w-3" />
+            Moderation
+          </span>
+          <h1 className="mt-1 font-display text-xl leading-tight text-ink-900 sm:text-2xl md:text-3xl">
+            Reviews
+          </h1>
+          <p className="mt-1 text-[11px] text-ink-700 sm:text-sm">
             {hasFilters
               ? `${filtered.length} of ${reviews.length} ${reviews.length === 1 ? "review" : "reviews"}`
-              : `${reviews.length} ${reviews.length === 1 ? "review" : "reviews"} · delete spam or abusive ones`}
+              : `${reviews.length} ${reviews.length === 1 ? "review" : "reviews"} · remove spam or abusive entries`}
           </p>
         </div>
 
@@ -112,6 +119,7 @@ export function ReviewsListClient({ reviews }: Props) {
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-hide sm:flex-wrap sm:overflow-visible">
           {STAR_PILLS.map((pill) => {
             const active = stars === pill.value;
+            const count = countFor(pill.value);
             return (
               <button
                 key={pill.value || "all"}
@@ -120,18 +128,18 @@ export function ReviewsListClient({ reviews }: Props) {
                 className={clsx(
                   "inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[11px] font-medium transition sm:h-8 sm:text-xs",
                   active
-                    ? "border-accent-primary bg-accent-primary text-white"
+                    ? "border-accent-primary bg-accent-primary text-white shadow-[0_6px_18px_-10px_rgba(91,58,138,0.7)]"
                     : "border-ink-500/15 bg-bg-elevated text-ink-700 hover:border-accent-primary hover:text-accent-primary",
                 )}
               >
                 {pill.label}
                 <span
                   className={clsx(
-                    "font-mono text-[9px] tabular-nums",
-                    active ? "text-white/80" : "text-ink-500",
+                    "inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] tabular-nums sm:text-[10px]",
+                    active ? "bg-white/20 text-white" : "bg-ink-500/8 text-ink-700",
                   )}
                 >
-                  {countFor(pill.value)}
+                  {count}
                 </span>
               </button>
             );
@@ -139,9 +147,14 @@ export function ReviewsListClient({ reviews }: Props) {
         </div>
       </header>
 
+      {/* ── List / empty state ── */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-ink-500/10 bg-bg-elevated px-6 py-12 text-center">
-          <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink-500/10 text-ink-500">
+        <div className="relative overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-elevated px-6 py-12 text-center shadow-card">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+          />
+          <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent-primary/10 text-accent-primary">
             <MessageSquareQuote className="h-5 w-5" />
           </div>
           <p className="text-sm text-ink-500">
@@ -149,69 +162,87 @@ export function ReviewsListClient({ reviews }: Props) {
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2 sm:gap-2.5">
+        <ul className="flex flex-col gap-2.5 sm:gap-3">
           {filtered.map((r) => (
             <li
               key={r.id}
-              className="flex items-start gap-3 rounded-xl border border-ink-500/10 bg-bg-elevated p-3 shadow-card sm:p-4"
+              className="group relative overflow-hidden rounded-2xl border border-ink-500/10 bg-bg-elevated p-3 shadow-card transition hover:border-accent-primary/30 sm:p-4"
             >
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-primary/10 text-sm font-semibold text-accent-primary">
-                {r.authorName.charAt(0).toUpperCase()}
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="text-[13px] font-medium text-ink-900 sm:text-sm">
-                    {r.authorName}
-                  </span>
-                  {r.verifiedPurchase && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success">
-                      <BadgeCheck className="h-3 w-3" /> Verified
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent"
+              />
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                {/* Gradient monogram avatar */}
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary/15 to-accent-gold/15 font-display text-sm font-semibold text-accent-primary sm:h-10 sm:w-10">
+                  {r.authorName.charAt(0).toUpperCase()}
+                </span>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  {/* Header line: author + verified + date */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className="text-[13px] font-semibold leading-tight text-ink-900 sm:text-sm">
+                      {r.authorName}
+                    </span>
+                    {r.verifiedPurchase && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-success/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-success sm:text-[10px]">
+                        <BadgeCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> Verified
+                      </span>
+                    )}
+                    <span className="text-[10px] text-ink-500 sm:text-[11px]">
+                      {formatDate(r.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Stars + product chip */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="inline-flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={clsx(
+                            "h-3 w-3 sm:h-3.5 sm:w-3.5",
+                            i < r.rating
+                              ? "fill-accent-gold text-accent-gold"
+                              : "fill-transparent text-ink-500/25",
+                          )}
+                        />
+                      ))}
+                    </span>
+                    {r.productSlug ? (
+                      <Link
+                        href={`/product/${r.productSlug}`}
+                        target="_blank"
+                        className="inline-flex max-w-full items-center rounded-full bg-accent-primary/8 px-2 py-0.5 text-[10px] font-medium text-accent-primary transition hover:bg-accent-primary/15 sm:text-[11px]"
+                      >
+                        <span className="truncate">{r.productName}</span>
+                      </Link>
+                    ) : (
+                      <span className="truncate text-[10px] text-ink-500 sm:text-[11px]">
+                        {r.productName}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Title + body */}
+                  {r.title && (
+                    <span className="mt-0.5 font-display text-sm leading-tight text-ink-900 sm:text-base">
+                      {r.title}
                     </span>
                   )}
-                  <span className="text-[11px] text-ink-500">· {formatDate(r.createdAt)}</span>
+                  <p className="text-[12px] leading-relaxed text-ink-700 sm:text-sm">{r.body}</p>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={clsx(
-                          "h-3 w-3",
-                          i < r.rating
-                            ? "fill-accent-gold text-accent-gold"
-                            : "fill-transparent text-ink-500/30",
-                        )}
-                      />
-                    ))}
-                  </span>
-                  {r.productSlug ? (
-                    <Link
-                      href={`/product/${r.productSlug}`}
-                      target="_blank"
-                      className="truncate text-[11px] text-accent-primary hover:underline"
-                    >
-                      {r.productName}
-                    </Link>
-                  ) : (
-                    <span className="truncate text-[11px] text-ink-500">{r.productName}</span>
-                  )}
-                </div>
-                {r.title && (
-                  <span className="text-[13px] font-semibold text-ink-900 sm:text-sm">
-                    {r.title}
-                  </span>
-                )}
-                <p className="text-[13px] leading-relaxed text-ink-700 sm:text-sm">{r.body}</p>
+
+                <button
+                  type="button"
+                  aria-label="Delete review"
+                  onClick={() => setTarget(r)}
+                  disabled={pendingDelete}
+                  className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-ink-500/15 bg-bg-elevated text-ink-500 transition hover:border-danger hover:bg-danger hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <button
-                type="button"
-                aria-label="Delete review"
-                onClick={() => setTarget(r)}
-                disabled={pendingDelete}
-                className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-500 transition hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
             </li>
           ))}
         </ul>
@@ -225,9 +256,11 @@ export function ReviewsListClient({ reviews }: Props) {
         onConfirm={confirmDelete}
         title="Delete this review?"
         description={
-          target ? `${target.authorName}'s review will be permanently removed.` : undefined
+          target
+            ? `${target.authorName}'s ${target.rating}★ review of ${target.productName} will be permanently removed. The product's average rating will be recomputed.`
+            : undefined
         }
-        confirmLabel="Delete"
+        confirmLabel="Yes, delete"
         cancelLabel="Keep it"
         tone="danger"
         icon={Trash2}
