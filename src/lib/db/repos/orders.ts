@@ -30,6 +30,11 @@ export interface CreateOrderInput {
   shippingAddress: Address;
   shippingOption: ShippingOption;
   customerNotes?: string;
+  /** Razorpay's order id — only present for online-payment orders. */
+  razorpayOrderId?: string;
+  /** Overrides the default initial status. Online payments start as
+   *  "pending_payment" until the signature verifies. */
+  initialStatus?: OrderStatus;
 }
 
 export interface OrdersRepo {
@@ -40,6 +45,14 @@ export interface OrdersRepo {
   listAll(): Promise<Order[]>;
   listByStatus(status: OrderStatus): Promise<Order[]>;
   updateStatus(orderId: string, status: OrderStatus): Promise<Order | null>;
+  /** Mark an order as paid after Razorpay signature verification.
+   *  Idempotent: if already paid, returns the existing order unchanged. */
+  markPaid(orderId: string, razorpayPaymentId: string): Promise<Order | null>;
+  /** Flag a failed/cancelled online payment so admin sees it + customer can retry. */
+  markPaymentFailed(orderId: string): Promise<Order | null>;
+  /** Attach the Razorpay order id to a pending DDB order — used during the
+   *  create flow so we can use our own order id as Razorpay's receipt. */
+  setRazorpayOrderId(orderId: string, razorpayOrderId: string): Promise<Order | null>;
   addInternalNote(
     orderId: string,
     note: { authorId: string; authorName: string; body: string },
@@ -97,9 +110,14 @@ export const ordersRepo: OrdersRepo = {
       shippingPaise: input.shippingPaise,
       taxPaise: input.taxPaise,
       totalPaise: input.totalPaise,
-      status: "confirmed",
+      // Online payments stay in "pending_payment" until the signature verifies;
+      // COD orders are confirmed immediately and the cash settles at delivery.
+      status:
+        input.initialStatus ??
+        (input.paymentMethod === "razorpay" ? "pending_payment" : "confirmed"),
       paymentMethod: input.paymentMethod,
       paymentStatus: "pending",
+      ...(input.razorpayOrderId ? { razorpayOrderId: input.razorpayOrderId } : {}),
       shippingAddress: input.shippingAddress,
       shippingOption: input.shippingOption,
       customerNotes: input.customerNotes,
@@ -194,6 +212,83 @@ export const ordersRepo: OrdersRepo = {
           UpdateExpression: "SET #s = :s, updatedAt = :u",
           ExpressionAttributeNames: { "#s": "status" },
           ExpressionAttributeValues: { ":s": status, ":u": nowIso() },
+          ConditionExpression: "attribute_exists(orderId)",
+          ReturnValues: "ALL_NEW",
+        }),
+      );
+      return fromItem(res.Attributes);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("ConditionalCheckFailed")) return null;
+      throw err;
+    }
+  },
+
+  // Idempotent: if the order is already paid, returns it unchanged. Lets the
+  // verify action and the webhook both safely call this on the same payment.
+  async markPaid(orderId, razorpayPaymentId) {
+    const existing = await ordersRepo.getById(orderId);
+    if (!existing) return null;
+    if (existing.paymentStatus === "paid") return existing;
+    try {
+      const res = await getDdbDoc().send(
+        new UpdateCommand({
+          TableName: table(),
+          Key: { orderId },
+          UpdateExpression:
+            "SET #s = :s, paymentStatus = :ps, razorpayPaymentId = :pid, updatedAt = :u",
+          ExpressionAttributeNames: { "#s": "status" },
+          ExpressionAttributeValues: {
+            ":s": "confirmed",
+            ":ps": "paid",
+            ":pid": razorpayPaymentId,
+            ":u": nowIso(),
+          },
+          ConditionExpression: "attribute_exists(orderId)",
+          ReturnValues: "ALL_NEW",
+        }),
+      );
+      return fromItem(res.Attributes);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("ConditionalCheckFailed")) return null;
+      throw err;
+    }
+  },
+
+  async setRazorpayOrderId(orderId, razorpayOrderId) {
+    try {
+      const res = await getDdbDoc().send(
+        new UpdateCommand({
+          TableName: table(),
+          Key: { orderId },
+          UpdateExpression: "SET razorpayOrderId = :r, updatedAt = :u",
+          ExpressionAttributeValues: { ":r": razorpayOrderId, ":u": nowIso() },
+          ConditionExpression: "attribute_exists(orderId)",
+          ReturnValues: "ALL_NEW",
+        }),
+      );
+      return fromItem(res.Attributes);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("ConditionalCheckFailed")) return null;
+      throw err;
+    }
+  },
+
+  async markPaymentFailed(orderId) {
+    try {
+      const res = await getDdbDoc().send(
+        new UpdateCommand({
+          TableName: table(),
+          Key: { orderId },
+          UpdateExpression: "SET #s = :s, paymentStatus = :ps, updatedAt = :u",
+          ExpressionAttributeNames: { "#s": "status" },
+          ExpressionAttributeValues: {
+            ":s": "payment_failed",
+            ":ps": "failed",
+            ":u": nowIso(),
+          },
           ConditionExpression: "attribute_exists(orderId)",
           ReturnValues: "ALL_NEW",
         }),

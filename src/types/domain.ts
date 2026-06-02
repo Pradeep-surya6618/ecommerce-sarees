@@ -169,6 +169,10 @@ export interface Order {
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   paymentStatus: "pending" | "paid" | "failed";
+  /** Razorpay's `order_<id>` — present only when paymentMethod is "razorpay". */
+  razorpayOrderId?: string;
+  /** Razorpay's `pay_<id>` — set after a successful signature-verified payment. */
+  razorpayPaymentId?: string;
   shippingAddress: Address;
   shippingOption: ShippingOption;
   customerNotes?: string;

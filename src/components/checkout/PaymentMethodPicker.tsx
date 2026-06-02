@@ -14,7 +14,7 @@ const OPTIONS: { value: PaymentMethod; label: string; description: string; icon:
   {
     value: "razorpay",
     label: "Pay online",
-    description: "UPI, cards, netbanking, wallets (via Razorpay) — stubbed for this preview.",
+    description: "UPI, cards, netbanking, or wallets — secured by Razorpay.",
     icon: CreditCard,
   },
   {

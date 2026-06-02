@@ -8,6 +8,8 @@ import { computeSubtotalPaise, computeTaxPaise, computeTotalPaise } from "@/lib/
 import { cartRepo } from "@/lib/db/repos/cart";
 import { ordersRepo } from "@/lib/db/repos/orders";
 import { siteSettingsRepo } from "@/lib/db/repos/site-settings";
+import { env } from "@/lib/env";
+import { createRazorpayOrder, isRazorpayConfigured } from "@/lib/payments/razorpay";
 import { computeCartWeightKg, resolveShippingOptions } from "@/lib/shipping/resolve";
 import type { Address, OrderItem, PaymentMethod, ShippingOption } from "@/types/domain";
 
@@ -18,7 +20,26 @@ export interface PlaceOrderInput {
   customerNotes?: string;
 }
 
-export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
+// COD orders redirect inline (action throws NEXT_REDIRECT, like before).
+// Razorpay orders return a payload so the client can open the checkout modal —
+// the order is persisted in DDB as `pending_payment` until the signature is
+// verified by `verifyRazorpayPaymentAction`.
+export type PlaceOrderResult =
+  | {
+      ok: true;
+      kind: "razorpay";
+      orderId: string;
+      razorpayOrderId: string;
+      keyId: string;
+      amountPaise: number;
+      currency: string;
+      customerEmail: string;
+      customerName: string;
+      customerPhone: string;
+    }
+  | { ok: false; error: string };
+
+export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   const user = await getCurrentUser();
   let cart;
   if (user) {
@@ -68,6 +89,55 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
   const shippingPaise = chosen.pricePaise;
   const totalPaise = computeTotalPaise({ subtotalPaise, taxPaise, shippingPaise });
 
+  // ── Razorpay path: persist our order first to get a stable id, then create
+  // the gateway order with that id as receipt/notes (so webhooks can correlate
+  // back), then write the Razorpay order id onto our row. Cart stays put until
+  // the payment verifies, so an abandoned checkout doesn't lose items. ──
+  if (input.paymentMethod === "razorpay") {
+    if (!isRazorpayConfigured()) {
+      return { ok: false, error: "Online payments aren't configured. Please choose COD." };
+    }
+    try {
+      const order = await ordersRepo.create({
+        userId: user?.id ?? null,
+        guestSessionId: user ? null : cart.guestSessionId,
+        items,
+        subtotalPaise,
+        shippingPaise,
+        taxPaise,
+        totalPaise,
+        paymentMethod: "razorpay",
+        shippingAddress: input.shippingAddress,
+        shippingOption: chosen,
+        customerNotes: input.customerNotes,
+        initialStatus: "pending_payment",
+      });
+      const rzpOrder = await createRazorpayOrder({
+        amountPaise: totalPaise,
+        currency: "INR",
+        receipt: order.id,
+        notes: { our_order_id: order.id },
+      });
+      await ordersRepo.setRazorpayOrderId(order.id, rzpOrder.id);
+      return {
+        ok: true,
+        kind: "razorpay",
+        orderId: order.id,
+        razorpayOrderId: rzpOrder.id,
+        keyId: env.RAZORPAY_KEY_ID!,
+        amountPaise: totalPaise,
+        currency: "INR",
+        customerEmail: input.shippingAddress.email,
+        customerName: input.shippingAddress.fullName,
+        customerPhone: input.shippingAddress.phone,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn't start the online payment.";
+      return { ok: false, error: msg };
+    }
+  }
+
+  // ── COD path: confirm immediately, clear cart, redirect to success. ──
   const order = await ordersRepo.create({
     userId: user?.id ?? null,
     guestSessionId: user ? null : cart.guestSessionId,
@@ -78,7 +148,6 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
     totalPaise,
     paymentMethod: input.paymentMethod,
     shippingAddress: input.shippingAddress,
-    // Persist the server-validated option, not the client's copy.
     shippingOption: chosen,
     customerNotes: input.customerNotes,
   });
@@ -90,4 +159,54 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<void> {
   }
   revalidatePath("/", "layout");
   redirect(`/checkout/success/${order.id}`);
+}
+
+export interface VerifyRazorpayPaymentInput {
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}
+
+// Called by the client right after the Razorpay modal returns success. We
+// re-verify the signature server-side (the only authoritative proof), mark
+// the order paid, clear the cart, and redirect to the success page. The
+// webhook is the safety net for cases where this never gets called (user
+// closes the tab before redirect, network drops, etc.).
+export async function verifyRazorpayPaymentAction(
+  input: VerifyRazorpayPaymentInput,
+): Promise<void> {
+  // Lazy import to keep this action small + avoid loading crypto on the COD path.
+  const { verifyPaymentSignature } = await import("@/lib/payments/razorpay");
+  const ok = verifyPaymentSignature({
+    razorpayOrderId: input.razorpayOrderId,
+    razorpayPaymentId: input.razorpayPaymentId,
+    razorpaySignature: input.razorpaySignature,
+  });
+  if (!ok) {
+    // Signature mismatch → don't trust this response. Flag the order so
+    // admin/customer can see it as failed (but don't redirect to success).
+    await ordersRepo.markPaymentFailed(input.orderId);
+    throw new Error("Payment signature didn't verify. Please try again.");
+  }
+
+  // Confirm the order matches the Razorpay order id we issued (defends
+  // against a malicious client swapping in a different order's payment).
+  const existing = await ordersRepo.getById(input.orderId);
+  if (!existing || existing.razorpayOrderId !== input.razorpayOrderId) {
+    throw new Error("This payment doesn't match the order.");
+  }
+
+  await ordersRepo.markPaid(input.orderId, input.razorpayPaymentId);
+
+  // Clear the cart now that payment is confirmed.
+  const user = await getCurrentUser();
+  if (user) {
+    await cartRepo.clearAsUser(user.id);
+  } else {
+    const guestSessionId = await ensureGuestSessionId();
+    await cartRepo.clear(guestSessionId);
+  }
+  revalidatePath("/", "layout");
+  redirect(`/checkout/success/${input.orderId}`);
 }

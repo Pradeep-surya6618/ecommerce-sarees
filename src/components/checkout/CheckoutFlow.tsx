@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { getShippingOptions } from "@/lib/cart/shipping";
 import { computeSubtotalPaise, computeTaxPaise, computeTotalPaise } from "@/lib/cart/totals";
 import { createAddressAction } from "@/server/actions/addresses";
-import { placeOrderAction } from "@/server/actions/orders";
+import { placeOrderAction, verifyRazorpayPaymentAction } from "@/server/actions/orders";
 import { getShippingRatesAction } from "@/server/actions/shipping";
 import { Container } from "@/components/ui/Container";
 import type {
@@ -19,6 +19,7 @@ import type {
 } from "@/types/domain";
 import { AddressForm, type AddressFormValues, type AddressSubmitOptions } from "./AddressForm";
 import { CheckoutStepper, type CheckoutStepId } from "./CheckoutStepper";
+import { CheckoutSubmittingOverlay, type SubmittingPhase } from "./CheckoutSubmittingOverlay";
 import { CheckoutSummary } from "./CheckoutSummary";
 import { PaymentMethodPicker } from "./PaymentMethodPicker";
 import { SavedAddressPicker } from "./SavedAddressPicker";
@@ -30,6 +31,57 @@ export interface CheckoutFlowProps {
   shippingRates: ShippingSettings;
   /** Signed-in customers can save a new address to their account. */
   isSignedIn: boolean;
+}
+
+// ── Razorpay client helpers (kept inline — only this component uses them) ──
+
+interface RazorpayHandlerResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+  name: string;
+  description?: string;
+  prefill: { name: string; email: string; contact: string };
+  handler: (response: RazorpayHandlerResponse) => void;
+  modal: { ondismiss: () => void };
+  theme?: { color: string };
+}
+
+// Razorpay's checkout.js attaches a constructor to window.Razorpay. We only
+// need the surface area we actually call.
+type RazorpayCtor = new (options: RazorpayOptions) => { open: () => void };
+declare global {
+  interface Window {
+    Razorpay?: RazorpayCtor;
+  }
+}
+
+const RAZORPAY_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+let razorpayScriptPromise: Promise<void> | null = null;
+
+function loadRazorpayScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("not in browser"));
+  if (window.Razorpay) return Promise.resolve();
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = RAZORPAY_SCRIPT_SRC;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => {
+      razorpayScriptPromise = null;
+      reject(new Error("Failed to load Razorpay checkout."));
+    };
+    document.head.appendChild(s);
+  });
+  return razorpayScriptPromise;
 }
 
 function toAddressFormValues(a: SavedAddress | Address): AddressFormValues {
@@ -77,6 +129,12 @@ export function CheckoutFlow({
   );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
   const [pending, startTransition] = useTransition();
+  // Drives the full-page veil that covers checkout while the server does its
+  // thing (placing the order, or verifying a Razorpay signature). We hide it
+  // while the Razorpay modal is open — that modal has its own backdrop, ours
+  // would just double up. The overlay also stays up through the
+  // success-page navigation, so the user never sees a bare checkout flash.
+  const [submitting, setSubmitting] = useState<SubmittingPhase | null>(null);
 
   // Fetch live courier rates for a pincode and swap them in. Falls back to the
   // flat options already in state if the fetch errors. Called when the address
@@ -165,25 +223,116 @@ export function CheckoutFlow({
       toast.error("Please complete address and shipping first.");
       return;
     }
+    setSubmitting("placing");
     startTransition(async () => {
       try {
-        await placeOrderAction({
+        const result = await placeOrderAction({
           shippingAddress: address,
           shippingOption,
           paymentMethod,
         });
+        // COD path: placeOrderAction calls redirect() (throws NEXT_REDIRECT)
+        // before this point — handled in the catch below. So if we reach here,
+        // we got a Razorpay payload (or an error).
+        if (!result.ok) {
+          setSubmitting(null);
+          toast.error("Couldn't place order", { description: result.error });
+          return;
+        }
+        if (result.kind === "razorpay") {
+          await openRazorpayModal(result);
+        }
       } catch (err) {
-        // placeOrderAction calls `redirect()` on success, which throws
-        // NEXT_REDIRECT. Toast first so the user sees confirmation even though
-        // the success page itself is also a clear success state.
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+          // Keep the overlay up; the success page is about to take over.
           toast.success("Order placed!");
           return;
         }
+        setSubmitting(null);
         toast.error("Couldn't place order. Please try again.");
         console.error(err);
       }
     });
+  }
+
+  // Loads Razorpay's checkout.js (once) and opens the modal. On a successful
+  // payment, calls verifyRazorpayPaymentAction which signature-checks the
+  // response server-side and redirects to the success page.
+  async function openRazorpayModal(payload: {
+    orderId: string;
+    razorpayOrderId: string;
+    keyId: string;
+    amountPaise: number;
+    currency: string;
+    customerEmail: string;
+    customerName: string;
+    customerPhone: string;
+  }) {
+    try {
+      await loadRazorpayScript();
+    } catch {
+      setSubmitting(null);
+      toast.error("Couldn't open the payment window. Please try again.");
+      return;
+    }
+    if (!window.Razorpay) {
+      setSubmitting(null);
+      toast.error("Payment library failed to load.");
+      return;
+    }
+    const rzp = new window.Razorpay({
+      key: payload.keyId,
+      amount: payload.amountPaise,
+      currency: payload.currency,
+      order_id: payload.razorpayOrderId,
+      name: "Saree Store",
+      description: `Order ${payload.orderId}`,
+      prefill: {
+        name: payload.customerName,
+        email: payload.customerEmail,
+        contact: payload.customerPhone,
+      },
+      handler: (response) => {
+        // Modal just closed; raise our own overlay over the bare checkout
+        // while we verify the signature server-side and the redirect lands.
+        setSubmitting("verifying");
+        // The handler can't be async, so kick off the verify in a transition.
+        startTransition(async () => {
+          try {
+            await verifyRazorpayPaymentAction({
+              orderId: payload.orderId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+          } catch (err) {
+            if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+              // Keep the overlay up; the success page is about to take over.
+              toast.success("Payment received!");
+              return;
+            }
+            setSubmitting(null);
+            toast.error("Payment couldn't be verified", {
+              description: err instanceof Error ? err.message : undefined,
+            });
+          }
+        });
+      },
+      modal: {
+        ondismiss: () => {
+          // User closed the Razorpay window without paying — drop the overlay
+          // so they're back on checkout. (Handler didn't fire, so verifying
+          // never started.)
+          setSubmitting(null);
+          toast.message("Payment cancelled. You can try again or pick COD.");
+        },
+      },
+      theme: { color: "#5b3a8a" },
+    });
+    // Razorpay's modal has its own backdrop; ours would just double up. Drop
+    // our overlay the moment the modal mounts.
+    setSubmitting(null);
+    rzp.open();
   }
 
   // "Add new" must open a blank form — never pre-filled with a saved address.
@@ -195,6 +344,8 @@ export function CheckoutFlow({
 
   return (
     <Container size="xl" className="px-4! py-5 sm:px-6! sm:py-8 md:px-8! md:py-10">
+      <CheckoutSubmittingOverlay phase={submitting} />
+
       {/* ── Header ── */}
       <header className="flex min-w-0 flex-col gap-1.5">
         <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-accent-gold sm:text-xs">
